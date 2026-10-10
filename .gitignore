@@ -1,0 +1,29 @@
+# Dependências
+node_modules/
+
+# Builds e relatórios gerados
+dist/
+build/
+coverage/
+
+# Variáveis de ambiente: contêm segredos e NUNCA vão para o Git.
+# Só os modelos (.env.example) são versionados.
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Imagens carregadas localmente pela API (em produção vão para o storage na Cloud)
+api/uploads/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores (as extensões recomendadas do VS Code são partilhadas)
+.idea/
+.vscode/*
+!.vscode/extensions.json
