@@ -4,7 +4,7 @@ Mercado digital de produtores locais do Alto Minho, com encomendas e leilões em
 
 Trabalho prático individual de **Desenvolvimento Web e para a Cloud** · Mestrado em Engenharia Informática · IPVC–ESTG · 2026/2027
 
-**Autor:** _(a preencher: nome e n.º de aluno)_
+**Autor:** Diogo Esteves de Sá, 31378
 
 > **Estado:** em desenvolvimento, semana 1 de 7.
 > Este README é o relatório do projeto e contém as instruções de instalação. É escrito ao longo do trabalho, à medida que cada parte fica concluída.
