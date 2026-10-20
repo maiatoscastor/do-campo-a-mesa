@@ -1,0 +1,2117 @@
+<title>Do Campo à Mesa</title>
+<meta name="description" content="Protótipo interativo da direção visual A 2026: início em bento, catálogo com filtros, leilão em direto e modo escuro.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Plus+Jakarta+Sans:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&icon_names=add,arrow_back,brightness_auto,chat,check,check_circle,chevron_right,close,dark_mode,eco,emoji_events,favorite,gavel,group,home,info,light_mode,local_shipping,location_on,map,notifications,package_2,palette,person,receipt_long,remove,restart_alt,schedule,search,shopping_bag,star,storefront,timer,tune,verified,visibility&display=block">
+<style>
+/* Layout: app mobile-first com navegação inferior; a partir de 1024 px passa a cabeçalho com
+   navegação e grelhas de 3 a 4 colunas. Breakpoints do projeto: 768 · 1024 · 1280 px. */
+:root {
+  /* Escalas de 12 passos geradas em OKLCH a partir do verde e do laranja da direção A.
+     1–2 fundos · 3–5 componentes · 6–8 bordas · 9–10 sólidos · 11–12 texto */
+  --verde-1: #F9FFFA; --verde-2: #F1FBF3; --verde-3: #E3F5E6; --verde-4: #D5EFD9;
+  --verde-5: #C5E8CB; --verde-6: #B4DDBB; --verde-7: #9ECFA7; --verde-8: #7DBA8A;
+  --verde-9: #1F7A3D; --verde-10: #076D30; --verde-11: #156D34; --verde-12: #063114;
+
+  --laranja-1: #FFFCFB; --laranja-2: #FFF6F3; --laranja-3: #FFEBE4; --laranja-4: #FFDFD5;
+  --laranja-5: #FFD1C3; --laranja-6: #FFC0AC; --laranja-7: #FBA98F; --laranja-8: #EE8A6B;
+  --laranja-9: #C2410C; --laranja-10: #AF3600; --laranja-11: #9D3000; --laranja-12: #4A1200;
+
+  --neutro-1: #FCFEFD; --neutro-2: #F8FAF8; --neutro-3: #EFF2EF; --neutro-4: #E6EAE7;
+  --neutro-5: #DDE2DE; --neutro-6: #D3D8D4; --neutro-7: #C4CAC5; --neutro-8: #ADB4AE;
+  --neutro-9: #878E88; --neutro-10: #7B827C; --neutro-11: #5F6760; --neutro-12: #1A211B;
+
+  /* Cores de estado (só os passos usados) */
+  --ambar-3: #FDEDDE; --ambar-6: #EDCAA8; --ambar-9: #A16207; --ambar-11: #814D00;
+  --azul-3: #E7F1FF; --azul-6: #B6D3FF; --azul-9: #1E5BB8; --azul-11: #1D57AE;
+  --vermelho-3: #FFEAE8; --vermelho-6: #FFBFB7; --vermelho-9: #C42B2B; --vermelho-11: #A9141B;
+  --branco: #FFFFFF;
+
+  /* Tokens semânticos: os componentes só usam estes */
+  --bg: var(--neutro-1);
+  --surface: var(--branco);
+  --tile: var(--neutro-3);
+  --tile-fill: var(--surface);
+  --fill: var(--neutro-3);
+  --fill-hover: var(--neutro-4);
+  --border: var(--neutro-6);
+  --border-field: var(--neutro-9);
+  --text: var(--neutro-12);
+  --text-muted: var(--neutro-11);
+  --brand: var(--verde-9);
+  --brand-hover: var(--verde-10);
+  --brand-text: var(--verde-11);
+  --brand-soft: var(--verde-3);
+  --on-brand: var(--branco);
+  --live: var(--laranja-9);
+  --live-hover: var(--laranja-10);
+  --live-text: var(--laranja-11);
+  --live-soft: var(--laranja-3);
+  --on-live: var(--branco);
+  --hero-bg: var(--verde-12);
+  --hero-fg: var(--verde-1);
+  --hero-muted: var(--verde-6);
+  --hero-line: var(--verde-11);
+  --focus: var(--verde-9);
+  --glass: color-mix(in srgb, var(--surface) 76%, transparent);
+  --scrim: rgb(13 16 14 / 0.45);
+  --shadow-rgb: 22 33 24;
+  --pendente-bg: var(--ambar-3); --pendente-fg: var(--ambar-11);
+  --confirmada-bg: var(--azul-3); --confirmada-fg: var(--azul-11);
+  --pronta-bg: var(--verde-3); --pronta-fg: var(--verde-11);
+  --entregue-bg: var(--neutro-3); --entregue-fg: var(--neutro-11);
+  --erro-bg: var(--vermelho-3); --erro-fg: var(--vermelho-11); --erro: var(--vermelho-9);
+  --cat-fruta: var(--verde-3); --cat-horticolas: var(--verde-4); --cat-mel: var(--ambar-3);
+  --cat-vinho: var(--azul-3); --cat-queijo: var(--ambar-3); --cat-padaria: var(--laranja-3);
+  --cat-outros: var(--neutro-4);
+
+  /* Tipografia: Bricolage Grotesque só nos títulos; Plus Jakarta Sans no resto */
+  --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --t-display: clamp(2.15rem, 1.55rem + 2.6vw, 3.5rem);
+  --t-h1: 1.75rem; --t-h2: 1.375rem; --t-h3: 1.125rem;
+  --t-body: 1rem; --t-small: 0.875rem; --t-caption: 0.75rem;
+
+  /* Forma, espaço, elevação e movimento */
+  --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --r-full: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --shadow-1: 0 1px 2px rgb(var(--shadow-rgb) / 0.07), 0 1px 1px rgb(var(--shadow-rgb) / 0.04);
+  --shadow-2: 0 12px 32px -12px rgb(var(--shadow-rgb) / 0.30), 0 2px 6px rgb(var(--shadow-rgb) / 0.06);
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-mola: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --topo-h: 60px;
+  --nav-h: 68px;
+}
+/* Modo escuro: só se redefinem as escalas e meia dúzia de papéis; o resto deriva sozinho */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --verde-1: #0C110D; --verde-2: #101812; --verde-3: #162218; --verde-4: #1A2B1E;
+    --verde-5: #1E3523; --verde-6: #24402A; --verde-7: #2D5135; --verde-8: #396A44;
+    --verde-9: #2C8547; --verde-10: #1F7A3D; --verde-11: #93D5A0; --verde-12: #D9F3DD;
+    --laranja-1: #160D0A; --laranja-2: #20120E; --laranja-3: #2D1912; --laranja-4: #3A1E15;
+    --laranja-5: #472317; --laranja-6: #572A1C; --laranja-7: #6E3422; --laranja-8: #90432A;
+    --laranja-9: #CB4919; --laranja-10: #BF3D04; --laranja-11: #FFAA8F; --laranja-12: #FFE5DC;
+    --neutro-1: #0D100E; --neutro-2: #131614; --neutro-3: #1B1E1B; --neutro-4: #222622;
+    --neutro-5: #282D29; --neutro-6: #313732; --neutro-7: #3F4540; --neutro-8: #535A54;
+    --neutro-9: #727A73; --neutro-10: #7E867F; --neutro-11: #B5BDB6; --neutro-12: #ECF0EC;
+    --ambar-3: #271D12; --ambar-6: #4A331B; --ambar-9: #A66611; --ambar-11: #EDB67E;
+    --azul-3: #161F2E; --azul-6: #23395A; --azul-9: #3572D1; --azul-11: #9FC4FF;
+    --vermelho-3: #2F1715; --vermelho-6: #5A2622; --vermelho-9: #D43C39; --vermelho-11: #FFA89F;
+    --surface: var(--neutro-3); --tile: var(--neutro-3); --tile-fill: var(--neutro-5);
+    --fill: var(--neutro-4); --fill-hover: var(--neutro-5);
+    --hero-bg: var(--verde-3); --hero-fg: var(--neutro-12); --hero-muted: var(--verde-11); --hero-line: var(--verde-6);
+    --focus: var(--verde-11); --scrim: rgb(0 0 0 / 0.62); --shadow-rgb: 0 0 0;
+    --cat-fruta: var(--verde-4); --cat-horticolas: var(--verde-5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --verde-1: #0C110D; --verde-2: #101812; --verde-3: #162218; --verde-4: #1A2B1E;
+  --verde-5: #1E3523; --verde-6: #24402A; --verde-7: #2D5135; --verde-8: #396A44;
+  --verde-9: #2C8547; --verde-10: #1F7A3D; --verde-11: #93D5A0; --verde-12: #D9F3DD;
+  --laranja-1: #160D0A; --laranja-2: #20120E; --laranja-3: #2D1912; --laranja-4: #3A1E15;
+  --laranja-5: #472317; --laranja-6: #572A1C; --laranja-7: #6E3422; --laranja-8: #90432A;
+  --laranja-9: #CB4919; --laranja-10: #BF3D04; --laranja-11: #FFAA8F; --laranja-12: #FFE5DC;
+  --neutro-1: #0D100E; --neutro-2: #131614; --neutro-3: #1B1E1B; --neutro-4: #222622;
+  --neutro-5: #282D29; --neutro-6: #313732; --neutro-7: #3F4540; --neutro-8: #535A54;
+  --neutro-9: #727A73; --neutro-10: #7E867F; --neutro-11: #B5BDB6; --neutro-12: #ECF0EC;
+  --ambar-3: #271D12; --ambar-6: #4A331B; --ambar-9: #A66611; --ambar-11: #EDB67E;
+  --azul-3: #161F2E; --azul-6: #23395A; --azul-9: #3572D1; --azul-11: #9FC4FF;
+  --vermelho-3: #2F1715; --vermelho-6: #5A2622; --vermelho-9: #D43C39; --vermelho-11: #FFA89F;
+  --surface: var(--neutro-3); --tile: var(--neutro-3); --tile-fill: var(--neutro-5);
+  --fill: var(--neutro-4); --fill-hover: var(--neutro-5);
+  --hero-bg: var(--verde-3); --hero-fg: var(--neutro-12); --hero-muted: var(--verde-11); --hero-line: var(--verde-6);
+  --focus: var(--verde-11); --scrim: rgb(0 0 0 / 0.62); --shadow-rgb: 0 0 0;
+  --cat-fruta: var(--verde-4); --cat-horticolas: var(--verde-5);
+  color-scheme: dark;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 88px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font-body); font-size: var(--t-body); line-height: 1.55;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+h1, h2, h3 {
+  font-family: var(--font-display); font-weight: 750; line-height: 1.08;
+  letter-spacing: -0.025em; margin: 0; text-wrap: balance;
+}
+p { margin: 0; }
+[hidden] { display: none !important; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+input, select, textarea { font: inherit; color: inherit; }
+svg { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.saltar {
+  position: absolute; left: 16px; top: -120px; z-index: 100; padding: 10px 18px;
+  border-radius: var(--r-full); background: var(--brand); color: var(--on-brand); font-weight: 700;
+}
+.saltar:focus { top: calc(env(safe-area-inset-top, 0px) + 8px); }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-muted); }
+.ic {
+  font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal;
+  font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none;
+  display: inline-block; white-space: nowrap; direction: ltr; width: 1em; height: 1em;
+  overflow: hidden; flex: none; user-select: none; -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga"; font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 24;
+}
+.ic.cheio { font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.ic.m { font-size: 20px; }
+.ic.p { font-size: 18px; }
+
+/* ---------- Estrutura: cabeçalho, vista e navegação inferior ---------- */
+.topo {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  view-transition-name: topo;
+}
+.topo-interior {
+  height: var(--topo-h); display: flex; align-items: center; gap: var(--s-3);
+  padding-inline: 16px; max-width: 1240px; margin-inline: auto;
+}
+.marca {
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 800; font-size: 1.125rem; letter-spacing: -0.02em;
+}
+.marca-simbolo {
+  width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+  background: var(--brand); color: var(--on-brand);
+}
+.marca { min-width: 0; }
+.marca > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.topo-nav, .topo-interior .topo-pesquisa, .topo-acoes .so-desktop { display: none; }
+.topo-acoes { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.btn-icone {
+  width: 44px; height: 44px; border-radius: var(--r-full); border: 0; background: transparent;
+  display: inline-grid; place-items: center; position: relative; flex: none;
+  transition: background var(--dur-1) var(--ease-out);
+}
+.btn-icone:hover { background: var(--fill); }
+.ponto {
+  position: absolute; top: 9px; right: 10px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--live); box-shadow: 0 0 0 2px var(--bg);
+}
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  font-weight: 800; font-size: 0.8125rem; background: var(--brand-soft); color: var(--brand-text);
+}
+.vista {
+  max-width: 1240px; margin-inline: auto;
+  padding: var(--s-4) 16px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--s-8));
+}
+.nav-inferior {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  view-transition-name: nav-inferior;
+}
+.nav-lista {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--nav-h);
+  max-width: 560px; margin: 0 auto; padding: 0 4px; list-style: none;
+}
+.nav-item {
+  width: 100%; height: 100%; border: 0; background: none; position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: 0.6875rem; font-weight: 650; color: var(--text-muted);
+}
+.nav-icone {
+  width: 56px; height: 30px; border-radius: var(--r-full); display: grid; place-items: center;
+  position: relative; transition: background var(--dur-2) var(--ease-out);
+}
+.nav-item[aria-current="page"] { color: var(--brand-text); }
+.nav-item[aria-current="page"] .nav-icone { background: var(--brand-soft); }
+.nav-item[aria-current="page"] .ic { font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.contador {
+  position: absolute; top: -4px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: var(--r-full); display: grid; place-items: center;
+  background: var(--live); color: var(--on-live); font-size: 0.6875rem; font-weight: 800;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topo, .nav-inferior { background: var(--surface); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .topo, .nav-inferior { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (min-width: 768px) {
+  .vista, .topo-interior { padding-inline: 24px; }
+}
+@media (min-width: 1024px) {
+  :root { --topo-h: 72px; }
+  .nav-inferior { display: none; }
+  .vista { padding: var(--s-6) 32px var(--s-10); }
+  .topo-interior { padding-inline: 32px; gap: var(--s-5); }
+  .topo-nav { display: flex; gap: 2px; }
+  .topo-nav a {
+    padding: 9px 14px; border-radius: var(--r-full); font-weight: 650; font-size: var(--t-small);
+    color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .topo-nav a:hover { background: var(--fill); color: var(--text); }
+  .topo-nav a[aria-current="page"] { background: var(--brand-soft); color: var(--brand-text); }
+  .topo-interior .topo-pesquisa { display: flex; flex: 1; max-width: 400px; margin-left: auto; }
+  .topo-acoes { margin-left: 0; }
+  .topo-acoes .so-desktop { display: inline-grid; }
+}
+@media (min-width: 1280px) {
+  .vista, .topo-interior { padding-inline: 40px; }
+}
+
+/* ---------- Componentes ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; padding: 0 22px; border: 0; border-radius: var(--r-full);
+  font-weight: 700; font-size: 0.9375rem; white-space: nowrap; text-align: center;
+  transition: background var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.btn:active { transform: scale(0.97); }
+.btn-principal { background: var(--brand); color: var(--on-brand); }
+.btn-principal:hover { background: var(--brand-hover); }
+.btn-direto { background: var(--live); color: var(--on-live); }
+.btn-direto:hover { background: var(--live-hover); }
+.btn-secundario { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--border); }
+.btn-secundario:hover { box-shadow: inset 0 0 0 1.5px var(--border-field); }
+.btn-suave { background: var(--brand-soft); color: var(--brand-text); }
+.btn-suave:hover { background: var(--verde-4); }
+.btn-fantasma { background: transparent; color: var(--brand-text); padding-inline: 12px; }
+.btn-fantasma:hover { background: var(--fill); }
+.btn-pequeno { height: 38px; padding: 0 14px; font-size: var(--t-small); }
+.btn-bloco { width: 100%; }
+.btn-adicionar {
+  width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%;
+  display: inline-grid; place-items: center; background: var(--brand); color: var(--on-brand);
+  position: relative; z-index: 1;
+  transition: background var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+.btn-adicionar:hover { background: var(--brand-hover); }
+.btn-adicionar:active { transform: scale(0.88); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; flex: none;
+  border: 0; border-radius: var(--r-full); background: var(--fill); color: var(--text);
+  font-weight: 650; font-size: var(--t-small); white-space: nowrap;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+.chip:hover { background: var(--fill-hover); }
+.chip[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+.chip-removivel { background: var(--brand-soft); color: var(--brand-text); padding-right: 8px; }
+.chip-removivel:hover { background: var(--verde-4); }
+.chips-rolagem {
+  display: flex; gap: var(--s-2); overflow-x: auto; scrollbar-width: none;
+  margin-inline: -16px; padding: 2px 16px; scroll-padding-inline: 16px;
+}
+.chips-rolagem::-webkit-scrollbar { display: none; }
+
+.etiqueta {
+  display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px;
+  border-radius: var(--r-full); font-size: 0.75rem; font-weight: 750; white-space: nowrap;
+  background: var(--surface); color: var(--text);
+}
+.etiqueta-bio { background: var(--brand-soft); color: var(--brand-text); }
+.etiqueta-direto { background: var(--live); color: var(--on-live); }
+.etiqueta-suave { background: var(--live-soft); color: var(--live-text); }
+.bolinha { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+
+.estado {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
+  border-radius: var(--r-full); font-size: 0.8125rem; font-weight: 750; white-space: nowrap;
+}
+.estado-pendente { background: var(--pendente-bg); color: var(--pendente-fg); }
+.estado-confirmada { background: var(--confirmada-bg); color: var(--confirmada-fg); }
+.estado-pronta { background: var(--pronta-bg); color: var(--pronta-fg); }
+.estado-entregue { background: var(--entregue-bg); color: var(--entregue-fg); }
+
+.campo-grupo { display: grid; gap: 6px; }
+.rotulo { font-size: var(--t-small); font-weight: 700; }
+.campo {
+  width: 100%; height: 50px; padding: 0 16px; border-radius: var(--r-md);
+  border: 1.5px solid var(--border-field); background: var(--surface); color: var(--text); font-size: 1rem;
+  transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+}
+.campo:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 22%, transparent); }
+.campo::placeholder { color: var(--text-muted); opacity: 1; }
+
+.pesquisa {
+  display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 6px 0 18px;
+  border-radius: var(--r-full); background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--border);
+  transition: box-shadow var(--dur-1) var(--ease-out);
+}
+.pesquisa:focus-within { box-shadow: inset 0 0 0 2px var(--brand), 0 0 0 4px color-mix(in srgb, var(--brand) 18%, transparent); }
+.pesquisa input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; outline: none; font-size: 1rem; }
+.pesquisa input::placeholder { color: var(--text-muted); opacity: 1; }
+.pesquisa .ic { color: var(--text-muted); }
+.btn-pesquisar {
+  height: 42px; padding: 0 16px; border: 0; border-radius: var(--r-full); flex: none;
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: var(--t-small);
+  background: var(--brand); color: var(--on-brand);
+}
+.btn-pesquisar:hover { background: var(--brand-hover); }
+.btn-pesquisar .ic { color: inherit; }
+.pesquisa-compacta { height: 44px; padding-left: 14px; padding-right: 4px; }
+.pesquisa-compacta .btn-pesquisar { height: 36px; width: 36px; padding: 0; justify-content: center; }
+
+.interruptor { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 48px; cursor: pointer; font-weight: 650; }
+.interruptor input {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none; cursor: pointer;
+  width: 52px; height: 32px; border-radius: var(--r-full); background: var(--neutro-7); position: relative;
+  transition: background var(--dur-2) var(--ease-out);
+}
+.interruptor input::after {
+  content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--branco); box-shadow: var(--shadow-1); transition: transform var(--dur-2) var(--ease-mola);
+}
+.interruptor input:checked { background: var(--brand); }
+.interruptor input:checked::after { transform: translateX(20px); }
+
+.segmentado {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; padding: 4px;
+  border-radius: var(--r-full); background: var(--fill);
+}
+.segmentado button {
+  height: 40px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--text-muted);
+  font-weight: 700; font-size: var(--t-small); display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0 8px; white-space: nowrap; transition: background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
+}
+.segmentado button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); }
+
+.passos { display: inline-flex; align-items: center; gap: 2px; height: 46px; padding: 3px; border-radius: var(--r-full); background: var(--fill); flex: none; }
+.passos button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--surface); display: inline-grid; place-items: center; box-shadow: var(--shadow-1); }
+.passos output { min-width: 52px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; font-size: var(--t-small); }
+
+/* Cartão de produto */
+.grelha-produtos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6) var(--s-3); }
+.cartao-produto { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ilu-caixa {
+  position: relative; display: grid; place-items: center; overflow: hidden; max-width: 100%;
+  aspect-ratio: 1 / 0.86; border-radius: var(--r-lg); background: var(--cat, var(--tile));
+}
+.ilu-caixa svg { width: 64%; height: 64%; transition: transform var(--dur-3) var(--ease-mola); }
+.cartao-produto:hover .ilu-caixa svg { transform: scale(1.06) rotate(-3deg); }
+.cartao-produto .etiquetas { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; z-index: 1; }
+.cartao-produto h3 { font-family: var(--font-body); font-size: 0.9375rem; font-weight: 750; letter-spacing: -0.01em; line-height: 1.25; margin-top: 4px; }
+.cartao-produto .cobrir::after { content: ""; position: absolute; inset: 0; border-radius: var(--r-lg); }
+.origem { font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linha-preco { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-top: auto; padding-top: 2px; }
+.preco { font-weight: 800; font-size: 1.0625rem; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; white-space: nowrap; }
+.preco small { font-weight: 600; font-size: 0.75rem; color: var(--text-muted); margin-left: 2px; }
+.avaliacao { display: inline-flex; align-items: center; gap: 2px; font-size: 0.75rem; font-weight: 750; color: var(--text-muted); }
+.avaliacao .ic { font-size: 15px; color: var(--ambar-9); font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+
+/* Mosaico (bloco do bento) */
+.mosaico { position: relative; min-width: 0; overflow: hidden; border-radius: var(--r-xl); background: var(--tile); padding: var(--s-5); }
+
+/* Folha que sobe do fundo (filtros) */
+.folha {
+  border: 0; padding: 0; margin: auto 0 0; width: 100%; max-width: 100%; max-height: 88vh;
+  border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow-2); overflow: auto; overscroll-behavior: contain;
+}
+.folha[open] { animation: subir var(--dur-3) var(--ease-out); }
+.folha::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.folha[open]::backdrop { animation: aparecer var(--dur-3) var(--ease-out); }
+.folha-pega { width: 42px; height: 5px; border-radius: 3px; background: var(--neutro-7); margin: 10px auto 0; }
+.folha-cabecalho { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 6px 12px 6px 20px; background: var(--surface); }
+.folha-cabecalho h2 { font-size: var(--t-h2); }
+.folha-corpo { display: grid; gap: var(--s-6); padding: 6px 20px 20px; }
+.folha-rodape {
+  position: sticky; bottom: 0; display: flex; gap: var(--s-3);
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); border-top: 1px solid var(--border);
+}
+.folha-rodape .btn-principal { flex: 1; }
+.grupo-filtro { display: grid; gap: var(--s-3); }
+.grupo-filtro > h3 { font-family: var(--font-body); font-size: var(--t-small); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.lista-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.intervalo { width: 100%; accent-color: var(--brand); }
+@keyframes subir { from { transform: translateY(100%); } }
+@keyframes aparecer { from { opacity: 0; } }
+
+/* Avisos (toasts) e alertas */
+.avisos {
+  position: fixed; z-index: 60; left: 12px; right: 12px; display: grid; gap: 8px; pointer-events: none;
+  top: calc(env(safe-area-inset-top, 0px) + var(--topo-h) + 8px);
+}
+.aviso {
+  pointer-events: auto; display: flex; align-items: flex-start; gap: 12px; padding: 14px 12px 14px 16px;
+  border-radius: var(--r-lg); background: var(--neutro-12); color: var(--neutro-1); box-shadow: var(--shadow-2);
+  font-size: var(--t-small); line-height: 1.45; animation: entrar-aviso var(--dur-3) var(--ease-mola);
+}
+.aviso > .ic { color: var(--verde-7); margin-top: -1px; }
+.aviso p { flex: 1; min-width: 0; }
+.aviso-acao { flex: none; border: 0; background: transparent; color: inherit; font-weight: 800; text-decoration: underline; padding: 2px 6px; }
+.aviso.sair { animation: sair-aviso 180ms ease-in forwards; }
+@keyframes entrar-aviso { from { opacity: 0; transform: translateY(-12px) scale(0.98); } }
+@keyframes sair-aviso { to { opacity: 0; transform: translateY(-8px); } }
+.alerta { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); font-size: var(--t-small); font-weight: 650; }
+.alerta-erro { background: var(--erro-bg); color: var(--erro-fg); }
+.alerta-ok { background: var(--brand-soft); color: var(--brand-text); }
+
+/* Anel da contagem decrescente */
+.anel { position: relative; width: var(--anel, 64px); height: var(--anel, 64px); flex: none; }
+.anel svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.anel .anel-fundo { stroke: color-mix(in srgb, currentColor 16%, transparent); }
+.anel .anel-progresso { stroke: var(--live); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.anel .ic { position: absolute; inset: 0; margin: auto; color: var(--live); }
+
+/* Pequenas animações */
+.pulsar { animation: pulsar 1.6s ease-in-out infinite; }
+.saltinho { animation: saltinho 480ms var(--ease-mola); }
+.tremer { animation: tremer 360ms var(--ease-out); }
+.realce { animation: realce 1.4s var(--ease-out); }
+@keyframes pulsar { 50% { opacity: 0.35; transform: scale(0.8); } }
+@keyframes saltinho { 40% { transform: scale(1.14); } }
+@keyframes tremer { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+@keyframes realce { from { background: var(--live-soft); } }
+
+/* Secções e títulos */
+.secao { display: grid; gap: var(--s-4); margin-top: var(--s-10); }
+.secao-cabecalho { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+.secao-cabecalho h2 { font-size: var(--t-h2); }
+.ligacao { display: inline-flex; align-items: center; gap: 2px; font-weight: 750; font-size: var(--t-small); color: var(--brand-text); white-space: nowrap; }
+.ligacao:hover { text-decoration: underline; }
+.titulo-pagina { font-size: var(--t-h1); }
+.subtitulo { color: var(--text-muted); font-size: var(--t-small); }
+
+/* ---------- Início (bento) ---------- */
+.sobretitulo { font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+a.mosaico, button.mosaico { display: grid; color: inherit; text-align: left; border: 0; font: inherit; cursor: pointer; transition: transform var(--dur-2) var(--ease-mola); }
+a.mosaico:hover, button.mosaico:hover { transform: translateY(-2px); }
+@media (min-width: 1280px) { .limite-4 > :nth-child(n + 5) { display: none; } }
+.inicio-topo { display: grid; gap: var(--s-4); padding-top: var(--s-2); }
+.saudacao { display: flex; align-items: center; gap: 6px; font-size: var(--t-small); font-weight: 750; color: var(--brand-text); }
+.titulo-heroi { font-size: var(--t-display); font-weight: 800; letter-spacing: -0.04em; line-height: 0.96; }
+.titulo-heroi em { font-style: normal; color: var(--brand); }
+.inicio-topo .subtitulo { font-size: 0.9375rem; max-width: 46ch; }
+.bento { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: var(--s-6); }
+.mosaico-direto {
+  grid-column: 1 / -1; display: grid; gap: var(--s-4); align-content: space-between;
+  background: var(--hero-bg); color: var(--hero-fg); border: 1px solid var(--hero-line);
+}
+.mosaico-direto .linha-topo { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.assistir { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-small); font-weight: 650; color: var(--hero-muted); }
+.mosaico-direto h2 { font-size: 1.625rem; max-width: 15ch; }
+.origem-lote { margin-top: 6px; color: var(--hero-muted); font-size: var(--t-small); font-weight: 600; }
+.numeros-lote { display: flex; align-items: flex-end; gap: var(--s-4); }
+.rotulo-pequeno { font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--hero-muted); }
+.valor-grande { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.contagem { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.contagem .tempo { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mosaico-direto .anel { --anel: 44px; color: var(--hero-fg); }
+.lote-ilustracao { display: none; position: absolute; right: 22px; top: 22px; width: 32%; max-width: 210px; pointer-events: none; }
+.mosaico-produtor { display: grid; gap: var(--s-3); align-content: start; }
+.mosaico-produtor .avatar { width: 46px; height: 46px; font-size: 0.9375rem; background: var(--surface); color: var(--pendente-fg); }
+.citacao { font-family: var(--font-display); font-weight: 650; font-size: 1.0625rem; line-height: 1.2; letter-spacing: -0.01em; }
+.mosaico-epoca { display: grid; gap: var(--s-2); align-content: start; background: var(--cat-mel); }
+.mosaico-epoca .ilus { display: flex; gap: 2px; height: 42px; }
+.mosaico-epoca .ilus svg { width: 42px; height: 42px; flex: none; }
+.mosaico-epoca h3, .mosaico-produtor h3 { font-family: var(--font-body); font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+.mosaico-categorias { grid-column: 1 / -1; padding: var(--s-4); }
+.categorias { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+.categoria {
+  display: grid; justify-items: center; gap: 6px; padding: 12px 4px; border: 0; border-radius: var(--r-lg);
+  background: var(--tile-fill); color: var(--text); font-weight: 700; font-size: 0.8125rem;
+  transition: transform var(--dur-2) var(--ease-mola);
+}
+.categoria:hover { transform: translateY(-2px); }
+.ilu-mini { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--cat); }
+.ilu-mini svg { width: 32px; height: 32px; }
+.mosaico-proximo { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.data-caixa { width: 58px; height: 62px; flex: none; display: grid; place-content: center; text-align: center; line-height: 1.05; border-radius: var(--r-md); background: var(--tile-fill); }
+.data-caixa strong { font-family: var(--font-display); font-size: 1.375rem; }
+.data-caixa span { font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--live-text); }
+.proximo-texto { flex: 1; min-width: 150px; display: grid; gap: 2px; }
+.proximo-texto strong { font-size: 0.9375rem; }
+@media (min-width: 768px) {
+  .bento { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4); }
+  .mosaico-direto { grid-column: span 4; padding: var(--s-6); }
+  .mosaico-produtor, .mosaico-epoca { grid-column: span 2; }
+  .mosaico-proximo, .mosaico-categorias { grid-column: span 4; }
+  .categorias { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .lote-ilustracao { display: block; }
+  .mosaico-epoca .ilus { height: 58px; }
+  .mosaico-epoca .ilus svg { width: 58px; height: 58px; }
+  .grelha-produtos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-8) var(--s-4); }
+}
+@media (min-width: 1024px) {
+  .inicio-topo { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: end; column-gap: var(--s-10); }
+  .mosaico-direto { grid-column: 1 / 3; grid-row: 1 / 3; min-height: 380px; }
+  .mosaico-direto h2 { font-size: 2rem; }
+  .mosaico-produtor { grid-column: 3; grid-row: 1; }
+  .mosaico-epoca { grid-column: 4; grid-row: 1; }
+  .mosaico-proximo { grid-column: 3 / 5; grid-row: 2; }
+  .mosaico-categorias { grid-column: 1 / -1; }
+}
+@media (min-width: 1280px) {
+  .grelha-produtos { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---------- Catálogo ---------- */
+.catalogo { display: grid; gap: var(--s-5); }
+.catalogo-principal { display: grid; gap: var(--s-4); min-width: 0; }
+.catalogo-cabecalho { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+.barra-ferramentas { display: flex; align-items: center; gap: var(--s-2); }
+.contagem-filtros {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: var(--r-full); display: inline-grid; place-items: center;
+  background: var(--brand); color: var(--on-brand); font-size: 0.75rem; font-weight: 800;
+}
+.ordenar {
+  margin-left: auto; max-width: 60%; height: 44px; padding: 0 12px; border-radius: var(--r-full);
+  border: 1.5px solid var(--border); background: var(--surface); color: var(--text); font-weight: 650; font-size: var(--t-small);
+}
+.resultado { font-size: var(--t-small); font-weight: 650; color: var(--text-muted); }
+.lateral-filtros { display: none; }
+.vazio {
+  display: grid; justify-items: center; gap: var(--s-3); text-align: center;
+  padding: var(--s-10) var(--s-5); border-radius: var(--r-xl); background: var(--tile);
+}
+.vazio svg { width: 96px; height: 96px; }
+@media (min-width: 768px) {
+  .chips-rolagem { margin-inline: -24px; padding-inline: 24px; scroll-padding-inline: 24px; }
+}
+@media (min-width: 1024px) {
+  .catalogo { grid-template-columns: 290px minmax(0, 1fr); align-items: start; column-gap: var(--s-8); }
+  .lateral-filtros {
+    display: grid; gap: var(--s-6); position: sticky; top: calc(var(--topo-h) + 24px);
+    padding: var(--s-5); border-radius: var(--r-xl); background: var(--tile);
+  }
+  .lateral-filtros .chip { background: var(--tile-fill); }
+  .lateral-filtros .chip[aria-pressed="true"] { background: var(--brand); }
+  .btn-filtros { display: none; }
+  .chips-rolagem { margin-inline: 0; padding-inline: 0; flex-wrap: wrap; overflow: visible; }
+}
+
+/* ---------- Produto ---------- */
+.produto { display: grid; gap: var(--s-5); }
+.voltar {
+  display: inline-flex; align-items: center; gap: 4px; width: fit-content; height: 40px; padding: 0 14px 0 8px;
+  border: 0; border-radius: var(--r-full); background: var(--fill); font-weight: 700; font-size: var(--t-small);
+}
+.voltar:hover { background: var(--fill-hover); }
+.produto-heroi {
+  position: relative; display: grid; place-items: center; overflow: hidden; max-width: 100%;
+  aspect-ratio: 4 / 3; border-radius: var(--r-xl); background: var(--cat);
+}
+.produto-heroi svg { width: 58%; height: 58%; }
+.produto-heroi .etiquetas { position: absolute; top: 14px; left: 14px; display: flex; gap: 6px; }
+.produto-info { display: grid; gap: var(--s-4); align-content: start; }
+.produto-info h1 { font-size: 2rem; }
+.linha-produtor { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--t-small); font-weight: 650; }
+.linha-produtor .avatar { width: 30px; height: 30px; font-size: 0.6875rem; }
+.preco-grande { font-size: 2.125rem; font-weight: 800; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; line-height: 1; }
+.preco-grande small { font-size: 1rem; font-weight: 650; color: var(--text-muted); letter-spacing: 0; }
+.factos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.facto { display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tile); min-width: 0; }
+.facto span { font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+.facto strong { font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+.descricao { color: var(--text-muted); max-width: 62ch; }
+.cartao-produtor { display: grid; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--border); }
+.cartao-produtor .cabecalho { display: flex; align-items: center; gap: var(--s-3); }
+.cartao-produtor .avatar { width: 48px; height: 48px; font-size: 0.9375rem; background: var(--cat-mel); color: var(--pendente-fg); }
+.verificado { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 750; color: var(--brand-text); }
+.verificado .ic { font-size: 16px; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.barra-acao {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; align-items: center; gap: var(--s-3);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--glass); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.barra-acao .btn-principal { flex: 1; }
+:root[data-detalhe] .nav-inferior { display: none; }
+@media (min-width: 1024px) {
+  .produto { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); column-gap: var(--s-10); align-items: start; }
+  .produto > .voltar { grid-column: 1 / -1; }
+  .produto-heroi { position: sticky; top: calc(var(--topo-h) + 24px); aspect-ratio: 1; }
+  .produto-info h1 { font-size: 2.75rem; }
+  .barra-acao { position: static; padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* ---------- Sala de leilão ---------- */
+.leilao { display: grid; gap: var(--s-5); grid-template-areas: "voltar" "heroi" "cabecalho" "painel" "feed" "detalhes"; }
+.leilao > .voltar { grid-area: voltar; }
+.leilao-heroi {
+  grid-area: heroi; position: relative; display: grid; place-items: center; overflow: hidden; max-width: 100%;
+  aspect-ratio: 16 / 9; border-radius: var(--r-xl); background: var(--live-soft);
+}
+.leilao-heroi svg { width: 46%; height: 78%; }
+.leilao-heroi .etiquetas { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.leilao-cabecalho { grid-area: cabecalho; display: grid; gap: 6px; }
+.leilao-cabecalho h1 { font-size: 1.75rem; }
+.painel-licitacao {
+  grid-area: painel; display: grid; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-1);
+}
+.painel-topo { display: flex; align-items: center; gap: var(--s-4); }
+.painel-topo .anel { --anel: 60px; color: var(--text); }
+.tempo-grande { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.tempo-grande.urgente { color: var(--live-text); }
+.atual { display: grid; gap: 6px; padding: var(--s-4); border-radius: var(--r-lg); background: var(--tile); }
+.atual .valor { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.lider { display: flex; align-items: center; gap: 8px; font-size: var(--t-small); font-weight: 700; }
+.lider .avatar { width: 26px; height: 26px; font-size: 0.625rem; }
+.lider.eu { color: var(--brand-text); }
+.atalhos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+.atalhos button {
+  height: 46px; border-radius: var(--r-md); border: 1.5px solid var(--border); background: var(--surface);
+  font-weight: 800; font-variant-numeric: tabular-nums;
+  transition: border-color var(--dur-1) var(--ease-out), background var(--dur-1) var(--ease-out);
+}
+.atalhos button:hover { border-color: var(--live); color: var(--live-text); }
+.atalhos button[aria-pressed="true"] { border-color: var(--live); background: var(--live-soft); color: var(--live-text); }
+.campo-valor { font-size: 1.25rem; font-weight: 800; height: 56px; font-variant-numeric: tabular-nums; }
+.btn-licitar { height: 56px; font-size: 1.0625rem; }
+.feed { grid-area: feed; display: grid; gap: var(--s-3); }
+.feed-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.feed-cabecalho h2 { font-size: var(--t-h3); }
+.licitacoes { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.licitacao { display: flex; align-items: center; gap: var(--s-3); padding: 10px 12px; border-radius: var(--r-md); }
+.licitacao:first-child { background: var(--tile); }
+.licitacao .quem { flex: 1; min-width: 0; display: grid; }
+.licitacao .quem strong { font-size: var(--t-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.licitacao .quem span { font-size: 0.75rem; color: var(--text-muted); }
+.licitacao .valor { font-weight: 800; font-variant-numeric: tabular-nums; }
+.licitacao.nova { animation: entrar-licitacao 640ms var(--ease-mola); }
+@keyframes entrar-licitacao { from { opacity: 0; transform: translateY(-10px); background: var(--live-soft); } }
+.cor-a { background: var(--confirmada-bg); color: var(--confirmada-fg); }
+.cor-b { background: var(--pendente-bg); color: var(--pendente-fg); }
+.cor-c { background: var(--live-soft); color: var(--live-text); }
+.cor-eu { background: var(--brand); color: var(--on-brand); }
+.leilao-detalhes { grid-area: detalhes; display: grid; gap: var(--s-4); }
+.fim-leilao { display: grid; justify-items: center; gap: var(--s-3); text-align: center; padding: var(--s-6) var(--s-4); border-radius: var(--r-lg); background: var(--brand-soft); color: var(--brand-text); }
+.fim-leilao .ic { font-size: 40px; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+@media (min-width: 768px) {
+  .factos-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .leilao {
+    grid-template-columns: minmax(0, 1.2fr) minmax(360px, 1fr); align-items: start; column-gap: var(--s-8);
+    grid-template-areas: "voltar voltar" "heroi painel" "cabecalho painel" "detalhes feed";
+  }
+  .leilao-cabecalho h1 { font-size: 2.25rem; }
+}
+
+/* ---------- Encomendas ---------- */
+.encomendas { display: grid; gap: var(--s-4); max-width: 760px; }
+.cartao-encomenda { display: grid; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--border); }
+.encomenda-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
+.encomenda-topo h2 { font-family: var(--font-body); font-size: 1.0625rem; font-weight: 800; letter-spacing: -0.01em; }
+.linha-tempo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
+.linha-tempo li { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.linha-tempo li::before {
+  content: ""; position: absolute; top: 15px; left: calc(-50% + 20px); right: calc(50% + 20px);
+  height: 3px; border-radius: 2px; background: var(--border); transition: background var(--dur-3) var(--ease-out);
+}
+.linha-tempo li:first-child::before { display: none; }
+.linha-tempo li.feito::before, .linha-tempo li.atual::before { background: var(--brand); }
+.linha-tempo li.feito, .linha-tempo li.atual { color: var(--text); }
+.marco {
+  position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); border: 2px solid var(--border);
+  transition: background var(--dur-3) var(--ease-out), border-color var(--dur-3) var(--ease-out), box-shadow var(--dur-3) var(--ease-out);
+}
+.feito .marco { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.atual .marco { background: var(--live); border-color: var(--live); color: var(--on-live); box-shadow: 0 0 0 5px color-mix(in srgb, var(--live) 22%, transparent); }
+.linhas-encomenda { display: grid; gap: 8px; padding-top: var(--s-3); border-top: 1px dashed var(--border); }
+.linha-encomenda { display: flex; justify-content: space-between; gap: var(--s-3); font-size: 0.9375rem; }
+.linha-encomenda .num { white-space: nowrap; }
+.linha-encomenda.total { font-weight: 800; padding-top: 8px; border-top: 1px solid var(--border); }
+.levantamento { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tile); font-size: var(--t-small); }
+.levantamento .ic { color: var(--live-text); }
+.acoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.estrelas { display: flex; gap: 2px; }
+.estrelas button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; color: var(--neutro-8); display: grid; place-items: center; }
+.estrelas button[aria-pressed="true"] { color: var(--ambar-9); }
+.estrelas .ic { font-size: 32px; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+
+/* ---------- Carrinho ---------- */
+.carrinho { display: grid; gap: var(--s-5); max-width: 760px; }
+.nota { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--confirmada-bg); color: var(--confirmada-fg); font-size: var(--t-small); font-weight: 650; }
+.grupo-produtor { display: grid; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--border); }
+.grupo-cabecalho { display: flex; align-items: center; gap: var(--s-3); font-weight: 750; }
+.grupo-cabecalho .avatar { width: 34px; height: 34px; font-size: 0.75rem; }
+.linha-carrinho { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--s-3); align-items: center; }
+.miniatura { width: 56px; height: 56px; border-radius: var(--r-md); background: var(--cat); display: grid; place-items: center; }
+.miniatura svg { width: 40px; height: 40px; }
+.linha-carrinho .nome { font-weight: 750; font-size: 0.9375rem; line-height: 1.25; }
+.linha-carrinho .unit { font-size: 0.8125rem; color: var(--text-muted); }
+.linha-carrinho .direita { display: grid; justify-items: end; gap: 6px; }
+.passos-pequeno { height: 38px; }
+.passos-pequeno button { width: 32px; height: 32px; }
+.passos-pequeno output { min-width: 34px; }
+.resumo { display: grid; gap: 8px; padding: var(--s-5); border-radius: var(--r-xl); background: var(--tile); }
+.resumo .linha { display: flex; justify-content: space-between; gap: var(--s-3); font-variant-numeric: tabular-nums; }
+.resumo .total { font-weight: 800; font-size: 1.125rem; padding-top: 8px; border-top: 1px solid var(--border); }
+
+/* ---------- Página do produtor ---------- */
+.produtor-pagina { display: grid; gap: var(--s-5); }
+.produtor-capa { display: grid; gap: var(--s-3); padding: var(--s-6) var(--s-5) var(--s-5); border-radius: var(--r-xl); background: var(--cat-mel); }
+.produtor-capa .avatar { width: 72px; height: 72px; border-radius: 22px; font-size: 1.5rem; background: var(--surface); color: var(--pendente-fg); }
+.produtor-capa h1 { font-size: 2.25rem; }
+.estatisticas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+.mapa { position: relative; overflow: hidden; max-width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-xl); background: var(--tile); }
+.mapa svg { width: 100%; height: 100%; }
+.mapa .terra { fill: var(--verde-3); }
+.mapa .serra { fill: var(--verde-4); }
+.mapa .rio { fill: none; stroke: var(--azul-6); stroke-width: 10; stroke-linecap: round; }
+.mapa .estrada { fill: none; stroke: var(--surface); stroke-width: 5; stroke-linecap: round; }
+.mapa .pino { fill: var(--live); }
+.mapa .pino-centro { fill: var(--on-live); }
+.mapa .etiqueta { position: absolute; right: 12px; bottom: 12px; box-shadow: var(--shadow-1); }
+@media (min-width: 1024px) {
+  .produtor-pagina { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s-6); align-items: start; }
+  .produtor-pagina > .voltar, .produtor-pagina > .secao { grid-column: 1 / -1; }
+}
+
+/* ---------- Perfil e Sistema de design ---------- */
+.perfil { display: grid; gap: var(--s-5); max-width: 640px; }
+.perfil-cartao { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--tile); }
+.perfil-cartao .avatar { width: 56px; height: 56px; font-size: 1.125rem; }
+.lista-definicoes { display: grid; gap: 1px; overflow: hidden; border-radius: var(--r-xl); background: var(--border); border: 1px solid var(--border); }
+.definicao { display: flex; align-items: center; gap: var(--s-3); width: 100%; padding: 14px 16px; border: 0; background: var(--surface); text-align: left; font-weight: 650; }
+.definicao:hover { background: var(--fill); }
+.definicao .ic:last-child { margin-left: auto; color: var(--text-muted); }
+.sistema { display: grid; gap: var(--s-10); }
+.sistema-bloco { display: grid; gap: var(--s-4); }
+.sistema-bloco h2 { font-size: var(--t-h2); }
+.escala { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.passo { display: grid; gap: 4px; min-width: 0; }
+.passo .cor { height: 42px; border-radius: var(--r-sm); border: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+.passo span { font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.papeis { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.75rem; font-weight: 650; color: var(--text-muted); }
+.contrastes { display: grid; gap: 8px; }
+.contraste { display: flex; align-items: center; gap: var(--s-3); padding: 10px 12px; border-radius: var(--r-md); background: var(--tile); font-size: var(--t-small); }
+.amostra-texto { width: 46px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 8px; font-weight: 800; }
+.contraste .ratio { margin-left: auto; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tipos { display: grid; gap: var(--s-4); }
+.tipo { display: grid; gap: 2px; min-width: 0; }
+.tipo .meta { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.raios, .componentes { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
+.raio { width: 72px; height: 72px; display: grid; place-items: center; background: var(--brand-soft); border: 2px solid var(--brand); color: var(--brand-text); font-size: 0.75rem; font-weight: 800; }
+@media (min-width: 768px) {
+  .escala { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+}
+
+/* ---------- Transições entre ecrãs (View Transitions) ---------- */
+::view-transition-old(root) { animation: 140ms ease both vt-sair; }
+::view-transition-new(root) { animation: 280ms var(--ease-out) both vt-entrar; }
+::view-transition-group(heroi) { animation-duration: 420ms; animation-timing-function: var(--ease-out); }
+@keyframes vt-sair { to { opacity: 0; } }
+@keyframes vt-entrar { from { opacity: 0; transform: translateY(10px); } }
+html.tema-transicao::view-transition-old(root) { animation: none; }
+html.tema-transicao::view-transition-new(root) { animation: revelar 560ms var(--ease-out); }
+html.tema-transicao .topo, html.tema-transicao .nav-inferior { view-transition-name: none; }
+@keyframes revelar {
+  from { clip-path: circle(0 at var(--rx, 50%) var(--ry, 0px)); }
+  to { clip-path: circle(var(--rr, 150vmax) at var(--rx, 50%) var(--ry, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+</style>
+
+<a class="saltar" href="#conteudo">Saltar para o conteúdo</a>
+
+<header class="topo">
+  <div class="topo-interior">
+    <a class="marca" href="#inicio" data-ir="inicio" aria-label="Do Campo à Mesa, início">
+      <span class="marca-simbolo"><span class="ic m cheio" aria-hidden="true">eco</span></span>
+      <span>Do Campo à Mesa</span>
+    </a>
+    <nav class="topo-nav" aria-label="Navegação principal">
+      <a href="#inicio" data-ir="inicio" data-nav="inicio">Início</a>
+      <a href="#produtos" data-ir="produtos" data-nav="produtos">Produtos</a>
+      <a href="#leilao" data-ir="leilao" data-nav="leilao"><span class="bolinha pulsar" style="color: var(--live)" aria-hidden="true"></span>Leilões</a>
+      <a href="#encomendas" data-ir="encomendas" data-nav="encomendas">Encomendas</a>
+    </nav>
+    <form class="pesquisa pesquisa-compacta topo-pesquisa" role="search" data-form-pesquisa>
+      <label class="sr-only" for="pesquisa-topo">Pesquisar produtos</label>
+      <input id="pesquisa-topo" name="q" type="search" placeholder="Kiwi, mel, produtor…" autocomplete="off">
+      <button class="btn-pesquisar" type="submit" aria-label="Pesquisar"><span class="ic m" aria-hidden="true">search</span></button>
+    </form>
+    <div class="topo-acoes">
+      <button class="btn-icone" type="button" data-acao="tema" aria-label="Mudar para modo escuro">
+        <span class="ic" aria-hidden="true" data-icone-tema>dark_mode</span>
+      </button>
+      <button class="btn-icone" type="button" data-acao="notificacoes" aria-label="Notificações">
+        <span class="ic" aria-hidden="true">notifications</span><span class="ponto" data-ponto-notif hidden></span>
+      </button>
+      <button class="btn-icone so-desktop" type="button" data-ir="carrinho" aria-label="Carrinho">
+        <span class="ic" aria-hidden="true">shopping_bag</span><span class="contador" data-contador-carrinho></span>
+      </button>
+      <button class="btn-icone" type="button" data-ir="perfil" aria-label="Perfil e aparência"><span class="avatar" aria-hidden="true">TL</span></button>
+    </div>
+  </div>
+</header>
+
+<main id="conteudo" class="vista" tabindex="-1"></main>
+
+<nav class="nav-inferior" aria-label="Navegação">
+  <ul class="nav-lista">
+    <li><button class="nav-item" type="button" data-ir="inicio" data-nav="inicio"><span class="nav-icone"><span class="ic" aria-hidden="true">home</span></span>Início</button></li>
+    <li><button class="nav-item" type="button" data-ir="produtos" data-nav="produtos"><span class="nav-icone"><span class="ic" aria-hidden="true">storefront</span></span>Produtos</button></li>
+    <li><button class="nav-item" type="button" data-ir="leilao" data-nav="leilao"><span class="nav-icone"><span class="ic" aria-hidden="true">gavel</span><span class="ponto" style="top: 1px; right: 11px"></span></span>Leilões</button></li>
+    <li><button class="nav-item" type="button" data-ir="carrinho" data-nav="carrinho"><span class="nav-icone"><span class="ic" aria-hidden="true">shopping_bag</span><span class="contador" data-contador-carrinho></span></span>Carrinho</button></li>
+    <li><button class="nav-item" type="button" data-ir="encomendas" data-nav="encomendas"><span class="nav-icone"><span class="ic" aria-hidden="true">receipt_long</span></span>Encomendas</button></li>
+  </ul>
+</nav>
+
+<div class="avisos" id="avisos" aria-live="polite"></div>
+<p class="sr-only" id="anunciador" aria-live="assertive"></p>
+<dialog class="folha" id="folha-filtros" aria-labelledby="folha-titulo"></dialog>
+
+<!-- Ilustrações próprias (placeholders por categoria quando o produtor ainda não tem fotografia) -->
+<svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="ilu-kiwi" viewBox="0 0 120 120">
+      <ellipse cx="60" cy="64" rx="46" ry="44" fill="#7A5A33"/>
+      <ellipse cx="60" cy="62" rx="40" ry="38" fill="#7FB341"/>
+      <ellipse cx="60" cy="62" rx="31" ry="29" fill="#A6D266"/>
+      <ellipse cx="60" cy="62" rx="12" ry="11" fill="#F2F6D8"/>
+      <g fill="#2B2416">
+        <ellipse cx="60" cy="41" rx="1.9" ry="3.6"/><ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(30 60 62)"/>
+        <ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(60 60 62)"/><ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(90 60 62)"/>
+        <ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(120 60 62)"/><ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(150 60 62)"/>
+        <ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(180 60 62)"/><ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(210 60 62)"/>
+        <ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(240 60 62)"/><ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(270 60 62)"/>
+        <ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(300 60 62)"/><ellipse cx="60" cy="41" rx="1.9" ry="3.6" transform="rotate(330 60 62)"/>
+      </g>
+    </symbol>
+    <symbol id="ilu-mel" viewBox="0 0 120 120">
+      <rect x="34" y="20" width="52" height="16" rx="6" fill="#7A4A26"/>
+      <rect x="38" y="33" width="44" height="8" rx="3" fill="#5E3719"/>
+      <path d="M30 52c0-8 6-12 14-12h32c8 0 14 4 14 12v42c0 8-6 14-14 14H44c-8 0-14-6-14-14z" fill="#F2A33A"/>
+      <path d="M30 72h60v22c0 8-6 14-14 14H44c-8 0-14-6-14-14z" fill="#E08A1E"/>
+      <rect x="40" y="56" width="40" height="30" rx="6" fill="#FFF3D6"/>
+      <path d="M60 62l7 4v8l-7 4-7-4v-8z" fill="none" stroke="#C77A12" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="ilu-mel-escuro" viewBox="0 0 120 120">
+      <rect x="34" y="20" width="52" height="16" rx="6" fill="#5A341B"/>
+      <rect x="38" y="33" width="44" height="8" rx="3" fill="#442612"/>
+      <path d="M30 52c0-8 6-12 14-12h32c8 0 14 4 14 12v42c0 8-6 14-14 14H44c-8 0-14-6-14-14z" fill="#B9651C"/>
+      <path d="M30 72h60v22c0 8-6 14-14 14H44c-8 0-14-6-14-14z" fill="#9A4F12"/>
+      <rect x="40" y="56" width="40" height="30" rx="6" fill="#FFF3D6"/>
+      <path d="M60 62l7 4v8l-7 4-7-4v-8z" fill="none" stroke="#9A4F12" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="ilu-vinho" viewBox="0 0 120 120">
+      <rect x="53" y="8" width="14" height="12" rx="3" fill="#C2410C"/>
+      <path d="M54 18h12v22c0 4 4 7 8 10 5 4 8 9 8 16v40c0 5-4 8-8 8H46c-4 0-8-3-8-8V66c0-7 3-12 8-16 4-3 8-6 8-10z" fill="#2E6B45"/>
+      <rect x="44" y="66" width="32" height="26" rx="4" fill="#F4EEDD"/>
+      <rect x="49" y="72" width="22" height="3.5" rx="1.75" fill="#2E6B45"/>
+      <rect x="52" y="79" width="16" height="3" rx="1.5" fill="#B98C3B"/>
+    </symbol>
+    <symbol id="ilu-abobora" viewBox="0 0 120 120">
+      <path d="M60 32c2-8 6-12 12-14" stroke="#4E6B2A" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <path d="M66 26c10-6 20-3 24 4-8 3-17 2-24-4z" fill="#6E9A3A"/>
+      <ellipse cx="38" cy="70" rx="24" ry="34" fill="#E5832F"/>
+      <ellipse cx="82" cy="70" rx="24" ry="34" fill="#E5832F"/>
+      <ellipse cx="60" cy="70" rx="24" ry="36" fill="#F09A45"/>
+    </symbol>
+    <symbol id="ilu-couve" viewBox="0 0 120 120">
+      <path d="M60 108C30 96 16 70 22 44c4-18 20-30 38-30s34 12 38 30c6 26-8 52-38 64z" fill="#3F8F4E"/>
+      <path d="M60 104V26" stroke="#BFE3B4" stroke-width="4" stroke-linecap="round"/>
+      <path d="M60 50L40 38M60 66L36 56M60 82L42 76M60 50l20-12M60 66l24-10M60 82l18-6" stroke="#BFE3B4" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="ilu-queijo" viewBox="0 0 120 120">
+      <path d="M16 62L88 28l16 34z" fill="#FCD970"/>
+      <path d="M16 62h88v34H16z" fill="#F2B83A"/>
+      <circle cx="40" cy="78" r="6" fill="#DB9A1E"/><circle cx="64" cy="86" r="4" fill="#DB9A1E"/>
+      <circle cx="84" cy="74" r="5" fill="#DB9A1E"/><circle cx="62" cy="46" r="4" fill="#E9B43A"/>
+    </symbol>
+    <symbol id="ilu-broa" viewBox="0 0 120 120">
+      <ellipse cx="60" cy="70" rx="46" ry="32" fill="#C98A3E"/>
+      <ellipse cx="60" cy="64" rx="42" ry="27" fill="#E2AA5C"/>
+      <path d="M34 58c8-6 16-8 24-8M46 70c10-6 20-8 30-8M62 82c8-4 14-5 20-5" stroke="#F6D79A" stroke-width="4" stroke-linecap="round" fill="none"/>
+    </symbol>
+    <symbol id="ilu-castanha" viewBox="0 0 120 120">
+      <path d="M60 18c4 6 6 10 6 14 18 4 34 20 34 42 0 22-18 34-40 34S20 96 20 74c0-22 16-38 34-42 0-4 2-8 6-14z" fill="#7B4526"/>
+      <path d="M24 84c8 14 22 20 36 20s28-6 36-20c-10 6-22 8-36 8s-26-2-36-8z" fill="#D7B48A"/>
+      <path d="M44 46c-8 6-12 14-12 22" stroke="#A86A3E" stroke-width="5" stroke-linecap="round" fill="none"/>
+    </symbol>
+    <symbol id="ilu-maca" viewBox="0 0 120 120">
+      <path d="M60 38c-6-6-16-8-24-4-14 6-18 24-12 42 6 18 18 30 30 30 3 0 4-2 6-2s3 2 6 2c12 0 24-12 30-30 6-18 2-36-12-42-8-4-18-2-24 4z" fill="#D9442F"/>
+      <path d="M60 38c0-10 2-16 6-22" stroke="#6B4A2B" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <path d="M64 24c8-8 18-8 24-4-6 6-16 8-24 4z" fill="#5E9A3A"/>
+    </symbol>
+    <symbol id="ilu-ovos" viewBox="0 0 120 120">
+      <ellipse cx="44" cy="62" rx="18" ry="24" fill="#F3E4CC"/>
+      <ellipse cx="76" cy="58" rx="18" ry="24" fill="#E8C9A0"/>
+      <ellipse cx="60" cy="72" rx="18" ry="24" fill="#F7EEDF"/>
+      <path d="M18 80h84l-8 22H26z" fill="#B98552"/>
+    </symbol>
+    <symbol id="ilu-caixa" viewBox="0 0 160 120">
+      <g fill="#7A5A33">
+        <circle cx="40" cy="46" r="16"/><circle cx="100" cy="45" r="16"/><circle cx="126" cy="50" r="14"/>
+        <circle cx="56" cy="54" r="15"/><circle cx="86" cy="54" r="16"/><circle cx="114" cy="58" r="13"/>
+        <circle cx="70" cy="42" r="17"/>
+      </g>
+      <circle cx="70" cy="42" r="13" fill="#7FB341"/><circle cx="70" cy="42" r="9" fill="#A6D266"/><circle cx="70" cy="42" r="4" fill="#F2F6D8"/>
+      <rect x="18" y="58" width="124" height="50" rx="6" fill="#C79A64"/>
+      <rect x="18" y="58" width="124" height="10" fill="#B3854F"/>
+      <path d="M18 84h124" stroke="#B3854F" stroke-width="4"/>
+      <rect x="58" y="72" width="44" height="22" rx="4" fill="#F4EEDD"/>
+    </symbol>
+    <symbol id="ilu-cesto" viewBox="0 0 120 120">
+      <path d="M30 50a30 30 0 0 1 60 0" stroke="#B98552" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M18 50h84l-10 50c-1 5-5 8-10 8H38c-5 0-9-3-10-8z" fill="#C99A62"/>
+      <path d="M32 64h56M34 80h52M37 94h46" stroke="#AE7F48" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+'use strict';
+
+/* ---------- Dados de exemplo (fictícios) ---------- */
+const PRODUTORES = {
+  hr: { nome: 'Horta da Ribeira', localidade: 'Ponte de Lima', km: 18, avaliacao: 4.8, avaliacoes: 126, desde: 1998,
+    historia: 'Hortícolas e fruta biológica na margem do rio Lima. A família Barbosa planta, colhe e entrega na mesma semana.',
+    citacao: '«Colhemos de manhã e entregamos à tarde.»', mapa: [46, 58] },
+  ms: { nome: 'Mel do Soajo', localidade: 'Soajo, Arcos de Valdevez', km: 32, avaliacao: 4.9, avaliacoes: 88, desde: 1987,
+    historia: 'Apicultura familiar na serra da Peneda desde 1987. Mel de urze e de castanheiro, extraído a frio e sem aditivos.',
+    citacao: '«Extraímos a frio, como fazia o meu avô.»', mapa: [62, 34] },
+  ql: { nome: 'Quinta da Lameira', localidade: 'Monção', km: 41, avaliacao: 4.7, avaliacoes: 64, desde: 2004,
+    historia: 'Alvarinho de vinhas velhas junto ao rio Minho, vindimado à mão.', citacao: '«Cada garrafa conta a vindima desse ano.»', mapa: [40, 22] },
+  cv: { nome: 'Casal do Vez', localidade: 'Arcos de Valdevez', km: 27, avaliacao: 4.5, avaliacoes: 41, desde: 2011,
+    historia: 'Couves, nabiças e grelos de época, sem químicos.', citacao: '«Só vendemos o que está no ponto.»', mapa: [58, 46] },
+  qp: { nome: 'Queijaria da Peneda', localidade: 'Melgaço', km: 55, avaliacao: 4.9, avaliacoes: 73, desde: 1995,
+    historia: 'Queijo de cabra curado em caves de granito.', citacao: '«O tempo é o nosso ingrediente.»', mapa: [70, 18] },
+  fl: { nome: 'Forno de Lanheses', localidade: 'Viana do Castelo', km: 12, avaliacao: 4.8, avaliacoes: 152, desde: 1979,
+    historia: 'Broa de milho em forno de lenha, todas as madrugadas.', citacao: '«O forno acende às quatro da manhã.»', mapa: [24, 62] },
+  ss: { nome: 'Souto da Serra', localidade: 'Paredes de Coura', km: 35, avaliacao: 4.7, avaliacoes: 39, desde: 2008,
+    historia: 'Castanha longal de soutos centenários.', citacao: '«Apanhamos a castanha ao pé da árvore.»', mapa: [48, 36] },
+  pv: { nome: 'Pomar do Vale', localidade: 'Ponte da Barca', km: 30, avaliacao: 4.6, avaliacoes: 58, desde: 2001,
+    historia: 'Maçã Porta da Loja e outras variedades antigas do Minho.', citacao: '«Variedades que os nossos avós comiam.»', mapa: [56, 60] },
+  qs: { nome: 'Quinta do Souto', localidade: 'Caminha', km: 24, avaliacao: 4.9, avaliacoes: 47, desde: 2015,
+    historia: 'Galinhas criadas ao ar livre, ovos recolhidos todos os dias.', citacao: '«As galinhas passam o dia no campo.»', mapa: [18, 40] },
+};
+const TODO_ANO = ['Primavera', 'Verão', 'Outono', 'Inverno'];
+const PRODUTOS = [
+  { id: 'p1', nome: 'Kiwi Hayward', categoria: 'Fruta', produtor: 'hr', preco: 2.4, unidade: 'kg', stock: 300, bio: true, epocas: ['Outono', 'Inverno'], avaliacao: 4.8, ilu: 'kiwi', etiqueta: 'Da época',
+    descricao: 'Calibre A, colhido a 12 de outubro. Doce e firme, para comer à colher ou em sobremesas.' },
+  { id: 'p2', nome: 'Mel de urze', categoria: 'Mel', produtor: 'ms', preco: 7.5, unidade: '500 g', stock: 38, bio: false, epocas: ['Verão', 'Outono'], avaliacao: 4.9, ilu: 'mel',
+    descricao: 'Mel escuro e intenso, de florada de urze na serra da Peneda.' },
+  { id: 'p3', nome: 'Alvarinho 2025', categoria: 'Vinho', produtor: 'ql', preco: 9.9, unidade: 'garrafa', stock: 120, bio: false, epocas: TODO_ANO, avaliacao: 4.7, ilu: 'vinho', etiqueta: 'Novo',
+    descricao: 'Fresco e mineral, com notas de citrinos. Servir a 10 °C.' },
+  { id: 'p4', nome: 'Abóbora-menina', categoria: 'Hortícolas', produtor: 'hr', preco: 1.2, unidade: 'kg', stock: 80, bio: false, epocas: ['Outono'], avaliacao: 4.6, ilu: 'abobora',
+    descricao: 'Polpa doce e alaranjada, perfeita para sopas e doces de outono.' },
+  { id: 'p5', nome: 'Couve-galega', categoria: 'Hortícolas', produtor: 'cv', preco: 1.5, unidade: 'molho', stock: 40, bio: true, epocas: ['Outono', 'Inverno'], avaliacao: 4.5, ilu: 'couve',
+    descricao: 'A couve do caldo verde, cortada no próprio dia.' },
+  { id: 'p6', nome: 'Queijo de cabra curado', categoria: 'Queijo', produtor: 'qp', preco: 6.8, unidade: 'unid.', stock: 6, bio: false, epocas: TODO_ANO, avaliacao: 4.9, ilu: 'queijo', etiqueta: 'Últimas 6',
+    descricao: 'Cura de 60 dias, pasta firme e sabor intenso. Cerca de 400 g.' },
+  { id: 'p7', nome: 'Broa de milho', categoria: 'Padaria', produtor: 'fl', preco: 3.2, unidade: 'unid.', stock: 25, bio: false, epocas: TODO_ANO, avaliacao: 4.8, ilu: 'broa',
+    descricao: 'Milho e centeio, cozida em forno de lenha. Cerca de 1 kg.' },
+  { id: 'p8', nome: 'Castanha longal', categoria: 'Fruta', produtor: 'ss', preco: 4.5, unidade: 'kg', stock: 150, bio: true, epocas: ['Outono'], avaliacao: 4.7, ilu: 'castanha', etiqueta: 'Da época',
+    descricao: 'A castanha portuguesa mais apreciada para assar.' },
+  { id: 'p9', nome: 'Mel de castanheiro', categoria: 'Mel', produtor: 'ms', preco: 7.0, unidade: '500 g', stock: 21, bio: false, epocas: ['Outono'], avaliacao: 4.8, ilu: 'mel-escuro',
+    descricao: 'Ligeiramente amargo e cristaliza devagar. Ótimo com queijo.' },
+  { id: 'p10', nome: 'Maçã Porta da Loja', categoria: 'Fruta', produtor: 'pv', preco: 1.9, unidade: 'kg', stock: 200, bio: true, epocas: ['Outono', 'Inverno'], avaliacao: 4.6, ilu: 'maca',
+    descricao: 'Variedade antiga do Minho, crocante e aromática.' },
+  { id: 'p11', nome: 'Ovos caseiros', categoria: 'Outros', produtor: 'qs', preco: 3.0, unidade: 'dúzia', stock: 30, bio: true, epocas: TODO_ANO, avaliacao: 4.9, ilu: 'ovos',
+    descricao: 'De galinhas criadas ao ar livre, recolhidos todos os dias.' },
+  { id: 'p12', nome: 'Loureiro 2025', categoria: 'Vinho', produtor: 'ql', preco: 7.9, unidade: 'garrafa', stock: 90, bio: false, epocas: TODO_ANO, avaliacao: 4.6, ilu: 'vinho',
+    descricao: 'Vinho Verde aromático, floral e leve. Servir a 8 °C.' },
+];
+const CATEGORIAS = [
+  { nome: 'Fruta', ilu: 'kiwi', cat: '--cat-fruta' },
+  { nome: 'Hortícolas', ilu: 'couve', cat: '--cat-horticolas' },
+  { nome: 'Mel', ilu: 'mel', cat: '--cat-mel' },
+  { nome: 'Vinho', ilu: 'vinho', cat: '--cat-vinho' },
+  { nome: 'Queijo', ilu: 'queijo', cat: '--cat-queijo' },
+  { nome: 'Padaria', ilu: 'broa', cat: '--cat-padaria' },
+  { nome: 'Outros', ilu: 'ovos', cat: '--cat-outros' },
+];
+const EPOCAS = ['Todas', 'Primavera', 'Verão', 'Outono', 'Inverno'];
+const LOCALIDADES = [...new Set(Object.values(PRODUTORES).map((p) => p.localidade.split(', ').pop()))].sort((a, b) => a.localeCompare(b, 'pt'));
+
+const EU = 'Tasca do Lima';
+const RIVAIS = ['Frutaria Central', 'Mercearia do Largo', 'Restaurante O Moinho', 'Ana Ferreira', 'Pedro Sousa'];
+const agora = Date.now();
+const leilao = {
+  id: 'L-0318', lote: '200 kg de kiwi Hayward, calibre A', produtor: 'hr', kg: 200,
+  precoBase: 200, incremento: 5, colheita: '12 out 2026', modo: 'Biológico', duracao: 30 * 60 * 1000,
+  descricao: 'Excedente da colheita de outubro, em caixas de 10 kg. Levantamento na quinta até 20 de outubro, ou entrega em Viana do Castelo e Ponte de Lima (+12 €).',
+  terminaEm: agora + (4 * 60 + 30) * 1000, participantes: 14, terminado: false,
+  licitacoes: [
+    { nome: 'Frutaria Central', valor: 312, em: agora - 8000 },
+    { nome: 'Mercearia do Largo', valor: 307, em: agora - 24000 },
+    { nome: 'Frutaria Central', valor: 300, em: agora - 41000 },
+    { nome: 'Restaurante O Moinho', valor: 290, em: agora - 70000 },
+    { nome: 'Mercearia do Largo', valor: 280, em: agora - 100000 },
+  ],
+};
+const PROXIMO_LEILAO = { lote: 'Alvarinho 2025, 5 caixas de 12', produtor: 'ql', dia: '17', mes: 'out', quando: 'Sábado, 18:00' };
+
+const encomendas = [
+  { id: 'DCM-1042', produtor: 'hr', data: '13 out', estado: 'confirmada', tipo: 'levantamento',
+    morada: 'Levantar na quinta: Rua da Ribeira 14, Ponte de Lima, até às 19h00',
+    linhas: [{ nome: 'Kiwi Hayward', q: 3, unidade: 'kg', preco: 2.4 }, { nome: 'Abóbora-menina', q: 4, unidade: 'kg', preco: 1.2 }] },
+  { id: 'DCM-0987', produtor: 'ms', data: '12 set', estado: 'entregue', tipo: 'entrega', avaliacao: 0,
+    linhas: [{ nome: 'Mel de urze', q: 3, unidade: '500 g', preco: 7.5 }] },
+];
+const ESTADOS = ['pendente', 'confirmada', 'pronta', 'entregue'];
+const NOMES_ESTADO = { pendente: 'Pendente', confirmada: 'Confirmada', pronta: 'Pronta', entregue: 'Entregue' };
+
+/* ---------- Estado da interface ---------- */
+const estado = {
+  vista: 'inicio', param: null, pilha: [],
+  filtros: { q: '', categorias: [], bio: false, epoca: 'Todas', localidades: [], precoMax: 10, ordenar: 'recomendados' },
+  carrinho: [{ id: 'p2', q: 1 }, { id: 'p1', q: 2 }, { id: 'p4', q: 3 }],
+  entrega: 'levantamento', qtdDetalhe: 1, valorLicitacao: null, ultimoProduto: null,
+  notificacaoFeita: false, aguardaLicitacao: false,
+};
+
+/* ---------- Utilitários ---------- */
+const moeda = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' });
+const euro = (v) => moeda.format(v);
+const pad = (n) => String(n).padStart(2, '0');
+const fmtTempo = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; };
+const fmtNum = (v, casas = 1) => v.toLocaleString('pt-PT', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+function haQuanto(t) {
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 5) return 'agora mesmo';
+  if (s < 60) return `há ${s} s`;
+  return `há ${Math.floor(s / 60)} min`;
+}
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const iniciais = (nome) => nome.split(/\s+/).filter((w) => w.length > 2).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+const produto = (id) => PRODUTOS.find((p) => p.id === id);
+const catVar = (nome) => (CATEGORIAS.find((c) => c.nome === nome) || CATEGORIAS[6]).cat;
+const ilu = (nome) => `<svg viewBox="0 0 ${nome === 'caixa' ? '160 120' : '120 120'}" aria-hidden="true" focusable="false"><use href="#ilu-${nome}"/></svg>`;
+const icone = (nome, extra = '') => `<span class="ic ${extra}" aria-hidden="true">${nome}</span>`;
+const minimoLicitacao = () => leilao.licitacoes.length ? leilao.licitacoes[0].valor + leilao.incremento : leilao.precoBase;
+const atualLeilao = () => (leilao.licitacoes[0] ? leilao.licitacoes[0].valor : leilao.precoBase);
+const reduzirMovimento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const lerArmazenamento = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const gravarArmazenamento = (k, v) => { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
+
+/* Contraste WCAG, calculado ao vivo a partir dos tokens (página Sistema) */
+function hexRgb(h) { const x = h.trim().replace('#', ''); return [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255); }
+function luminancia(h) { const [r, g, b] = hexRgb(h).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+function contraste(a, b) { const x = luminancia(a); const y = luminancia(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+const token = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+
+/* ---------- Peças reutilizáveis ---------- */
+function cartaoProduto(p) {
+  const pr = PRODUTORES[p.produtor];
+  const etiquetas = `${p.bio ? '<span class="etiqueta etiqueta-bio">Bio</span>' : ''}${p.etiqueta ? `<span class="etiqueta">${esc(p.etiqueta)}</span>` : ''}`;
+  return `<article class="cartao-produto" style="--cat: var(${catVar(p.categoria)})">
+    <div class="ilu-caixa" data-ilu="${p.id}">${ilu(p.ilu)}</div>
+    <div class="etiquetas">${etiquetas}</div>
+    <h3><a class="cobrir" href="#produto" data-ir="produto" data-param="${p.id}">${esc(p.nome)}</a></h3>
+    <p class="origem">${esc(pr.nome)} · ${esc(pr.localidade.split(', ').pop())}</p>
+    <div class="linha-preco">
+      <p class="preco">${euro(p.preco)}<small>/ ${esc(p.unidade)}</small></p>
+      <button class="btn-adicionar" type="button" data-acao="adicionar" data-id="${p.id}" aria-label="Adicionar ${esc(p.nome)} ao carrinho">${icone('add')}</button>
+    </div>
+  </article>`;
+}
+
+function formPesquisa(id, valor = '') {
+  return `<form class="pesquisa" role="search" data-form-pesquisa>
+    ${icone('search')}
+    <label class="sr-only" for="${id}">Pesquisar produtos, ingredientes ou produtores</label>
+    <input id="${id}" name="q" type="search" value="${esc(valor)}" placeholder="Kiwi, mel, Alvarinho, produtor…" autocomplete="off">
+    <button class="btn-pesquisar" type="submit">Procurar</button>
+  </form>`;
+}
+
+function anel(tamanho) {
+  const c = 2 * Math.PI * 20;
+  return `<div class="anel" style="--anel: ${tamanho}px" aria-hidden="true"><svg viewBox="0 0 48 48">
+    <circle class="anel-fundo" cx="24" cy="24" r="20" fill="none" stroke-width="5"/>
+    <circle class="anel-progresso" data-anel cx="24" cy="24" r="20" fill="none" stroke-width="5" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${offsetAnel()}"/>
+  </svg></div>`;
+}
+function offsetAnel() {
+  const c = 2 * Math.PI * 20;
+  const resto = Math.max(0, leilao.terminaEm - Date.now());
+  return (c * (1 - resto / leilao.duracao)).toFixed(2);
+}
+
+function passos(valor, chave, pequeno = false) {
+  return `<div class="passos ${pequeno ? 'passos-pequeno' : ''}" role="group" aria-label="Quantidade">
+    <button type="button" data-acao="menos" data-chave="${chave}" aria-label="Diminuir quantidade">${icone('remove', 'm')}</button>
+    <output data-saida="${chave}">${valor}</output>
+    <button type="button" data-acao="mais" data-chave="${chave}" aria-label="Aumentar quantidade">${icone('add', 'm')}</button>
+  </div>`;
+}
+
+/* ---------- Início ---------- */
+function mosaicoDireto() {
+  const pr = PRODUTORES[leilao.produtor];
+  return `<article class="mosaico mosaico-direto" aria-labelledby="titulo-direto">
+    <div class="linha-topo">
+      <span class="etiqueta etiqueta-direto"><span class="bolinha pulsar"></span>Em direto</span>
+      <span class="assistir">${icone('visibility', 'p')}<span><span data-participantes>${leilao.participantes}</span> a assistir</span></span>
+    </div>
+    <div>
+      <h2 id="titulo-direto">${esc(leilao.lote)}</h2>
+      <p class="origem-lote">${esc(pr.nome)} · ${esc(pr.localidade)} · ${esc(leilao.modo)}</p>
+    </div>
+    <div class="lote-ilustracao">${ilu('caixa')}</div>
+    <div class="numeros-lote">
+      <div><p class="rotulo-pequeno">Licitação atual</p><p class="valor-grande" data-atual>${euro(atualLeilao())}</p></div>
+      <div class="contagem">${anel(44)}<div><p class="rotulo-pequeno">Termina em</p><p class="tempo" data-tempo>${fmtTempo(leilao.terminaEm - Date.now())}</p></div></div>
+    </div>
+    <button class="btn btn-direto btn-bloco" type="button" data-ir="leilao">Entrar na sala ${icone('chevron_right', 'm')}</button>
+  </article>`;
+}
+
+function vistaInicio() {
+  const pr = PRODUTORES.ms;
+  const outono = PRODUTOS.filter((p) => p.epocas.includes('Outono') && p.epocas.length < 4).length;
+  const destaque = ['p1', 'p2', 'p8', 'p6', 'p3', 'p10'].map(produto);
+  return `
+  <section class="inicio-topo" aria-labelledby="titulo-inicio">
+    <div style="display: grid; gap: var(--s-3)">
+      <p class="saudacao">${icone('location_on', 'p')} Alto Minho · produção local</p>
+      <h1 class="titulo-heroi" id="titulo-inicio">Direto de quem <em>produz</em>.</h1>
+      <p class="subtitulo">86 produtores da região. Encomende para levantar na quinta ou receber em casa, e dispute os lotes da época em direto.</p>
+    </div>
+    ${formPesquisa('pesquisa-inicio')}
+  </section>
+  <section class="bento" aria-label="Destaques">
+    ${mosaicoDireto()}
+    <a class="mosaico mosaico-produtor" href="#produtor" data-ir="produtor" data-param="ms">
+      <p class="sobretitulo">Produtor da semana</p>
+      <div style="display: flex; align-items: center; gap: var(--s-3)">
+        <span class="avatar" aria-hidden="true">MS</span>
+        <div><h3>${esc(pr.nome)}</h3><p class="avaliacao">${icone('star')}${fmtNum(pr.avaliacao)} · ${pr.avaliacoes} avaliações</p></div>
+      </div>
+      <p class="citacao">${esc(pr.citacao)}</p>
+      <span class="ligacao">Conhecer ${icone('chevron_right', 'p')}</span>
+    </a>
+    <button class="mosaico mosaico-epoca" type="button" data-acao="filtrar-epoca" data-epoca="Outono">
+      <p class="sobretitulo">Da época · outono</p>
+      <div class="ilus">${ilu('castanha')}${ilu('abobora')}${ilu('kiwi')}</div>
+      <h3>Castanha, abóbora e kiwi estão no ponto</h3>
+      <span class="ligacao">Ver ${outono} produtos ${icone('chevron_right', 'p')}</span>
+    </button>
+    <article class="mosaico mosaico-proximo">
+      <div class="data-caixa"><span>${PROXIMO_LEILAO.mes}</span><strong>${PROXIMO_LEILAO.dia}</strong></div>
+      <div class="proximo-texto">
+        <p class="sobretitulo">Próximo leilão · ${esc(PROXIMO_LEILAO.quando)}</p>
+        <strong>${esc(PROXIMO_LEILAO.lote)}</strong>
+        <span class="origem">${esc(PRODUTORES[PROXIMO_LEILAO.produtor].nome)} · ${esc(PRODUTORES[PROXIMO_LEILAO.produtor].localidade)}</span>
+      </div>
+      <button class="btn btn-secundario btn-pequeno" type="button" data-acao="lembrar" aria-pressed="false">${icone('notifications', 'p')}<span>Lembrar-me</span></button>
+    </article>
+    <section class="mosaico mosaico-categorias" aria-labelledby="titulo-categorias">
+      <div class="secao-cabecalho" style="margin-bottom: var(--s-3)">
+        <h2 id="titulo-categorias" style="font-size: var(--t-h3)">Categorias</h2>
+        <a class="ligacao" href="#produtos" data-ir="produtos">Ver tudo ${icone('chevron_right', 'p')}</a>
+      </div>
+      <div class="categorias">${CATEGORIAS.slice(0, 6).map((c) => `<button class="categoria" type="button" data-acao="filtrar-categoria" data-categoria="${c.nome}" style="--cat: var(${c.cat})"><span class="ilu-mini">${ilu(c.ilu)}</span>${c.nome}</button>`).join('')}</div>
+    </section>
+  </section>
+  <section class="secao" aria-labelledby="titulo-mais">
+    <div class="secao-cabecalho">
+      <h2 id="titulo-mais">Mais pedidos esta semana</h2>
+      <a class="ligacao" href="#produtos" data-ir="produtos">Ver tudo ${icone('chevron_right', 'p')}</a>
+    </div>
+    <div class="grelha-produtos limite-4">${destaque.map(cartaoProduto).join('')}</div>
+  </section>`;
+}
+
+/* ---------- Catálogo ---------- */
+const normalizar = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function filtrarProdutos() {
+  const f = estado.filtros;
+  const q = normalizar(f.q.trim());
+  const lista = PRODUTOS.filter((p) => {
+    const pr = PRODUTORES[p.produtor];
+    const texto = normalizar(`${p.nome} ${p.categoria} ${p.descricao} ${pr.nome} ${pr.localidade}`);
+    return (!q || texto.includes(q))
+      && (!f.categorias.length || f.categorias.includes(p.categoria))
+      && (!f.bio || p.bio)
+      && (f.epoca === 'Todas' || p.epocas.includes(f.epoca))
+      && (!f.localidades.length || f.localidades.includes(pr.localidade.split(', ').pop()))
+      && p.preco <= f.precoMax;
+  });
+  const ordem = {
+    'preco-asc': (a, b) => a.preco - b.preco,
+    'preco-desc': (a, b) => b.preco - a.preco,
+    perto: (a, b) => PRODUTORES[a.produtor].km - PRODUTORES[b.produtor].km,
+    avaliacao: (a, b) => b.avaliacao - a.avaliacao,
+  }[f.ordenar];
+  return ordem ? lista.sort(ordem) : lista;
+}
+
+function filtrosAplicados() {
+  const f = estado.filtros;
+  const chips = [];
+  if (f.q) chips.push({ tipo: 'q', valor: '', rotulo: `“${f.q}”` });
+  f.categorias.forEach((c) => chips.push({ tipo: 'categoria', valor: c, rotulo: c }));
+  if (f.bio) chips.push({ tipo: 'bio', valor: '', rotulo: 'Biológico' });
+  if (f.epoca !== 'Todas') chips.push({ tipo: 'epoca', valor: '', rotulo: f.epoca });
+  f.localidades.forEach((l) => chips.push({ tipo: 'localidade', valor: l, rotulo: l }));
+  if (f.precoMax < 10) chips.push({ tipo: 'preco', valor: '', rotulo: `Até ${euro(f.precoMax)}` });
+  return chips;
+}
+
+function htmlAplicados() {
+  const chips = filtrosAplicados();
+  if (!chips.length) return '';
+  return chips.map((c) => `<button class="chip chip-removivel" type="button" data-acao="remover-filtro" data-tipo="${c.tipo}" data-valor="${esc(c.valor)}" aria-label="Remover filtro ${esc(c.rotulo)}">${esc(c.rotulo)}${icone('close', 'p')}</button>`).join('')
+    + '<button class="chip" type="button" data-acao="limpar-filtros">Limpar tudo</button>';
+}
+
+function controlosFiltros(prefixo) {
+  const f = estado.filtros;
+  const chip = (acao, valor, ativo, rotulo = valor) => `<button class="chip" type="button" data-acao="${acao}" data-valor="${esc(valor)}" data-chave="${acao}:${esc(valor)}" aria-pressed="${ativo}">${esc(rotulo)}</button>`;
+  return `
+    <div class="grupo-filtro"><h3>Categoria</h3><div class="lista-chips">${CATEGORIAS.map((c) => chip('alternar-categoria', c.nome, f.categorias.includes(c.nome))).join('')}</div></div>
+    <div class="grupo-filtro"><h3>Modo de produção</h3>
+      <label class="interruptor" for="${prefixo}-bio">Só biológico<input id="${prefixo}-bio" type="checkbox" role="switch" data-filtro="bio" ${f.bio ? 'checked' : ''}></label></div>
+    <div class="grupo-filtro"><h3>Época</h3><div class="lista-chips">${EPOCAS.map((e) => chip('escolher-epoca', e, f.epoca === e)).join('')}</div></div>
+    <div class="grupo-filtro"><h3>Localidade</h3><div class="lista-chips">${LOCALIDADES.map((l) => chip('alternar-localidade', l, f.localidades.includes(l))).join('')}</div></div>
+    <div class="grupo-filtro"><h3>Preço máximo</h3>
+      <label class="sr-only" for="${prefixo}-preco">Preço máximo</label>
+      <input class="intervalo" id="${prefixo}-preco" type="range" min="1" max="10" step="0.5" value="${f.precoMax}" data-filtro="preco">
+      <p class="resultado"><span data-saida-preco>${f.precoMax >= 10 ? 'Sem limite' : `Até ${euro(f.precoMax)}`}</span></p></div>`;
+}
+
+function conteudoFolha() {
+  const n = filtrarProdutos().length;
+  return `<div class="folha-pega" aria-hidden="true"></div>
+    <div class="folha-cabecalho"><h2 id="folha-titulo">Filtros</h2>
+      <button class="btn-icone" type="button" data-acao="fechar-folha" aria-label="Fechar filtros">${icone('close')}</button></div>
+    <div class="folha-corpo">${controlosFiltros('folha')}</div>
+    <div class="folha-rodape">
+      <button class="btn btn-secundario" type="button" data-acao="limpar-filtros">Limpar</button>
+      <button class="btn btn-principal" type="button" data-acao="fechar-folha" data-ver-n>Ver ${n} ${n === 1 ? 'produto' : 'produtos'}</button>
+    </div>`;
+}
+
+function htmlResultados() {
+  const lista = filtrarProdutos();
+  if (!lista.length) {
+    return `<div class="vazio">${ilu('cesto')}<h2 style="font-size: var(--t-h3)">Não há produtos com estes filtros</h2>
+      <p class="muted">Experimente outra época ou retire um dos filtros.</p>
+      <button class="btn btn-suave" type="button" data-acao="limpar-filtros">Limpar filtros</button></div>`;
+  }
+  return `<div class="grelha-produtos">${lista.map(cartaoProduto).join('')}</div>`;
+}
+
+function vistaProdutos() {
+  const f = estado.filtros;
+  const n = filtrarProdutos().length;
+  const ativos = filtrosAplicados().length;
+  const opcoes = [['recomendados', 'Recomendados'], ['perto', 'Mais perto'], ['preco-asc', 'Preço: mais baixo'], ['preco-desc', 'Preço: mais alto'], ['avaliacao', 'Melhor avaliados']];
+  return `<div class="catalogo">
+    <aside class="lateral-filtros" aria-label="Filtros">${controlosFiltros('lateral')}</aside>
+    <div class="catalogo-principal">
+      <div class="catalogo-cabecalho"><h1 class="titulo-pagina">Produtos</h1><p class="resultado" data-contagem>${n} ${n === 1 ? 'produto' : 'produtos'}</p></div>
+      ${formPesquisa('pesquisa-catalogo', f.q)}
+      <div class="barra-ferramentas">
+        <button class="btn btn-secundario btn-pequeno btn-filtros" type="button" data-acao="abrir-folha">${icone('tune', 'm')} Filtros <span class="contagem-filtros" data-n-filtros ${ativos ? '' : 'hidden'}>${ativos}</span></button>
+        <label class="sr-only" for="ordenar">Ordenar</label>
+        <select class="ordenar" id="ordenar" data-filtro="ordenar">${opcoes.map(([v, r]) => `<option value="${v}" ${f.ordenar === v ? 'selected' : ''}>${r}</option>`).join('')}</select>
+      </div>
+      <div class="chips-rolagem" data-aplicados aria-label="Filtros aplicados">${htmlAplicados()}</div>
+      <div class="chips-rolagem" aria-label="Categorias rápidas">${CATEGORIAS.map((c) => `<button class="chip" type="button" data-acao="alternar-categoria" data-valor="${c.nome}" data-chave="alternar-categoria:${c.nome}" aria-pressed="${f.categorias.includes(c.nome)}">${c.nome}</button>`).join('')}</div>
+      <div data-resultados>${htmlResultados()}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Produto ---------- */
+function vistaProduto(id) {
+  const p = produto(id) || PRODUTOS[0];
+  const pr = PRODUTORES[p.produtor];
+  const q = estado.qtdDetalhe;
+  const epoca = p.epocas.length === 4 ? 'Todo o ano' : p.epocas.join(' e ');
+  return `<div class="produto" style="--cat: var(${catVar(p.categoria)})">
+    <button class="voltar" type="button" data-acao="voltar">${icone('arrow_back', 'm')} Voltar</button>
+    <div class="produto-heroi" style="view-transition-name: heroi">${ilu(p.ilu)}
+      <div class="etiquetas">${p.bio ? '<span class="etiqueta etiqueta-bio">Bio</span>' : ''}${p.etiqueta ? `<span class="etiqueta">${esc(p.etiqueta)}</span>` : ''}</div></div>
+    <div class="produto-info">
+      <p class="sobretitulo">${esc(p.categoria)}</p>
+      <h1>${esc(p.nome)}</h1>
+      <a class="linha-produtor" href="#produtor" data-ir="produtor" data-param="${p.produtor}"><span class="avatar" aria-hidden="true">${iniciais(pr.nome)}</span>${esc(pr.nome)} · ${esc(pr.localidade)}<span class="avaliacao">${icone('star')}${fmtNum(p.avaliacao)}</span></a>
+      <p class="preco-grande">${euro(p.preco)} <small>/ ${esc(p.unidade)}</small></p>
+      <p class="descricao">${esc(p.descricao)}</p>
+      <div class="factos">
+        <div class="facto"><span>Disponível</span><strong>${p.stock} ${esc(p.unidade === 'kg' ? 'kg' : p.unidade)}</strong></div>
+        <div class="facto"><span>Época</span><strong>${esc(epoca)}</strong></div>
+        <div class="facto"><span>Produção</span><strong>${p.bio ? 'Biológica' : 'Convencional'}</strong></div>
+        <div class="facto"><span>Distância</span><strong>${pr.km} km de si</strong></div>
+      </div>
+      <section class="cartao-produtor" aria-labelledby="titulo-sobre">
+        <div class="cabecalho"><span class="avatar" aria-hidden="true">${iniciais(pr.nome)}</span>
+          <div><h2 id="titulo-sobre" style="font-size: var(--t-h3)">${esc(pr.nome)}</h2><span class="verificado">${icone('verified')}Produtor verificado · desde ${pr.desde}</span></div></div>
+        <p class="muted">${esc(pr.historia)}</p>
+        <a class="ligacao" href="#produtor" data-ir="produtor" data-param="${p.produtor}">Ver página do produtor ${icone('chevron_right', 'p')}</a>
+      </section>
+      <div class="barra-acao">
+        ${passos(q, 'qtd')}
+        <button class="btn btn-principal" type="button" data-acao="adicionar-detalhe" data-id="${p.id}">${icone('shopping_bag', 'm')}Adicionar · <span class="num" data-total-detalhe>${euro(p.preco * q)}</span></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Sala de leilão ---------- */
+const corDe = (nome) => (nome === EU ? 'cor-eu' : ['cor-a', 'cor-b', 'cor-c'][[...nome].reduce((s, c) => s + c.charCodeAt(0), 0) % 3]);
+const lerValor = (t) => Number(String(t).replace(/[^\d,.-]/g, '').replace(',', '.'));
+const valorCampo = (v) => fmtNum(Number(v), 2);
+
+function htmlLider() {
+  const l = leilao.licitacoes[0];
+  if (!l) return '<span class="lider">Ainda sem licitações</span>';
+  if (l.eu) return `<span class="lider eu">${icone('check_circle', 'm cheio')}É a licitação mais alta</span>`;
+  return `<span class="lider"><span class="avatar ${corDe(l.nome)}" aria-hidden="true">${iniciais(l.nome)}</span>${esc(l.nome)} lidera</span>`;
+}
+
+function htmlLicitacoes(nova = false) {
+  return leilao.licitacoes.slice(0, 8).map((l, i) => `<li class="licitacao ${nova && i === 0 ? 'nova' : ''}">
+    <span class="avatar ${corDe(l.eu ? EU : l.nome)}" aria-hidden="true">${iniciais(l.eu ? EU : l.nome)}</span>
+    <span class="quem"><strong>${esc(l.eu ? `${EU} (você)` : l.nome)}</strong><span data-ha="${l.em}">${haQuanto(l.em)}</span></span>
+    <span class="valor">${euro(l.valor)}</span></li>`).join('');
+}
+
+function htmlFim() {
+  const l = leilao.licitacoes[0];
+  const venci = Boolean(l && l.eu);
+  return `<div class="fim-leilao">${icone(venci ? 'emoji_events' : 'schedule')}
+    <h3 style="font-family: var(--font-display); font-size: var(--t-h2)">${venci ? 'Ganhou este lote' : 'Leilão terminado'}</h3>
+    <p>${l ? `${venci ? 'A sua licitação' : esc(l.nome)} venceu com ${euro(l.valor)}.` : 'Terminou sem licitações.'}${venci ? ' A encomenda do lote já está em Encomendas.' : ''}</p>
+    <button class="btn btn-secundario btn-pequeno" type="button" data-acao="reiniciar-leilao">${icone('restart_alt', 'p')}Repetir a simulação</button></div>`;
+}
+
+function htmlZonaLicitar() {
+  if (leilao.terminado) return htmlFim();
+  const inc = leilao.incremento;
+  const atual = atualLeilao();
+  const min = minimoLicitacao();
+  const valor = Math.max(estado.valorLicitacao ?? min, min);
+  const atalhos = [1, 2, 5].map((k) => {
+    const v = atual + k * inc;
+    return `<button type="button" data-acao="atalho" data-valor="${v}" aria-pressed="${valor === v}">+${euro(k * inc).replace(',00', '')}</button>`;
+  }).join('');
+  return `<div style="display: grid; gap: var(--s-3)">
+    <div class="atalhos" role="group" aria-label="Licitar rapidamente">${atalhos}</div>
+    <div class="campo-grupo">
+      <label class="rotulo" for="valor-licitacao">O seu valor (mínimo <span class="num" data-minimo>${euro(min)}</span>)</label>
+      <input class="campo campo-valor" id="valor-licitacao" type="text" inputmode="decimal" autocomplete="off" value="${valorCampo(valor)}" data-valor-licitacao>
+    </div>
+    <div data-erro-licitacao></div>
+    <button class="btn btn-direto btn-bloco btn-licitar" type="button" data-acao="licitar">${icone('gavel', 'm')}Licitar <span class="num" data-valor-botao>${euro(valor)}</span></button>
+  </div>`;
+}
+
+function vistaLeilao() {
+  const pr = PRODUTORES[leilao.produtor];
+  const atual = atualLeilao();
+  return `<div class="leilao">
+    <button class="voltar" type="button" data-acao="voltar">${icone('arrow_back', 'm')} Voltar</button>
+    <div class="leilao-heroi">${ilu('caixa')}
+      <div class="etiquetas"><span class="etiqueta etiqueta-direto"><span class="bolinha pulsar"></span>Em direto</span>
+        <span class="etiqueta">${icone('group', 'p')}<span data-participantes>${leilao.participantes}</span>&nbsp;a assistir</span></div></div>
+    <div class="leilao-cabecalho">
+      <p class="sobretitulo">Lote #${leilao.id}</p>
+      <h1>${esc(leilao.lote)}</h1>
+      <a class="linha-produtor" href="#produtor" data-ir="produtor" data-param="${leilao.produtor}"><span class="avatar" aria-hidden="true">${iniciais(pr.nome)}</span>${esc(pr.nome)} · ${esc(pr.localidade)}</a>
+    </div>
+    <section class="painel-licitacao" aria-labelledby="titulo-painel">
+      <h2 id="titulo-painel" class="sr-only">Licitar neste lote</h2>
+      <div class="painel-topo">${anel(60)}
+        <div><p class="sobretitulo">Termina em</p><p class="tempo-grande" data-tempo>${fmtTempo(leilao.terminaEm - Date.now())}</p></div></div>
+      <div class="atual">
+        <p class="sobretitulo">Licitação atual · base ${euro(leilao.precoBase)}</p>
+        <p class="valor" data-atual>${euro(atual)}</p>
+        <div data-lider>${htmlLider()}</div>
+      </div>
+      <div data-zona-licitar>${htmlZonaLicitar()}</div>
+    </section>
+    <section class="feed" aria-labelledby="titulo-feed">
+      <div class="feed-cabecalho"><h2 id="titulo-feed">Licitações</h2>
+        <span class="resultado" style="display: inline-flex; align-items: center; gap: 6px"><span class="bolinha pulsar" style="color: var(--live)" aria-hidden="true"></span>em tempo real</span></div>
+      <ol class="licitacoes" data-licitacoes>${htmlLicitacoes()}</ol>
+    </section>
+    <section class="leilao-detalhes" aria-labelledby="titulo-detalhes">
+      <h2 id="titulo-detalhes" style="font-size: var(--t-h3)">Sobre o lote</h2>
+      <div class="factos factos-4">
+        <div class="facto"><span>Colheita</span><strong>${esc(leilao.colheita)}</strong></div>
+        <div class="facto"><span>Modo</span><strong>${esc(leilao.modo)}</strong></div>
+        <div class="facto"><span>Incremento</span><strong>${euro(leilao.incremento)}</strong></div>
+        <div class="facto"><span>Por kg (atual)</span><strong data-por-kg>${euro(atual / leilao.kg)}</strong></div>
+      </div>
+      <p class="descricao">${esc(leilao.descricao)}</p>
+    </section>
+  </div>`;
+}
+
+/* ---------- Encomendas ---------- */
+const totalEncomenda = (e) => e.linhas.reduce((s, l) => s + l.q * l.preco, 0);
+const fmtQ = (l) => (l.unidade === 'kg' ? `${l.q} kg` : `${l.q}`);
+
+function cartaoEncomenda(e) {
+  const pr = PRODUTORES[e.produtor];
+  const idx = ESTADOS.indexOf(e.estado);
+  return `<article class="cartao-encomenda" data-encomenda="${e.id}">
+    <div class="encomenda-topo">
+      <div><h2>#${e.id}</h2><p class="origem">${esc(pr.nome)} · ${e.data} · ${e.tipo === 'levantamento' ? 'Levantamento' : 'Entrega'}</p></div>
+      <span class="estado estado-${e.estado}">${NOMES_ESTADO[e.estado]}</span>
+    </div>
+    <ol class="linha-tempo" aria-label="Estado da encomenda: ${NOMES_ESTADO[e.estado]}">
+      ${ESTADOS.map((s, i) => `<li class="${i < idx ? 'feito' : i === idx ? 'atual' : ''}"><span class="marco">${i < idx ? icone('check', 'p') : i === idx ? '<span class="bolinha"></span>' : ''}</span>${NOMES_ESTADO[s]}</li>`).join('')}
+    </ol>
+    <div class="linhas-encomenda">
+      ${e.linhas.map((l) => `<div class="linha-encomenda"><span>${fmtQ(l)} × ${esc(l.nome)}</span><span class="num">${euro(l.q * l.preco)}</span></div>`).join('')}
+      <div class="linha-encomenda total"><span>Total</span><span class="num">${euro(totalEncomenda(e))}</span></div>
+    </div>
+    ${e.morada ? `<div class="levantamento">${icone('location_on', 'm')}<p>${esc(e.morada)}</p></div>` : ''}
+    <div class="acoes">
+      <button class="btn btn-secundario btn-pequeno" type="button" data-acao="aviso-demo" data-texto="Na versão final abre o mapa com o caminho até à quinta.">${icone('map', 'p')}Ver no mapa</button>
+      <button class="btn btn-suave btn-pequeno" type="button" data-acao="aviso-demo" data-texto="Na versão final abre a conversa com o produtor.">${icone('chat', 'p')}Contactar</button>
+    </div>
+  </article>`;
+}
+
+function htmlAvaliar(e) {
+  if (e.avaliacao) return `<p class="alerta alerta-ok">${icone('check_circle', 'm')}Obrigado. Avaliou com ${e.avaliacao} ${e.avaliacao === 1 ? 'estrela' : 'estrelas'}.</p>`;
+  return `<div style="display: grid; gap: var(--s-2)"><p class="rotulo">Como correu?</p>
+    <div class="estrelas" role="group" aria-label="Avaliar de 1 a 5 estrelas">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-acao="avaliar" data-id="${e.id}" data-n="${n}" aria-label="${n} ${n === 1 ? 'estrela' : 'estrelas'}">${icone('star')}</button>`).join('')}</div></div>`;
+}
+
+function vistaEncomendas() {
+  const emCurso = encomendas.filter((e) => e.estado !== 'entregue');
+  const concluidas = encomendas.filter((e) => e.estado === 'entregue');
+  return `<div class="encomendas">
+    <div><h1 class="titulo-pagina">Encomendas</h1><p class="subtitulo" style="margin-top: 4px">Recebe um aviso no momento em que um produtor muda o estado de uma encomenda.</p></div>
+    ${emCurso.map(cartaoEncomenda).join('')}
+    <h2 style="font-size: var(--t-h3); margin-top: var(--s-4)">Concluídas</h2>
+    ${concluidas.map((e) => `<article class="cartao-encomenda">
+      <div class="encomenda-topo"><div><h2>#${e.id} · ${esc(PRODUTORES[e.produtor].nome)}</h2><p class="origem">Entregue a ${e.data} · ${euro(totalEncomenda(e))}</p></div><span class="estado estado-entregue">Entregue</span></div>
+      <div data-avaliar="${e.id}">${htmlAvaliar(e)}</div></article>`).join('')}
+  </div>`;
+}
+
+/* ---------- Carrinho ---------- */
+function vistaCarrinho() {
+  if (!estado.carrinho.length) {
+    return `<div class="carrinho"><h1 class="titulo-pagina">Carrinho</h1>
+      <div class="vazio">${ilu('cesto')}<h2 style="font-size: var(--t-h3)">O carrinho está vazio</h2><p class="muted">Os produtos da época estão à sua espera.</p>
+      <button class="btn btn-principal" type="button" data-ir="produtos">Explorar produtos</button></div></div>`;
+  }
+  const grupos = {};
+  estado.carrinho.forEach((l) => { const p = produto(l.id); (grupos[p.produtor] ||= []).push({ ...l, p }); });
+  const nEnc = Object.keys(grupos).length;
+  const subtotal = estado.carrinho.reduce((s, l) => s + produto(l.id).preco * l.q, 0);
+  const portes = estado.entrega === 'entrega' ? 3.5 * nEnc : 0;
+  return `<div class="carrinho">
+    <h1 class="titulo-pagina">Carrinho</h1>
+    <p class="nota">${icone('info', 'm')}<span>Os produtos de cada produtor seguem numa encomenda separada. Este carrinho gera ${nEnc} ${nEnc === 1 ? 'encomenda' : 'encomendas'}.</span></p>
+    ${Object.entries(grupos).map(([pid, linhas]) => {
+    const pr = PRODUTORES[pid];
+    return `<section class="grupo-produtor" aria-label="${esc(pr.nome)}">
+      <div class="grupo-cabecalho"><span class="avatar" aria-hidden="true">${iniciais(pr.nome)}</span><div><p>${esc(pr.nome)}</p><p class="origem" style="font-weight: 600">${esc(pr.localidade)}</p></div></div>
+      ${linhas.map((l) => `<div class="linha-carrinho" style="--cat: var(${catVar(l.p.categoria)})"><div class="miniatura">${ilu(l.p.ilu)}</div>
+        <div><p class="nome">${esc(l.p.nome)}</p><p class="unit">${euro(l.p.preco)} / ${esc(l.p.unidade)}</p></div>
+        <div class="direita"><span class="preco">${euro(l.p.preco * l.q)}</span>${passos(l.q, `c:${l.id}`, true)}</div></div>`).join('')}
+    </section>`;
+  }).join('')}
+    <div class="grupo-filtro"><h3>Como quer receber?</h3>
+      <div class="segmentado" role="group" aria-label="Forma de receção">
+        <button type="button" data-acao="entrega" data-valor="levantamento" aria-pressed="${estado.entrega === 'levantamento'}">${icone('storefront', 'p')}Levantar</button>
+        <button type="button" data-acao="entrega" data-valor="entrega" aria-pressed="${estado.entrega === 'entrega'}">${icone('local_shipping', 'p')}Entrega · 3,50 €</button>
+      </div></div>
+    <div class="resumo">
+      <div class="linha"><span>Subtotal</span><span>${euro(subtotal)}</span></div>
+      <div class="linha"><span>Entrega</span><span>${portes ? euro(portes) : 'Grátis'}</span></div>
+      <div class="linha total"><span>Total</span><span>${euro(subtotal + portes)}</span></div>
+    </div>
+    <button class="btn btn-principal btn-bloco" type="button" data-acao="encomendar">Encomendar · ${euro(subtotal + portes)}</button>
+  </div>`;
+}
+
+/* ---------- Página do produtor ---------- */
+function vistaProdutor(id) {
+  const chave = PRODUTORES[id] ? id : 'ms';
+  const pr = PRODUTORES[chave];
+  const lista = PRODUTOS.filter((p) => p.produtor === chave);
+  const [x, y] = pr.mapa;
+  return `<div class="produtor-pagina">
+    <button class="voltar" type="button" data-acao="voltar">${icone('arrow_back', 'm')} Voltar</button>
+    <section class="produtor-capa" aria-labelledby="titulo-produtor">
+      <span class="avatar" aria-hidden="true">${iniciais(pr.nome)}</span>
+      <div><h1 id="titulo-produtor">${esc(pr.nome)}</h1><p class="linha-produtor" style="margin-top: 6px">${icone('location_on', 'p')}${esc(pr.localidade)}</p></div>
+      <div style="display: flex; flex-wrap: wrap; gap: var(--s-2)">
+        <span class="etiqueta etiqueta-bio">${icone('verified', 'p')}Produtor verificado</span>
+        <span class="etiqueta">${icone('star', 'p')}${fmtNum(pr.avaliacao)} · ${pr.avaliacoes} avaliações</span></div>
+      <p class="citacao">${esc(pr.citacao)}</p>
+    </section>
+    <div style="display: grid; gap: var(--s-4)">
+      <p>${esc(pr.historia)}</p>
+      <div class="estatisticas">
+        <div class="facto"><span>Desde</span><strong>${pr.desde}</strong></div>
+        <div class="facto"><span>Produtos</span><strong>${lista.length}</strong></div>
+        <div class="facto"><span>Distância</span><strong>${pr.km} km</strong></div>
+      </div>
+      <div class="mapa" role="img" aria-label="Mapa: ${esc(pr.nome)} fica em ${esc(pr.localidade)}, a ${pr.km} km">
+        <svg viewBox="0 0 100 56" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <rect class="terra" width="100" height="56"/>
+          <path class="serra" d="M0 56V30Q15 18 28 26T55 20T80 14T100 18V56Z"/>
+          <path class="rio" style="stroke-width: 3" d="M-5 42C20 32 40 50 60 38S90 30 105 24"/>
+          <path class="estrada" style="stroke-width: 1.2" d="M0 12L30 20L55 14L100 28"/>
+          <g transform="translate(${x} ${(y * 0.56).toFixed(1)})"><path class="pino" d="M0 0C-3.2-3.6-4.2-5.4-4.2-7.4A4.2 4.2 0 1 1 4.2-7.4C4.2-5.4 3.2-3.6 0 0Z"/><circle class="pino-centro" cy="-7.4" r="1.6"/></g>
+        </svg>
+        <span class="etiqueta">${pr.km} km de si</span>
+      </div>
+    </div>
+    <section class="secao" aria-labelledby="titulo-produtos-produtor">
+      <div class="secao-cabecalho"><h2 id="titulo-produtos-produtor">Produtos (${lista.length})</h2></div>
+      <div class="grelha-produtos">${lista.map(cartaoProduto).join('')}</div>
+    </section>
+  </div>`;
+}
+
+/* ---------- Perfil ---------- */
+function vistaPerfil() {
+  const modo = lerArmazenamento('dcm-tema') || 'auto';
+  const opcoes = [['auto', 'brightness_auto', 'Automático'], ['light', 'light_mode', 'Claro'], ['dark', 'dark_mode', 'Escuro']];
+  return `<div class="perfil">
+    <h1 class="titulo-pagina">Perfil</h1>
+    <div class="perfil-cartao"><span class="avatar" aria-hidden="true">TL</span>
+      <div><p style="font-weight: 800; font-size: 1.0625rem">${EU}</p><p class="origem">Restaurante · Ponte de Lima</p></div></div>
+    <div class="grupo-filtro"><h3>Aparência</h3>
+      <div class="segmentado" role="group" aria-label="Aparência">${opcoes.map(([v, i, r]) => `<button type="button" data-acao="aparencia" data-valor="${v}" aria-pressed="${modo === v}">${icone(i, 'p')}${r}</button>`).join('')}</div>
+      <p class="subtitulo">Automático segue a definição do seu dispositivo.</p></div>
+    <div class="grupo-filtro"><h3>Protótipo</h3>
+      <div class="lista-definicoes">
+        <button class="definicao" type="button" data-ir="sistema">${icone('palette')}Sistema de design${icone('chevron_right')}</button>
+        <button class="definicao" type="button" data-acao="repor">${icone('restart_alt')}Repor a demonstração${icone('chevron_right')}</button>
+      </div></div>
+    <p class="subtitulo">Protótipo da direção visual A 2026. Os dados são fictícios.</p>
+  </div>`;
+}
+
+/* ---------- Sistema de design ---------- */
+function vistaSistema() {
+  const escala = (nome, rotulo) => `<div style="display: grid; gap: var(--s-2)">
+    <h3 style="font-family: var(--font-body); font-size: var(--t-small); font-weight: 800">${rotulo}</h3>
+    <div class="escala">${Array.from({ length: 12 }, (_, i) => `<div class="passo" title="${token(`--${nome}-${i + 1}`).toUpperCase()}"><div class="cor" style="background: var(--${nome}-${i + 1})"></div><span>${i + 1}</span></div>`).join('')}</div></div>`;
+  const pares = [
+    ['Texto principal', '--text', '--bg'], ['Texto secundário', '--text-muted', '--bg'],
+    ['Botão principal', '--on-brand', '--brand'], ['Em direto', '--on-live', '--live'],
+    ['Etiqueta Bio', '--brand-text', '--brand-soft'], ['Estado pendente', '--pendente-fg', '--pendente-bg'],
+    ['Estado confirmada', '--confirmada-fg', '--confirmada-bg'], ['Contorno de campo', '--border-field', '--bg'],
+  ];
+  const linha = ([rotulo, fg, bg]) => {
+    const v = contraste(token(fg), token(bg));
+    const nivel = v >= 7 ? 'AAA' : v >= 4.5 ? 'AA' : v >= 3 ? 'AA gráfico' : 'Falha';
+    return `<div class="contraste"><span class="amostra-texto" style="background: var(${bg}); color: var(${fg})">Aa</span><span>${rotulo}</span><span class="ratio">${fmtNum(v)}:1 · ${nivel}</span></div>`;
+  };
+  return `<div class="sistema">
+    <div><button class="voltar" type="button" data-acao="voltar">${icone('arrow_back', 'm')} Voltar</button>
+      <h1 class="titulo-heroi" style="font-size: clamp(2rem, 1.6rem + 2vw, 3rem); margin-top: var(--s-4)">Sistema de design A 2026</h1>
+      <p class="subtitulo" style="margin-top: var(--s-2); max-width: 60ch">Tudo o que vê no protótipo sai destes tokens. Mude entre claro e escuro: as cores e os contrastes atualizam-se.</p></div>
+    <section class="sistema-bloco"><h2>Cor</h2>
+      ${escala('verde', 'Verde · marca')}${escala('laranja', 'Laranja · em direto')}${escala('neutro', 'Neutro esverdeado')}
+      <p class="papeis"><span>1–2 fundos</span><span>3–5 componentes</span><span>6–8 bordas</span><span>9–10 sólidos</span><span>11–12 texto</span></p></section>
+    <section class="sistema-bloco"><h2>Contraste (WCAG)</h2><div class="contrastes">${pares.map(linha).join('')}</div></section>
+    <section class="sistema-bloco"><h2>Tipografia</h2><div class="tipos">
+      <div class="tipo"><span class="meta">Destaque · Bricolage Grotesque 800</span><p class="titulo-heroi" style="font-size: 2.5rem">Direto de quem produz</p></div>
+      <div class="tipo"><span class="meta">Título · Bricolage Grotesque 750</span><p style="font-family: var(--font-display); font-weight: 750; font-size: 1.75rem; letter-spacing: -0.025em">Leilão em direto</p></div>
+      <div class="tipo"><span class="meta">Texto · Plus Jakarta Sans 400</span><p>Encomende para levantar na quinta ou receber em casa.</p></div>
+      <div class="tipo"><span class="meta">Números tabulares · Plus Jakarta Sans 800</span><p class="num" style="font-weight: 800; font-size: 1.75rem">312,00 € · 02:47</p></div>
+    </div></section>
+    <section class="sistema-bloco"><h2>Forma</h2><div class="raios">${['sm', 'md', 'lg', 'xl', 'full'].map((n) => `<div class="raio" style="border-radius: var(--r-${n})">${n}</div>`).join('')}</div></section>
+    <section class="sistema-bloco"><h2>Componentes</h2><div class="componentes">
+      <button class="btn btn-principal" type="button">Principal</button><button class="btn btn-direto" type="button">Em direto</button>
+      <button class="btn btn-secundario" type="button">Secundário</button><button class="btn btn-suave" type="button">Suave</button>
+      <span class="etiqueta etiqueta-bio">Bio</span><span class="etiqueta etiqueta-direto"><span class="bolinha"></span>Em direto</span>
+      ${ESTADOS.map((s) => `<span class="estado estado-${s}">${NOMES_ESTADO[s]}</span>`).join('')}
+    </div></section>
+  </div>`;
+}
+
+/* ---------- Navegação (SPA) com View Transitions ---------- */
+const VISTAS = {
+  inicio: vistaInicio, produtos: vistaProdutos, produto: vistaProduto, leilao: vistaLeilao, encomendas: vistaEncomendas,
+  carrinho: vistaCarrinho, produtor: vistaProdutor, perfil: vistaPerfil, sistema: vistaSistema,
+};
+const NAV_ATIVA = { produto: 'produtos', produtor: 'produtos', perfil: '', sistema: '' };
+const raiz = document.documentElement;
+const main = document.getElementById('conteudo');
+const folha = document.getElementById('folha-filtros');
+const ENCOMENDAS_INICIAIS = JSON.parse(JSON.stringify(encomendas));
+const LICITACOES_INICIAIS = leilao.licitacoes.map((l) => ({ ...l, em: l.em - agora }));
+
+function render() {
+  main.innerHTML = (VISTAS[estado.vista] || vistaInicio)(estado.param);
+  raiz.toggleAttribute('data-detalhe', estado.vista === 'produto');
+  const ativa = estado.vista in NAV_ATIVA ? NAV_ATIVA[estado.vista] : estado.vista;
+  document.querySelectorAll('[data-nav]').forEach((el) => {
+    if (el.dataset.nav === ativa) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
+  });
+  atualizarContadores();
+  if (estado.vista === 'encomendas') agendarNotificacao();
+}
+
+function transicao(alterar) {
+  if (!document.startViewTransition || reduzirMovimento()) { alterar(); return Promise.resolve(); }
+  return document.startViewTransition(alterar).finished.catch(() => {});
+}
+
+function ir(vista, param = null, { voltar = false, scroll = 0, origem = null } = {}) {
+  if (!voltar) estado.pilha.push({ vista: estado.vista, param: estado.param, scroll: window.scrollY });
+  const anterior = { vista: estado.vista, param: estado.param };
+  if (folha.open) folha.close();
+  if (origem) origem.style.viewTransitionName = 'heroi';
+  transicao(() => {
+    estado.vista = vista;
+    estado.param = param;
+    if (vista === 'produto' && !voltar) estado.qtdDetalhe = 1;
+    render();
+    // Ao regressar de um produto, o cartão desse produto recebe o mesmo nome para "encolher" de volta
+    if (voltar && anterior.vista === 'produto') {
+      const cartao = main.querySelector(`[data-ilu="${anterior.param}"]`);
+      if (cartao) cartao.style.viewTransitionName = 'heroi';
+    }
+    window.scrollTo(0, voltar ? scroll : 0);
+  }).then(() => main.querySelectorAll('[data-ilu]').forEach((el) => { el.style.viewTransitionName = ''; }));
+  main.focus({ preventScroll: true });
+}
+
+function voltar() {
+  const anterior = estado.pilha.pop();
+  if (!anterior) { ir('inicio', null, { voltar: true }); return; }
+  ir(anterior.vista, anterior.param, { voltar: true, scroll: anterior.scroll });
+}
+
+/* ---------- Tema claro e escuro (revelação circular a partir do botão) ---------- */
+function temaEfetivo() {
+  return raiz.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function atualizarBotaoTema() {
+  const escuro = temaEfetivo() === 'dark';
+  const botao = document.querySelector('[data-acao="tema"]');
+  botao.setAttribute('aria-label', escuro ? 'Mudar para modo claro' : 'Mudar para modo escuro');
+  botao.querySelector('[data-icone-tema]').textContent = escuro ? 'light_mode' : 'dark_mode';
+}
+function aplicarModo(modo) {
+  if (modo === 'auto') raiz.removeAttribute('data-theme');
+  else raiz.setAttribute('data-theme', modo);
+  gravarArmazenamento('dcm-tema', modo);
+  atualizarBotaoTema();
+  document.querySelectorAll('[data-acao="aparencia"]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.valor === modo));
+  if (estado.vista === 'sistema') main.innerHTML = vistaSistema();
+}
+function mudarTema(modo, origem) {
+  if (!document.startViewTransition || reduzirMovimento()) { aplicarModo(modo); return; }
+  const r = origem ? origem.getBoundingClientRect() : null;
+  const x = r ? r.left + r.width / 2 : innerWidth / 2;
+  const y = r ? r.top + r.height / 2 : 0;
+  raiz.style.setProperty('--rx', `${x}px`);
+  raiz.style.setProperty('--ry', `${y}px`);
+  raiz.style.setProperty('--rr', `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`);
+  raiz.classList.add('tema-transicao');
+  document.startViewTransition(() => aplicarModo(modo)).finished.finally(() => raiz.classList.remove('tema-transicao'));
+}
+
+/* ---------- Avisos (toasts) e anúncios para leitores de ecrã ---------- */
+const avisos = document.getElementById('avisos');
+function aviso(html, { ic = 'check_circle', acao = null } = {}) {
+  const el = document.createElement('div');
+  el.className = 'aviso';
+  el.innerHTML = `${icone(ic, 'cheio')}<p>${html}</p>${acao ? `<button class="aviso-acao" type="button">${esc(acao.rotulo)}</button>` : ''}`;
+  const fechar = () => { el.classList.add('sair'); setTimeout(() => el.remove(), 200); };
+  if (acao) el.querySelector('.aviso-acao').addEventListener('click', () => { fechar(); acao.fn(); });
+  avisos.prepend(el);
+  while (avisos.children.length > 3) avisos.lastElementChild.remove();
+  setTimeout(fechar, acao ? 6000 : 4000);
+}
+function anunciar(texto) {
+  const a = document.getElementById('anunciador');
+  a.textContent = '';
+  setTimeout(() => { a.textContent = texto; }, 60);
+}
+function saltinho(el) {
+  if (!el || reduzirMovimento()) return;
+  el.classList.remove('saltinho');
+  void el.offsetWidth;
+  el.classList.add('saltinho');
+}
+
+/* ---------- Carrinho ---------- */
+function atualizarContadores(animar = false) {
+  const n = estado.carrinho.length;
+  document.querySelectorAll('[data-contador-carrinho]').forEach((el) => {
+    el.textContent = n;
+    el.hidden = n === 0;
+    if (animar) saltinho(el);
+  });
+}
+function adicionar(id, q = 1) {
+  const linha = estado.carrinho.find((l) => l.id === id);
+  if (linha) linha.q += q;
+  else estado.carrinho.push({ id, q });
+  atualizarContadores(true);
+  aviso(`<strong>${esc(produto(id).nome)}</strong> está no carrinho.`, { ic: 'shopping_bag', acao: { rotulo: 'Ver carrinho', fn: () => ir('carrinho') } });
+}
+function encomendar() {
+  const grupos = {};
+  estado.carrinho.forEach((l) => {
+    const p = produto(l.id);
+    (grupos[p.produtor] ||= []).push({ nome: p.nome, q: l.q, unidade: p.unidade, preco: p.preco });
+  });
+  let n = 1043 + Math.floor(Math.random() * 40);
+  Object.entries(grupos).forEach(([pid, linhas]) => encomendas.unshift({
+    id: `DCM-${n++}`, produtor: pid, data: 'hoje', estado: 'pendente', tipo: estado.entrega, linhas,
+    morada: estado.entrega === 'levantamento' ? `Levantar na quinta: ${PRODUTORES[pid].nome}, ${PRODUTORES[pid].localidade}` : 'Entrega em casa: Rua do Lima 21, Ponte de Lima',
+  }));
+  const k = Object.keys(grupos).length;
+  estado.carrinho = [];
+  atualizarContadores(true);
+  aviso(`${k} ${k === 1 ? 'encomenda enviada' : 'encomendas enviadas'} aos produtores.`, { ic: 'package_2' });
+  ir('encomendas');
+}
+
+/* ---------- Filtros: um só estado, vários controlos (folha e barra lateral) ---------- */
+function sincronizarControlos(excepto = null) {
+  const f = estado.filtros;
+  document.querySelectorAll('[data-acao="alternar-categoria"]').forEach((b) => b.setAttribute('aria-pressed', f.categorias.includes(b.dataset.valor)));
+  document.querySelectorAll('[data-acao="escolher-epoca"]').forEach((b) => b.setAttribute('aria-pressed', f.epoca === b.dataset.valor));
+  document.querySelectorAll('[data-acao="alternar-localidade"]').forEach((b) => b.setAttribute('aria-pressed', f.localidades.includes(b.dataset.valor)));
+  document.querySelectorAll('[data-filtro="bio"]').forEach((i) => { if (i !== excepto) i.checked = f.bio; });
+  document.querySelectorAll('[data-filtro="preco"]').forEach((i) => { if (i !== excepto) i.value = f.precoMax; });
+  document.querySelectorAll('[data-saida-preco]').forEach((o) => { o.textContent = f.precoMax >= 10 ? 'Sem limite' : `Até ${euro(f.precoMax)}`; });
+  document.querySelectorAll('[data-form-pesquisa] input[name="q"]').forEach((i) => { if (i !== document.activeElement) i.value = f.q; });
+}
+function atualizarResultados() {
+  const n = filtrarProdutos().length;
+  const ativos = filtrosAplicados().length;
+  const texto = `${n} ${n === 1 ? 'produto' : 'produtos'}`;
+  const resultados = main.querySelector('[data-resultados]');
+  if (resultados) resultados.innerHTML = htmlResultados();
+  const aplicados = main.querySelector('[data-aplicados]');
+  if (aplicados) aplicados.innerHTML = htmlAplicados();
+  const contagem = main.querySelector('[data-contagem]');
+  if (contagem) contagem.textContent = texto;
+  const nFiltros = main.querySelector('[data-n-filtros]');
+  if (nFiltros) { nFiltros.textContent = ativos; nFiltros.hidden = !ativos; }
+  const ver = folha.querySelector('[data-ver-n]');
+  if (ver) ver.textContent = `Ver ${texto}`;
+}
+function alternar(lista, valor) {
+  const i = lista.indexOf(valor);
+  if (i >= 0) lista.splice(i, 1);
+  else lista.push(valor);
+}
+function limparFiltros() {
+  estado.filtros = { ...estado.filtros, q: '', categorias: [], bio: false, epoca: 'Todas', localidades: [], precoMax: 10 };
+}
+function removerFiltro(tipo, valor) {
+  const f = estado.filtros;
+  if (tipo === 'q') f.q = '';
+  if (tipo === 'categoria') alternar(f.categorias, valor);
+  if (tipo === 'bio') f.bio = false;
+  if (tipo === 'epoca') f.epoca = 'Todas';
+  if (tipo === 'localidade') alternar(f.localidades, valor);
+  if (tipo === 'preco') f.precoMax = 10;
+}
+
+/* ---------- Leilão simulado (no projeto real, isto vem do Socket.io) ---------- */
+let temporizadorRival = null;
+function agendarRival() {
+  clearTimeout(temporizadorRival);
+  if (leilao.terminado) return;
+  temporizadorRival = setTimeout(() => { licitacaoRival(); agendarRival(); }, 5000 + Math.random() * 6000);
+}
+function licitacaoRival() {
+  if (leilao.terminado) return;
+  const anterior = leilao.licitacoes[0];
+  const candidatos = RIVAIS.filter((n) => !anterior || n !== anterior.nome);
+  const nome = candidatos[Math.floor(Math.random() * candidatos.length)];
+  const valor = atualLeilao() + leilao.incremento * (Math.random() < 0.7 ? 1 : 2);
+  leilao.participantes = Math.max(9, leilao.participantes + (Math.random() < 0.5 ? -1 : 1));
+  registarLicitacao({ nome, valor, em: Date.now() });
+  if (anterior && anterior.eu) {
+    aviso(`<strong>${esc(nome)}</strong> ultrapassou a sua licitação com ${euro(valor)}.`, {
+      ic: 'gavel', acao: estado.vista === 'leilao' ? null : { rotulo: 'Ver sala', fn: () => ir('leilao') },
+    });
+  }
+}
+function registarLicitacao(l) {
+  leilao.licitacoes.unshift(l);
+  atualizarLeilaoUI(true);
+}
+function atualizarBotaoLicitar() {
+  const valor = estado.valorLicitacao ?? minimoLicitacao();
+  const rotulo = main.querySelector('[data-valor-botao]');
+  if (rotulo) rotulo.textContent = euro(valor);
+  main.querySelectorAll('[data-acao="atalho"]').forEach((b) => b.setAttribute('aria-pressed', Number(b.dataset.valor) === valor));
+}
+function atualizarLeilaoUI(nova = false) {
+  const atual = atualLeilao();
+  const min = minimoLicitacao();
+  document.querySelectorAll('[data-atual]').forEach((el) => { el.textContent = euro(atual); if (nova) saltinho(el); });
+  document.querySelectorAll('[data-participantes]').forEach((el) => { el.textContent = leilao.participantes; });
+  const lider = main.querySelector('[data-lider]');
+  if (lider) lider.innerHTML = htmlLider();
+  const lista = main.querySelector('[data-licitacoes]');
+  if (lista) lista.innerHTML = htmlLicitacoes(nova);
+  const porKg = main.querySelector('[data-por-kg]');
+  if (porKg) porKg.textContent = euro(atual / leilao.kg);
+  const zona = main.querySelector('[data-zona-licitar]');
+  if (zona) {
+    if (leilao.terminado) { zona.innerHTML = htmlZonaLicitar(); return; }
+    if ((estado.valorLicitacao ?? 0) < min) estado.valorLicitacao = min;
+    zona.querySelector('[data-minimo]').textContent = euro(min);
+    zona.querySelectorAll('[data-acao="atalho"]').forEach((b, i) => { b.dataset.valor = atual + [1, 2, 5][i] * leilao.incremento; });
+    const campo = zona.querySelector('[data-valor-licitacao]');
+    if (campo && document.activeElement !== campo) campo.value = valorCampo(estado.valorLicitacao);
+    atualizarBotaoLicitar();
+  }
+  if (nova && estado.vista === 'leilao') {
+    const l = leilao.licitacoes[0];
+    anunciar(`Nova licitação de ${euro(l.valor)}${l.eu ? ', a sua' : ` por ${l.nome}`}.`);
+  }
+}
+function mostrarErroLicitacao(texto) {
+  const caixa = main.querySelector('[data-erro-licitacao]');
+  if (caixa) caixa.innerHTML = `<p class="alerta alerta-erro tremer" role="alert">${icone('info', 'm')}${esc(texto)}</p>`;
+}
+function licitar(botao) {
+  if (leilao.terminado || estado.aguardaLicitacao) return;
+  const campo = main.querySelector('[data-valor-licitacao]');
+  const valor = lerValor(campo ? campo.value : estado.valorLicitacao);
+  const min = minimoLicitacao();
+  if (!Number.isFinite(valor) || valor < min) { mostrarErroLicitacao(`O valor mínimo é ${euro(min)}.`); return; }
+  estado.aguardaLicitacao = true;
+  botao.setAttribute('aria-busy', 'true');
+  botao.disabled = true;
+  setTimeout(() => {
+    estado.aguardaLicitacao = false;
+    // Uma em cada quatro vezes, outro comprador chega primeiro com o mesmo valor:
+    // o servidor (operação atómica) aceita só a primeira e recusa a segunda.
+    if (Math.random() < 0.25) {
+      const rival = RIVAIS[Math.floor(Math.random() * RIVAIS.length)];
+      registarLicitacao({ nome: rival, valor, em: Date.now() });
+      estado.valorLicitacao = minimoLicitacao();
+      atualizarLeilaoUI(false);
+      mostrarErroLicitacao(`${rival} licitou ${euro(valor)} primeiro. O mínimo agora é ${euro(minimoLicitacao())}.`);
+    } else {
+      registarLicitacao({ nome: EU, valor, em: Date.now(), eu: true });
+      estado.valorLicitacao = minimoLicitacao();
+      atualizarLeilaoUI(false);
+      const caixa = main.querySelector('[data-erro-licitacao]');
+      if (caixa) caixa.innerHTML = '';
+      aviso(`Licitação aceite: <strong>${euro(valor)}</strong>. É a mais alta.`, { ic: 'gavel' });
+      try { navigator.vibrate?.(12); } catch { /* sem vibração */ }
+    }
+    const b = main.querySelector('[data-acao="licitar"]');
+    if (b) { b.disabled = false; b.removeAttribute('aria-busy'); }
+  }, 350 + Math.random() * 300);
+}
+function terminarLeilao() {
+  leilao.terminado = true;
+  clearTimeout(temporizadorRival);
+  const l = leilao.licitacoes[0];
+  if (l && l.eu) {
+    encomendas.unshift({
+      id: 'DCM-1101', produtor: leilao.produtor, data: 'hoje', estado: 'confirmada', tipo: 'levantamento',
+      morada: 'Levantar na quinta: Rua da Ribeira 14, Ponte de Lima',
+      linhas: [{ nome: `Lote: ${leilao.lote}`, q: 1, unidade: 'lote', preco: l.valor }],
+    });
+    aviso(`Ganhou o lote por <strong>${euro(l.valor)}</strong>. A encomenda já está em Encomendas.`, { ic: 'emoji_events', acao: { rotulo: 'Ver', fn: () => ir('encomendas') } });
+  } else {
+    aviso('O leilão do kiwi terminou.', { ic: 'schedule' });
+  }
+  atualizarLeilaoUI(false);
+}
+function reiniciarLeilao() {
+  leilao.terminaEm = Date.now() + (4 * 60 + 30) * 1000;
+  leilao.licitacoes = LICITACOES_INICIAIS.map((l) => ({ ...l, em: Date.now() + l.em }));
+  leilao.terminado = false;
+  leilao.participantes = 14;
+  estado.valorLicitacao = null;
+  agendarRival();
+  if (estado.vista === 'leilao' || estado.vista === 'inicio') render();
+}
+function tique() {
+  const resto = leilao.terminaEm - Date.now();
+  document.querySelectorAll('[data-tempo]').forEach((el) => {
+    el.textContent = fmtTempo(resto);
+    el.classList.toggle('urgente', resto < 60000);
+  });
+  document.querySelectorAll('[data-anel]').forEach((el) => el.setAttribute('stroke-dashoffset', offsetAnel()));
+  document.querySelectorAll('[data-ha]').forEach((el) => { el.textContent = haQuanto(Number(el.dataset.ha)); });
+  if (resto <= 0 && !leilao.terminado) terminarLeilao();
+}
+
+/* ---------- Notificação da encomenda (no projeto real chega pela sala pessoal do Socket.io) ---------- */
+let temporizadorNotificacao = null;
+function agendarNotificacao() {
+  const e = encomendas.find((x) => x.id === 'DCM-1042');
+  if (!e || e.estado !== 'confirmada' || estado.notificacaoFeita) return;
+  clearTimeout(temporizadorNotificacao);
+  temporizadorNotificacao = setTimeout(() => {
+    e.estado = 'pronta';
+    estado.notificacaoFeita = true;
+    document.querySelector('[data-ponto-notif]').hidden = false;
+    aviso('<strong>Horta da Ribeira</strong> marcou a encomenda #DCM-1042 como pronta a levantar.', {
+      ic: 'notifications', acao: estado.vista === 'encomendas' ? null : { rotulo: 'Ver', fn: () => ir('encomendas') },
+    });
+    const cartao = main.querySelector('[data-encomenda="DCM-1042"]');
+    if (cartao) {
+      cartao.outerHTML = cartaoEncomenda(e);
+      main.querySelector('[data-encomenda="DCM-1042"]')?.classList.add('realce');
+    }
+  }, 3000);
+}
+
+function repor() {
+  estado.carrinho = [{ id: 'p2', q: 1 }, { id: 'p1', q: 2 }, { id: 'p4', q: 3 }];
+  limparFiltros();
+  estado.filtros.ordenar = 'recomendados';
+  estado.notificacaoFeita = false;
+  estado.pilha = [];
+  encomendas.splice(0, encomendas.length, ...JSON.parse(JSON.stringify(ENCOMENDAS_INICIAIS)));
+  document.querySelector('[data-ponto-notif]').hidden = true;
+  reiniciarLeilao();
+  aviso('Demonstração reposta.', { ic: 'restart_alt' });
+  ir('inicio');
+}
+
+/* ---------- Eventos (delegação num só sítio) ---------- */
+document.addEventListener('click', (e) => {
+  const destino = e.target.closest('[data-ir]');
+  if (destino) {
+    e.preventDefault();
+    const vista = destino.dataset.ir;
+    const param = destino.dataset.param || null;
+    if (vista === estado.vista && param === estado.param) return;
+    const origem = vista === 'produto' ? destino.closest('.cartao-produto')?.querySelector('[data-ilu]') : null;
+    ir(vista, param, { origem });
+    return;
+  }
+  const b = e.target.closest('[data-acao]');
+  if (!b) return;
+  const f = estado.filtros;
+  switch (b.dataset.acao) {
+    case 'tema': mudarTema(temaEfetivo() === 'dark' ? 'light' : 'dark', b); break;
+    case 'aparencia': mudarTema(b.dataset.valor, b); break;
+    case 'notificacoes':
+      document.querySelector('[data-ponto-notif]').hidden = true;
+      aviso(estado.notificacaoFeita ? 'A encomenda #DCM-1042 está pronta a levantar na Horta da Ribeira.' : 'Não tem notificações novas.', { ic: 'notifications' });
+      break;
+    case 'adicionar': saltinho(b); adicionar(b.dataset.id); break;
+    case 'adicionar-detalhe': adicionar(b.dataset.id, estado.qtdDetalhe); break;
+    case 'menos':
+    case 'mais': {
+      const passo = b.dataset.acao === 'mais' ? 1 : -1;
+      const chave = b.dataset.chave;
+      if (chave === 'qtd') {
+        estado.qtdDetalhe = Math.min(20, Math.max(1, estado.qtdDetalhe + passo));
+        main.querySelector('[data-saida="qtd"]').textContent = estado.qtdDetalhe;
+        main.querySelector('[data-total-detalhe]').textContent = euro(produto(estado.param).preco * estado.qtdDetalhe);
+      } else {
+        const id = chave.slice(2);
+        const linha = estado.carrinho.find((l) => l.id === id);
+        if (linha) linha.q += passo;
+        estado.carrinho = estado.carrinho.filter((l) => l.q > 0);
+        main.innerHTML = vistaCarrinho();
+        atualizarContadores();
+        main.querySelector(`[data-chave="${chave}"][data-acao="${b.dataset.acao}"]`)?.focus();
+      }
+      break;
+    }
+    case 'filtrar-categoria': limparFiltros(); estado.filtros.categorias.push(b.dataset.categoria); ir('produtos'); break;
+    case 'filtrar-epoca': limparFiltros(); estado.filtros.epoca = b.dataset.epoca; ir('produtos'); break;
+    case 'lembrar': {
+      const ativo = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', ativo);
+      b.querySelector('span:last-child').textContent = ativo ? 'Vou avisar' : 'Lembrar-me';
+      b.classList.toggle('btn-suave', ativo);
+      b.classList.toggle('btn-secundario', !ativo);
+      if (ativo) aviso('Avisamos quando o leilão abrir, no sábado às 18:00.', { ic: 'notifications' });
+      break;
+    }
+    case 'abrir-folha': folha.innerHTML = conteudoFolha(); folha.showModal(); break;
+    case 'fechar-folha': folha.close(); break;
+    case 'alternar-categoria': alternar(f.categorias, b.dataset.valor); sincronizarControlos(); atualizarResultados(); break;
+    case 'alternar-localidade': alternar(f.localidades, b.dataset.valor); sincronizarControlos(); atualizarResultados(); break;
+    case 'escolher-epoca': f.epoca = b.dataset.valor; sincronizarControlos(); atualizarResultados(); break;
+    case 'remover-filtro': removerFiltro(b.dataset.tipo, b.dataset.valor); sincronizarControlos(); atualizarResultados(); break;
+    case 'limpar-filtros': limparFiltros(); sincronizarControlos(); atualizarResultados(); break;
+    case 'voltar': voltar(); break;
+    case 'atalho': {
+      estado.valorLicitacao = Number(b.dataset.valor);
+      const campo = main.querySelector('[data-valor-licitacao]');
+      if (campo) campo.value = valorCampo(estado.valorLicitacao);
+      atualizarBotaoLicitar();
+      break;
+    }
+    case 'licitar': licitar(b); break;
+    case 'reiniciar-leilao': reiniciarLeilao(); break;
+    case 'aviso-demo': aviso(esc(b.dataset.texto), { ic: 'info' }); break;
+    case 'avaliar': {
+      const enc = encomendas.find((x) => x.id === b.dataset.id);
+      enc.avaliacao = Number(b.dataset.n);
+      main.querySelector(`[data-avaliar="${enc.id}"]`).innerHTML = htmlAvaliar(enc);
+      break;
+    }
+    case 'entrega': estado.entrega = b.dataset.valor; main.innerHTML = vistaCarrinho(); break;
+    case 'encomendar': encomendar(); break;
+    case 'repor': repor(); break;
+    default: break;
+  }
+});
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.matches('[data-filtro="preco"]')) {
+    estado.filtros.precoMax = Number(t.value);
+    sincronizarControlos(t);
+    atualizarResultados();
+  } else if (t.matches('[data-valor-licitacao]')) {
+    const v = lerValor(t.value);
+    if (Number.isFinite(v)) { estado.valorLicitacao = v; atualizarBotaoLicitar(); }
+  }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.matches('[data-filtro="bio"]')) { estado.filtros.bio = t.checked; sincronizarControlos(t); atualizarResultados(); }
+  if (t.matches('[data-filtro="ordenar"]')) { estado.filtros.ordenar = t.value; atualizarResultados(); }
+});
+document.addEventListener('submit', (e) => {
+  const form = e.target.closest('[data-form-pesquisa]');
+  if (!form) return;
+  e.preventDefault();
+  estado.filtros.q = String(new FormData(form).get('q') || '').trim();
+  if (estado.vista === 'produtos') { sincronizarControlos(); atualizarResultados(); } else ir('produtos');
+});
+folha.addEventListener('click', (e) => { if (e.target === folha) folha.close(); });
+
+/* ---------- Arranque ---------- */
+(function iniciar() {
+  const modo = lerArmazenamento('dcm-tema');
+  if (modo === 'light' || modo === 'dark') raiz.setAttribute('data-theme', modo);
+  atualizarBotaoTema();
+  const alvo = (location.hash || '').slice(1);
+  if (VISTAS[alvo] && alvo !== 'produto' && alvo !== 'produtor') estado.vista = alvo;
+  render();
+  agendarRival();
+  setInterval(tique, 1000);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    atualizarBotaoTema();
+    if (estado.vista === 'sistema') main.innerHTML = vistaSistema();
+  });
+}());
+</script>

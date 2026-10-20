@@ -1,6 +1,6 @@
 # 0006. Design próprio sobre Bootstrap e SASS
 
-- **Estado:** Aceite (a direção visual ainda está por escolher)
+- **Estado:** Aceite (a direção visual foi escolhida no [ADR 0008](0008-direcao-visual-a-2026.md))
 - **Data:** 2026-10-10
 
 ## Contexto
