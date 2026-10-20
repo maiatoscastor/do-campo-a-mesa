@@ -1,5 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+// Fontes guardadas no projeto: o browser não as vai buscar ao Google Fonts (RGPD)
+import '@fontsource-variable/bricolage-grotesque';
+import '@fontsource-variable/plus-jakarta-sans';
 import './styles/main.scss';
 import App from './App.jsx';
 

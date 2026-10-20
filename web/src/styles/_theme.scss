@@ -1,0 +1,24 @@
+// O Bootstrap com o tema da A 2026.
+// Quase todas as variáveis do Bootstrap terminam em !default ("usa este valor, a não ser que já
+// haja outro"). Os valores passados em `with` entram antes de o Bootstrap gerar o CSS, por isso
+// todos os componentes já saem com o nosso tema. Um nome errado dá erro de compilação.
+@use 'variables' as v;
+
+@forward 'bootstrap/scss/bootstrap' with (
+  // Letra
+  $font-family-sans-serif: v.$letra-texto,
+  $line-height-base: 1.55,
+  $headings-font-family: v.$letra-titulos,
+  $headings-font-weight: 750,
+  $headings-line-height: 1.08,
+  // Tamanhos dos títulos pensados primeiro para o telemóvel, como no protótipo
+  $h1-font-size: 1.75rem,
+  $h2-font-size: 1.375rem,
+  $h3-font-size: 1.125rem,
+  $h4-font-size: 1rem,
+  $h5-font-size: 1rem,
+  $h6-font-size: 1rem,
+  // Sem o redimensionamento automático de letra do Bootstrap (RFS), que encolheria
+  // ainda mais os títulos no telemóvel
+  $enable-rfs: false
+);

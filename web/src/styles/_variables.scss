@@ -1,0 +1,12 @@
+// Variáveis da direção visual "A 2026". Só definem valores: este ficheiro não gera CSS.
+
+// Letra: Plus Jakarta Sans no texto e Bricolage Grotesque nos títulos, guardadas no projeto
+// (importadas em main.jsx). As outras são de reserva, enquanto as nossas carregam.
+$letra-texto:
+  'Plus Jakarta Sans Variable',
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  Roboto,
+  sans-serif;
+$letra-titulos: 'Bricolage Grotesque Variable', $letra-texto;
