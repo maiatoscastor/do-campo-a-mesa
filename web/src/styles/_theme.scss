@@ -1,17 +1,66 @@
-// O Bootstrap com o tema da A 2026.
+// O Bootstrap com o tema da aplicação.
 // Quase todas as variáveis do Bootstrap terminam em !default ("usa este valor, a não ser que já
 // haja outro"). Os valores passados em `with` entram antes de o Bootstrap gerar o CSS, por isso
 // todos os componentes já saem com o nosso tema. Um nome errado dá erro de compilação.
 @use 'variables' as v;
 
 @forward 'bootstrap/scss/bootstrap' with (
+  // Cores do tema: o Bootstrap gera a partir delas os botões, alertas, badges e utilitários.
+  // As cinzentas (secondary, light e dark) vêm da escala neutra, mais abaixo.
+  $primary: v.cor(verde, 9),
+  $success: v.cor(verde, 9),
+  $info: v.cor(azul, 9),
+  $warning: v.cor(ambar, 9),
+  $danger: v.cor(vermelho, 9),
+  // Texto escuro que o Bootstrap escolhe sobre fundos claros (o claro continua o branco)
+  $color-contrast-dark: v.cor(neutro, 12),
+  // Versões suaves de cada cor: fundo no passo 3, borda no 6 e texto no 11
+  $primary-bg-subtle: v.cor(verde, 3),
+  $primary-border-subtle: v.cor(verde, 6),
+  $primary-text-emphasis: v.cor(verde, 11),
+  $secondary-bg-subtle: v.cor(neutro, 3),
+  $secondary-border-subtle: v.cor(neutro, 6),
+  $secondary-text-emphasis: v.cor(neutro, 11),
+  $success-bg-subtle: v.cor(verde, 3),
+  $success-border-subtle: v.cor(verde, 6),
+  $success-text-emphasis: v.cor(verde, 11),
+  $info-bg-subtle: v.cor(azul, 3),
+  $info-border-subtle: v.cor(azul, 6),
+  $info-text-emphasis: v.cor(azul, 11),
+  $warning-bg-subtle: v.cor(ambar, 3),
+  $warning-border-subtle: v.cor(ambar, 6),
+  $warning-text-emphasis: v.cor(ambar, 11),
+  $danger-bg-subtle: v.cor(vermelho, 3),
+  $danger-border-subtle: v.cor(vermelho, 6),
+  $danger-text-emphasis: v.cor(vermelho, 11),
+  // Os cinzentos do Bootstrap passam a ser o neutro esverdeado (o passo mais parecido).
+  // O texto escuro da escala está todo no passo 12, por isso o 700, o 800 e o 900 coincidem.
+  // O texto da página (gray-900) fica assim no passo 12.
+  $gray-100: v.cor(neutro, 2),
+  $gray-200: v.cor(neutro, 4),
+  $gray-300: v.cor(neutro, 5),
+  $gray-400: v.cor(neutro, 6),
+  $gray-500: v.cor(neutro, 8),
+  $gray-600: v.cor(neutro, 11),
+  $gray-700: v.cor(neutro, 12),
+  $gray-800: v.cor(neutro, 12),
+  $gray-900: v.cor(neutro, 12),
+  // Papéis em que o nosso design difere do que o Bootstrap tiraria dos cinzentos
+  $body-bg: v.cor(neutro, 1),
+  $body-emphasis-color: v.cor(neutro, 12),
+  $body-secondary-color: v.cor(neutro, 11),
+  $body-secondary-bg: v.cor(neutro, 3),
+  $border-color: v.cor(neutro, 6),
+  // Links no verde de texto (passo 11), mais escuros ao passar o rato (passo 12)
+  $link-color: v.cor(verde, 11),
+  $link-hover-color: v.cor(verde, 12),
   // Letra
   $font-family-sans-serif: v.$letra-texto,
   $line-height-base: 1.55,
   $headings-font-family: v.$letra-titulos,
   $headings-font-weight: 750,
   $headings-line-height: 1.08,
-  // Tamanhos dos títulos pensados primeiro para o telemóvel, como no protótipo
+  // Tamanhos dos títulos pensados primeiro para o telemóvel (Mobile First)
   $h1-font-size: 1.75rem,
   $h2-font-size: 1.375rem,
   $h3-font-size: 1.125rem,

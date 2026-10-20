@@ -1,4 +1,6 @@
-// Variáveis da direção visual "A 2026". Só definem valores: este ficheiro não gera CSS.
+// Variáveis do design da aplicação. Só definem valores: este ficheiro não gera CSS.
+@use 'sass:list';
+@use 'sass:map';
 
 // Letra: Plus Jakarta Sans no texto e Bricolage Grotesque nos títulos, guardadas no projeto
 // (importadas em main.jsx). As outras são de reserva, enquanto as nossas carregam.
@@ -10,3 +12,26 @@ $letra-texto:
   Roboto,
   sans-serif;
 $letra-titulos: 'Bricolage Grotesque Variable', $letra-texto;
+
+// Escalas de cor de 12 passos (modo claro), geradas em OKLCH a partir do verde da marca
+// (#1F7A3D) e do laranja (#C2410C), com o contraste verificado (WCAG AA). Papel de cada passo:
+// 1–2 fundos · 3–5 componentes · 6–8 bordas · 9–10 cores sólidas · 11–12 texto.
+// A tabela fica fora do Prettier para cada passo estar sempre na mesma coluna.
+// prettier-ignore
+$escalas: (
+  //        1       2       3       4       5       6       7       8       9       10      11      12
+  verde:    #f9fffa #f1fbf3 #e3f5e6 #d5efd9 #c5e8cb #b4ddbb #9ecfa7 #7dba8a #1f7a3d #076d30 #156d34 #063114,
+  laranja:  #fffcfb #fff6f3 #ffebe4 #ffdfd5 #ffd1c3 #ffc0ac #fba98f #ee8a6b #c2410c #af3600 #9d3000 #4a1200,
+  neutro:   #fcfefd #f8faf8 #eff2ef #e6eae7 #dde2de #d3d8d4 #c4cac5 #adb4ae #878e88 #7b827c #5f6760 #1a211b,
+  ambar:    #fffcf9 #fff6ee #fdedde #f9e2cc #f5d7ba #edcaa8 #e1b88f #d09e6a #a16207 #905600 #814d00 #3b2000,
+  azul:     #fbfdff #f4f8ff #e7f1ff #d9e8ff #cadfff #b6d3ff #9bc2fe #7baaf4 #1e5bb8 #0e4da9 #1d57ae #092652,
+  vermelho: #fffcfb #fff6f4 #ffeae8 #ffdeda #ffd0ca #ffbfb7 #ffa59b #f68379 #c42b2b #b4151d #a9141b #4f0608,
+);
+
+// Devolve um passo de uma escala. Exemplo: cor(verde, 9) é o verde da marca.
+@function cor($escala, $passo) {
+  @if not map.has-key($escalas, $escala) {
+    @error 'Não existe a escala de cor "#{$escala}".';
+  }
+  @return list.nth(map.get($escalas, $escala), $passo);
+}
