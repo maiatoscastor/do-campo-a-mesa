@@ -50,9 +50,11 @@ npm run dev      # servidor de desenvolvimento em http://localhost:5173
 
 As alterações aos ficheiros aparecem no browser assim que são guardadas. Para abrir a aplicação no telemóvel (na mesma rede Wi-Fi), correr `npm run dev -- --host` e abrir o endereço indicado em "Network".
 
-| Comando | O que faz |
-|---|---|
-| `npm run dev` | Servidor de desenvolvimento com recarregamento automático |
-| `npm run lint` | Verifica o código com o ESLint |
-| `npm run build` | Gera a versão de produção em `web/dist/` |
-| `npm run preview` | Serve localmente a versão de produção |
+| Comando                | O que faz                                                 |
+| ---------------------- | --------------------------------------------------------- |
+| `npm run dev`          | Servidor de desenvolvimento com recarregamento automático |
+| `npm run lint`         | Verifica o código com o ESLint                            |
+| `npm run format`       | Formata o código com o Prettier                           |
+| `npm run format:check` | Confirma que o código está formatado, sem o alterar       |
+| `npm run build`        | Gera a versão de produção em `web/dist/`                  |
+| `npm run preview`      | Serve localmente a versão de produção                     |
