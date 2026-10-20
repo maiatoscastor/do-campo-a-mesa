@@ -6,8 +6,16 @@ Trabalho prático individual de **Desenvolvimento Web e para a Cloud** · Mestra
 
 **Autor:** Diogo Esteves de Sá, 31378
 
-> **Estado:** em desenvolvimento, semana 1 de 7.
+> **Estado:** em desenvolvimento, semana 2 de 7.
 > Este README é o relatório do projeto e contém as instruções de instalação. É escrito ao longo do trabalho, à medida que cada parte fica concluída.
+
+## Estrutura do repositório
+
+```
+.
+├── web/        aplicação web (SPA): React · Vite
+└── README.md   relatório e instruções de instalação
+```
 
 ## Relatório
 
@@ -27,4 +35,24 @@ O relatório vai seguir esta estrutura, preenchida passo a passo:
 
 ## Instalação e execução
 
-_Por escrever quando existir código para executar._
+### Requisitos
+
+- [Node.js](https://nodejs.org/) 24 ou mais recente (inclui o npm)
+- Git
+
+### Frontend (SPA)
+
+```bash
+cd web
+npm install      # só na primeira vez, ou quando mudam as dependências
+npm run dev      # servidor de desenvolvimento em http://localhost:5173
+```
+
+As alterações aos ficheiros aparecem no browser assim que são guardadas. Para abrir a aplicação no telemóvel (na mesma rede Wi-Fi), correr `npm run dev -- --host` e abrir o endereço indicado em "Network".
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento com recarregamento automático |
+| `npm run lint` | Verifica o código com o ESLint |
+| `npm run build` | Gera a versão de produção em `web/dist/` |
+| `npm run preview` | Serve localmente a versão de produção |
