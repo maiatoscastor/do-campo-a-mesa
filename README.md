@@ -6,12 +6,14 @@ Trabalho prático individual de **Desenvolvimento Web e para a Cloud** · Mestra
 
 **Autor:** Diogo Esteves de Sá, 31378
 
-> **Estado:** em desenvolvimento, semana 1 de 7.
+> **Estado:** em desenvolvimento, semana 2 de 7.
 > Este README é o relatório do projeto e contém as instruções de instalação. É escrito ao longo do trabalho, à medida que cada parte fica concluída.
 
 ## Documentação do projeto
 
+- [`docs/plano.md`](docs/plano.md): plano de trabalho, com as funcionalidades por semana e as ferramentas de cada uma.
 - [`docs/decisoes/`](docs/decisoes/): registo das decisões técnicas (ADR).
+- [`docs/design/`](docs/design/): protótipo interativo da direção visual e gerador das escalas de cor.
 - [`CHANGELOG.md`](CHANGELOG.md): alterações por versão.
 
 ## Estrutura do repositório
@@ -21,7 +23,9 @@ Trabalho prático individual de **Desenvolvimento Web e para a Cloud** · Mestra
 ├── api/            API REST + Socket.io (Node.js · Express · MongoDB)   · a partir da semana 3
 ├── web/            SPA (React · Vite · Bootstrap · SASS)                · a partir da semana 1
 ├── docs/
-│   └── decisoes/   registo de decisões (ADR)
+│   ├── plano.md    plano de trabalho
+│   ├── decisoes/   registo de decisões (ADR)
+│   └── design/     protótipo e gerador de cores
 ├── CHANGELOG.md    registo de alterações
 └── README.md       relatório e instruções de instalação
 ```

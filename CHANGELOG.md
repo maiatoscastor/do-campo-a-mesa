@@ -10,3 +10,5 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) e o p
 
 - Estrutura inicial do repositório: README, regras do Git (`.gitignore`, `.gitattributes`) e formatação base (`.editorconfig`).
 - Registo das decisões iniciais (ADR 0001 a 0007) em `docs/decisoes/`.
+- Direção visual "A 2026" (ADR 0008), com o protótipo interativo e o gerador das escalas de cor em `docs/design/`.
+- Plano de trabalho (`docs/plano.md`): linha do tempo e ferramentas de cada funcionalidade.
