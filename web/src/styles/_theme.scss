@@ -54,6 +54,43 @@
   // Links no verde de texto (passo 11), mais escuros ao passar o rato (passo 12)
   $link-color: v.cor(verde, 11),
   $link-hover-color: v.cor(verde, 12),
+  // Modo escuro: segue a preferência do sistema (telemóvel ou computador), sem JavaScript.
+  // O Bootstrap põe os valores escuros das suas variáveis CSS dentro de
+  // @media (prefers-color-scheme: dark). Os papéis são os do modo claro, nas escalas escuras.
+  // As cores sólidas (botões) ficam iguais nos dois modos: têm contraste suficiente em ambos.
+  $color-mode-type: media-query,
+  $body-bg-dark: v.cor(neutro, 1, escuro),
+  $body-color-dark: v.cor(neutro, 12, escuro),
+  $body-emphasis-color-dark: v.cor(neutro, 12, escuro),
+  $body-secondary-color-dark: v.cor(neutro, 11, escuro),
+  $body-secondary-bg-dark: v.cor(neutro, 3, escuro),
+  $body-tertiary-bg-dark: v.cor(neutro, 2, escuro),
+  $border-color-dark: v.cor(neutro, 6, escuro),
+  $link-color-dark: v.cor(verde, 11, escuro),
+  $link-hover-color-dark: v.cor(verde, 12, escuro),
+  $primary-bg-subtle-dark: v.cor(verde, 3, escuro),
+  $primary-border-subtle-dark: v.cor(verde, 6, escuro),
+  $primary-text-emphasis-dark: v.cor(verde, 11, escuro),
+  $secondary-bg-subtle-dark: v.cor(neutro, 3, escuro),
+  $secondary-border-subtle-dark: v.cor(neutro, 6, escuro),
+  $secondary-text-emphasis-dark: v.cor(neutro, 11, escuro),
+  $success-bg-subtle-dark: v.cor(verde, 3, escuro),
+  $success-border-subtle-dark: v.cor(verde, 6, escuro),
+  $success-text-emphasis-dark: v.cor(verde, 11, escuro),
+  $info-bg-subtle-dark: v.cor(azul, 3, escuro),
+  $info-border-subtle-dark: v.cor(azul, 6, escuro),
+  $info-text-emphasis-dark: v.cor(azul, 11, escuro),
+  $warning-bg-subtle-dark: v.cor(ambar, 3, escuro),
+  $warning-border-subtle-dark: v.cor(ambar, 6, escuro),
+  $warning-text-emphasis-dark: v.cor(ambar, 11, escuro),
+  $danger-bg-subtle-dark: v.cor(vermelho, 3, escuro),
+  $danger-border-subtle-dark: v.cor(vermelho, 6, escuro),
+  $danger-text-emphasis-dark: v.cor(vermelho, 11, escuro),
+  // Mensagens de validação dos formulários com as nossas cores (o Bootstrap usaria as dele)
+  $form-valid-color-dark: v.cor(verde, 11, escuro),
+  $form-valid-border-color-dark: v.cor(verde, 11, escuro),
+  $form-invalid-color-dark: v.cor(vermelho, 11, escuro),
+  $form-invalid-border-color-dark: v.cor(vermelho, 11, escuro),
   // Letra
   $font-family-sans-serif: v.$letra-texto,
   $line-height-base: 1.55,

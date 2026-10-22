@@ -13,12 +13,13 @@ $letra-texto:
   sans-serif;
 $letra-titulos: 'Bricolage Grotesque Variable', $letra-texto;
 
-// Escalas de cor de 12 passos (modo claro), geradas em OKLCH a partir do verde da marca
-// (#1F7A3D) e do laranja (#C2410C), com o contraste verificado (WCAG AA). Papel de cada passo:
+// Escalas de cor de 12 passos, geradas em OKLCH a partir do verde da marca (#1F7A3D) e do
+// laranja (#C2410C), com o contraste verificado (WCAG AA). Papel de cada passo, nos dois modos:
 // 1–2 fundos · 3–5 componentes · 6–8 bordas · 9–10 cores sólidas · 11–12 texto.
-// A tabela fica fora do Prettier para cada passo estar sempre na mesma coluna.
+// No modo escuro, o passo 1 é o fundo mais escuro e o 12 o texto mais claro.
+// As tabelas ficam fora do Prettier para cada passo estar sempre na mesma coluna.
 // prettier-ignore
-$escalas: (
+$escalas-claras: (
   //        1       2       3       4       5       6       7       8       9       10      11      12
   verde:    #f9fffa #f1fbf3 #e3f5e6 #d5efd9 #c5e8cb #b4ddbb #9ecfa7 #7dba8a #1f7a3d #076d30 #156d34 #063114,
   laranja:  #fffcfb #fff6f3 #ffebe4 #ffdfd5 #ffd1c3 #ffc0ac #fba98f #ee8a6b #c2410c #af3600 #9d3000 #4a1200,
@@ -28,10 +29,27 @@ $escalas: (
   vermelho: #fffcfb #fff6f4 #ffeae8 #ffdeda #ffd0ca #ffbfb7 #ffa59b #f68379 #c42b2b #b4151d #a9141b #4f0608,
 );
 
-// Devolve um passo de uma escala. Exemplo: cor(verde, 9) é o verde da marca.
-@function cor($escala, $passo) {
-  @if not map.has-key($escalas, $escala) {
-    @error 'Não existe a escala de cor "#{$escala}".';
+// prettier-ignore
+$escalas-escuras: (
+  //        1       2       3       4       5       6       7       8       9       10      11      12
+  verde:    #0c110d #101812 #162218 #1a2b1e #1e3523 #24402a #2d5135 #396a44 #2c8547 #1f7a3d #93d5a0 #d9f3dd,
+  laranja:  #160d0a #20120e #2d1912 #3a1e15 #472317 #572a1c #6e3422 #90432a #cb4919 #bf3d04 #ffaa8f #ffe5dc,
+  neutro:   #0d100e #131614 #1b1e1b #222622 #282d29 #313732 #3f4540 #535a54 #727a73 #7e867f #b5bdb6 #ecf0ec,
+  ambar:    #130e0a #1b150e #271d12 #312315 #3d2a17 #4a331b #5d4022 #7a542a #a66611 #9a5c00 #edb67e #fee7d1,
+  azul:     #0b1016 #101620 #161f2e #19273b #1d2f4a #23395a #2c4772 #385d96 #3572d1 #2b67c5 #9fc4ff #e0ecff,
+  vermelho: #170c0b #211110 #2f1715 #3c1c19 #4a201d #5a2622 #72302b #953c37 #d43c39 #c82f2e #ffa89f #ffe4e1,
+);
+
+$escalas: (
+  claro: $escalas-claras,
+  escuro: $escalas-escuras,
+);
+
+// Devolve um passo de uma escala, no modo claro (por omissão) ou no escuro.
+// Exemplos: cor(verde, 9) é o verde da marca; cor(neutro, 1, escuro) é o fundo do modo escuro.
+@function cor($escala, $passo, $modo: claro) {
+  @if not map.has-key($escalas, $modo, $escala) {
+    @error 'Não existe a escala de cor "#{$escala}" no modo "#{$modo}".';
   }
-  @return list.nth(map.get($escalas, $escala), $passo);
+  @return list.nth(map.get($escalas, $modo, $escala), $passo);
 }
