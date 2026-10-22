@@ -58,3 +58,8 @@ As alterações aos ficheiros aparecem no browser assim que são guardadas. Para
 | `npm run format:check` | Confirma que o código está formatado, sem o alterar       |
 | `npm run build`        | Gera a versão de produção em `web/dist/`                  |
 | `npm run preview`      | Serve localmente a versão de produção                     |
+
+## Créditos
+
+- **Ícones:** desenhos do [Material Symbols](https://fonts.google.com/icons), da Google, com licença [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0). Estão em `web/src/components/Icone.jsx`.
+- **Letra:** [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) e [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans), com licença [SIL Open Font License 1.1](https://openfontlicense.org), instaladas através do [Fontsource](https://fontsource.org).
