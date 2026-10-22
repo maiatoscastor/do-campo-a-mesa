@@ -52,8 +52,9 @@ $altura: 4.25rem; // 68 px
   border-radius: var(--bs-border-radius-pill);
 }
 
-// O conteúdo e o rodapé não podem ficar escondidos atrás da barra
-body {
+// O conteúdo e o rodapé não podem ficar escondidos atrás da barra. O espaço fica dentro do
+// #root, que já ocupa a altura do ecrã: assim a página não ganha deslocamento a mais.
+#root {
   padding-bottom: calc($altura + env(safe-area-inset-bottom, 0px));
 
   @include m.a-partir-de(lg) {

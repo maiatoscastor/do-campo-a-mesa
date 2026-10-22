@@ -16,3 +16,26 @@ h6,
   letter-spacing: -0.025em;
   text-wrap: balance;
 }
+
+// A página ocupa pelo menos a altura visível do ecrã (dvh: sem as barras do browser no
+// telemóvel), em coluna, para o rodapé poder ficar no fundo
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+// "Saltar para o conteúdo": escondida até receber o foco do teclado (Tab), e então aparece por
+// cima de tudo. Poupa a quem usa teclado ou leitor de ecrã passar pela navegação em cada página.
+.saltar {
+  position: fixed;
+  top: 0.5rem;
+  left: 1rem;
+  z-index: 1100;
+  padding: 0.625rem 1.125rem;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: var(--bs-primary);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
