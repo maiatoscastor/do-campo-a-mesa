@@ -69,5 +69,15 @@
   $h6-font-size: 1rem,
   // Sem o redimensionamento automático de letra do Bootstrap (RFS), que encolheria
   // ainda mais os títulos no telemóvel
-  $enable-rfs: false
+  $enable-rfs: false,
+  // Grelha: os pontos de quebra do enunciado são o md (768), o lg (1024) e o xl (1280).
+  // O sm e o xxl ficam como no Bootstrap, porque alguns componentes dependem deles.
+  $grid-breakpoints: (
+      xs: 0,
+      sm: 576px,
+      md: 768px,
+      lg: 1024px,
+      xl: 1280px,
+      xxl: 1400px
+    )
 );
