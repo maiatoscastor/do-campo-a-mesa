@@ -116,5 +116,17 @@
       lg: 1024px,
       xl: 1280px,
       xxl: 1400px
-    )
+    ),
+  // Contentor com 16 px de margem de cada lado (o Bootstrap aplica metade deste valor)
+  $container-padding-x: 2rem,
+  // Navegação (nav-pills): ligações em texto secundário e a página atual num fundo verde suave
+  $nav-link-padding-y: 0.5625rem,
+  $nav-link-padding-x: 0.875rem,
+  $nav-link-font-size: 0.875rem,
+  $nav-link-font-weight: 650,
+  $nav-link-color: var(--bs-secondary-color),
+  $nav-link-hover-color: var(--bs-emphasis-color),
+  $nav-pills-border-radius: var(--bs-border-radius-pill),
+  $nav-pills-link-active-color: var(--bs-primary-text-emphasis),
+  $nav-pills-link-active-bg: var(--bs-primary-bg-subtle)
 );

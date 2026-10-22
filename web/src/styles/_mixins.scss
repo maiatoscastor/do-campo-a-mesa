@@ -1,0 +1,31 @@
+// Mixins do projeto.
+@use 'theme' as bs;
+
+// Mobile First: os estilos base são os do telemóvel, e este mixin acrescenta regras a partir de
+// um ponto de quebra (md 768, lg 1024 ou xl 1280 px). Usa os pontos de quebra do Bootstrap, para
+// a grelha e os nossos estilos mudarem exatamente nas mesmas larguras.
+@mixin a-partir-de($ponto) {
+  @include bs.media-breakpoint-up($ponto) {
+    @content;
+  }
+}
+
+// Fundo de vidro fosco para as barras fixas: o conteúdo passa por trás, desfocado. Se o browser
+// não suportar o desfoque, ou se a pessoa pediu menos transparência, o fundo fica sólido.
+@mixin vidro-fosco {
+  background-color: rgba(var(--bs-body-bg-rgb), 0.76);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
+
+  @supports not (
+    (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+  ) {
+    background-color: var(--bs-body-bg);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--bs-body-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

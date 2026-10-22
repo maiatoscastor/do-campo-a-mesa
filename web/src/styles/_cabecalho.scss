@@ -1,0 +1,53 @@
+// Cabeçalho (componente Cabecalho.jsx).
+@use 'mixins' as m;
+@use 'variables' as v;
+
+.cabecalho {
+  @include m.vidro-fosco;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.cabecalho-interior {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 3.75rem; // 60 px no telemóvel
+
+  @include m.a-partir-de(lg) {
+    min-height: 4.5rem; // 72 px no computador
+  }
+}
+
+// Marca: o símbolo é o mesmo desenho do favicon
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  font-family: v.$letra-titulos;
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+
+// Ligações da navegação: fundo suave ao passar o rato (a página atual já tem o fundo verde)
+.cabecalho .nav-link:not(.active):hover {
+  background-color: var(--bs-secondary-bg);
+}
+
+// Botão redondo só com ícone, com 44 px: o tamanho mínimo recomendado para tocar com o dedo
+.botao-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  color: var(--bs-body-color);
+
+  &:hover {
+    background-color: var(--bs-secondary-bg);
+  }
+}
