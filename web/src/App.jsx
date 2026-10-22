@@ -1,4 +1,5 @@
 import Cabecalho from './components/Cabecalho.jsx';
+import NavegacaoInferior from './components/NavegacaoInferior.jsx';
 
 // Estrutura da página. O conteúdo ainda é provisório: o design vai aparecendo commit a commit.
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           O design vai aparecendo aqui, commit a commit.
         </p>
       </main>
+      <NavegacaoInferior />
     </>
   );
 }
