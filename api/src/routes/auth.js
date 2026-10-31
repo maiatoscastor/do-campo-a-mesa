@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import { auth } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { criarErro, problemasDeUtilizador } from '../utils/erro.js';
 import {
@@ -103,6 +104,16 @@ router.post('/login', async (req, res) => {
     token: emitirToken(utilizador),
     utilizador: utilizador.publico(),
   });
+});
+
+// GET /api/auth/eu: devolve o utilizador da sessão, com os dados atuais (por exemplo, se o
+// produtor já foi aprovado). Se a conta já não existir, a sessão deixa de ser válida.
+router.get('/eu', auth(), async (req, res) => {
+  const utilizador = await User.findById(req.user.id);
+  if (!utilizador) {
+    throw criarErro(401, 'Sessão inválida ou expirada');
+  }
+  res.json(utilizador.publico());
 });
 
 export default router;
