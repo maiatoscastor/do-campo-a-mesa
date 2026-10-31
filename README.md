@@ -6,8 +6,17 @@ Trabalho prático individual de **Desenvolvimento Web e para a Cloud** · Mestra
 
 **Autor:** Diogo Esteves de Sá, 31378
 
-> **Estado:** em desenvolvimento, semana 1 de 7.
+> **Estado:** em desenvolvimento.
 > Este README é o relatório do projeto e contém as instruções de instalação. É escrito ao longo do trabalho, à medida que cada parte fica concluída.
+
+## Estrutura do repositório
+
+```
+.
+├── api/        servidor (API REST): Node.js · Express · MongoDB
+├── web/        aplicação web (SPA): React · Vite
+└── README.md   relatório e instruções de instalação
+```
 
 ## Relatório
 
@@ -27,4 +36,62 @@ O relatório vai seguir esta estrutura, preenchida passo a passo:
 
 ## Instalação e execução
 
-_Por escrever quando existir código para executar._
+### Requisitos
+
+- [Node.js](https://nodejs.org/) 24 ou mais recente (inclui o npm)
+- Git
+- Uma base de dados MongoDB, por exemplo um cluster gratuito no [MongoDB Atlas](https://www.mongodb.com/atlas)
+
+### Servidor (API)
+
+```bash
+cd api
+npm install            # só na primeira vez, ou quando mudam as dependências
+cp .env.example .env   # cria o ficheiro de configuração local
+```
+
+No ficheiro `.env`, preencher `MONGODB_URI` com o endereço de ligação à base de dados, incluindo o nome dela no fim do endereço, e `JWT_SECRET` com um valor gerado à sorte. O `.env` tem segredos e nunca vai para o Git; o `.env.example` explica cada variável e como gerar o segredo.
+
+```bash
+npm run dev            # API em http://localhost:3000
+```
+
+Para confirmar que está a funcionar, abrir <http://localhost:3000/api/health>.
+
+O registo público só cria compradores e produtores. A conta de administrador cria-se no terminal, com `npm run criar-admin`.
+
+| Comando                | O que faz                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run dev`          | Arranca a API com o `.env` e reinicia-a sempre que um ficheiro é guardado                  |
+| `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env` |
+| `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim          |
+| `npm run criar-admin`  | Cria uma conta de administrador, pedindo os dados no terminal                              |
+| `npm run lint`         | Verifica o código com o ESLint                                                             |
+| `npm run format`       | Formata o código com o Prettier                                                            |
+| `npm run format:check` | Confirma que o código está formatado, sem o alterar                                        |
+
+### Frontend (SPA)
+
+```bash
+cd web
+npm install      # só na primeira vez, ou quando mudam as dependências
+npm run dev      # servidor de desenvolvimento em http://localhost:5173
+```
+
+Em desenvolvimento, o Vite passa os pedidos a `/api` à API em `http://localhost:3000`, por isso o servidor tem de estar a correr noutro terminal. Na publicação, o endereço da API define-se em `VITE_API_URL` (ver `.env.example`).
+
+As alterações aos ficheiros aparecem no browser assim que são guardadas. Para abrir a aplicação no telemóvel (na mesma rede Wi-Fi), correr `npm run dev -- --host` e abrir o endereço indicado em "Network".
+
+| Comando                | O que faz                                                 |
+| ---------------------- | --------------------------------------------------------- |
+| `npm run dev`          | Servidor de desenvolvimento com recarregamento automático |
+| `npm run lint`         | Verifica o código com o ESLint                            |
+| `npm run format`       | Formata o código com o Prettier                           |
+| `npm run format:check` | Confirma que o código está formatado, sem o alterar       |
+| `npm run build`        | Gera a versão de produção em `web/dist/`                  |
+| `npm run preview`      | Serve localmente a versão de produção                     |
+
+## Créditos
+
+- **Ícones:** desenhos do [Material Symbols](https://fonts.google.com/icons), da Google, com licença [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0). Estão em `web/src/components/Icone.jsx`.
+- **Letra:** [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) e [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans), com licença [SIL Open Font License 1.1](https://openfontlicense.org), instaladas através do [Fontsource](https://fontsource.org).

@@ -1,0 +1,63 @@
+// Barra de navegação inferior (componente NavegacaoInferior.jsx).
+@use 'mixins' as m;
+
+$altura: 4.25rem; // 68 px
+
+.navegacao-inferior {
+  @include m.vidro-fosco;
+  border-top: 1px solid var(--bs-border-color);
+  // No iPhone, deixa livre a zona da barra de gestos (precisa de viewport-fit=cover no index.html)
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.navegacao-inferior-lista {
+  display: grid;
+  // Colunas iguais; num ecrã muito estreito (320 px), a que tem o nome mais comprido
+  // ("Encomendas") alarga o que precisa e as outras encolhem um pouco
+  grid-template-columns: repeat(5, 1fr);
+  max-width: 35rem; // 560 px: no tablet, as entradas não ficam demasiado afastadas
+  height: $altura;
+  margin: 0 auto;
+  padding: 0 0.25rem;
+  list-style: none;
+}
+
+.navegacao-inferior-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1875rem;
+  height: 100%;
+  font-size: 0.6875rem; // 11 px
+  font-weight: 650;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+
+  // Página atual: texto verde e pílula verde suave à volta do ícone
+  &[aria-current='page'] {
+    color: var(--bs-primary-text-emphasis);
+
+    .navegacao-inferior-icone {
+      background-color: var(--bs-primary-bg-subtle);
+    }
+  }
+}
+
+.navegacao-inferior-icone {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 1.875rem;
+  border-radius: var(--bs-border-radius-pill);
+}
+
+// O conteúdo e o rodapé não podem ficar escondidos atrás da barra. O espaço fica dentro do
+// #root, que já ocupa a altura do ecrã: assim a página não ganha deslocamento a mais.
+#root {
+  padding-bottom: calc($altura + env(safe-area-inset-bottom, 0px));
+
+  @include m.a-partir-de(lg) {
+    padding-bottom: 0;
+  }
+}

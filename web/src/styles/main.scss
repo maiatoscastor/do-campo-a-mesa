@@ -1,0 +1,9 @@
+// Ponto de entrada dos estilos da aplicação (importado em main.jsx).
+// A ordem conta: primeiro o Bootstrap com o nosso tema, depois os estilos próprios.
+@use 'theme';
+@use 'base';
+@use 'botoes';
+@use 'cabecalho';
+@use 'estado-vazio';
+@use 'formularios';
+@use 'navegacao-inferior';

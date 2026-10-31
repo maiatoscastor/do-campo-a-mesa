@@ -1,0 +1,158 @@
+// O Bootstrap com o tema da aplicação.
+// Quase todas as variáveis do Bootstrap terminam em !default ("usa este valor, a não ser que já
+// haja outro"). Os valores passados em `with` entram antes de o Bootstrap gerar o CSS, por isso
+// todos os componentes já saem com o nosso tema. Um nome errado dá erro de compilação.
+@use 'variables' as v;
+
+@forward 'bootstrap/scss/bootstrap' with (
+  // Cores do tema: o Bootstrap gera a partir delas os botões, alertas, badges e utilitários.
+  // As cinzentas (secondary, light e dark) vêm da escala neutra, mais abaixo.
+  $primary: v.cor(verde, 9),
+  $success: v.cor(verde, 9),
+  $info: v.cor(azul, 9),
+  $warning: v.cor(ambar, 9),
+  $danger: v.cor(vermelho, 9),
+  // Texto escuro que o Bootstrap escolhe sobre fundos claros (o claro continua o branco)
+  $color-contrast-dark: v.cor(neutro, 12),
+  // Versões suaves de cada cor: fundo no passo 3, borda no 6 e texto no 11
+  $primary-bg-subtle: v.cor(verde, 3),
+  $primary-border-subtle: v.cor(verde, 6),
+  $primary-text-emphasis: v.cor(verde, 11),
+  $secondary-bg-subtle: v.cor(neutro, 3),
+  $secondary-border-subtle: v.cor(neutro, 6),
+  $secondary-text-emphasis: v.cor(neutro, 11),
+  $success-bg-subtle: v.cor(verde, 3),
+  $success-border-subtle: v.cor(verde, 6),
+  $success-text-emphasis: v.cor(verde, 11),
+  $info-bg-subtle: v.cor(azul, 3),
+  $info-border-subtle: v.cor(azul, 6),
+  $info-text-emphasis: v.cor(azul, 11),
+  $warning-bg-subtle: v.cor(ambar, 3),
+  $warning-border-subtle: v.cor(ambar, 6),
+  $warning-text-emphasis: v.cor(ambar, 11),
+  $danger-bg-subtle: v.cor(vermelho, 3),
+  $danger-border-subtle: v.cor(vermelho, 6),
+  $danger-text-emphasis: v.cor(vermelho, 11),
+  // Os cinzentos do Bootstrap passam a ser o neutro esverdeado (o passo mais parecido).
+  // O texto escuro da escala está todo no passo 12, por isso o 700, o 800 e o 900 coincidem.
+  // O texto da página (gray-900) fica assim no passo 12.
+  $gray-100: v.cor(neutro, 2),
+  $gray-200: v.cor(neutro, 4),
+  $gray-300: v.cor(neutro, 5),
+  $gray-400: v.cor(neutro, 6),
+  $gray-500: v.cor(neutro, 8),
+  $gray-600: v.cor(neutro, 11),
+  $gray-700: v.cor(neutro, 12),
+  $gray-800: v.cor(neutro, 12),
+  $gray-900: v.cor(neutro, 12),
+  // Papéis em que o nosso design difere do que o Bootstrap tiraria dos cinzentos
+  $body-bg: v.cor(neutro, 1),
+  $body-emphasis-color: v.cor(neutro, 12),
+  $body-secondary-color: v.cor(neutro, 11),
+  $body-secondary-bg: v.cor(neutro, 3),
+  $border-color: v.cor(neutro, 6),
+  // Links no verde de texto (passo 11), mais escuros ao passar o rato (passo 12)
+  $link-color: v.cor(verde, 11),
+  $link-hover-color: v.cor(verde, 12),
+  // Modo escuro: segue a preferência do sistema (telemóvel ou computador), sem JavaScript.
+  // O Bootstrap põe os valores escuros das suas variáveis CSS dentro de
+  // @media (prefers-color-scheme: dark). Os papéis são os do modo claro, nas escalas escuras.
+  // As cores sólidas (botões) ficam iguais nos dois modos: têm contraste suficiente em ambos.
+  $color-mode-type: media-query,
+  $body-bg-dark: v.cor(neutro, 1, escuro),
+  $body-color-dark: v.cor(neutro, 12, escuro),
+  $body-emphasis-color-dark: v.cor(neutro, 12, escuro),
+  $body-secondary-color-dark: v.cor(neutro, 11, escuro),
+  $body-secondary-bg-dark: v.cor(neutro, 3, escuro),
+  $body-tertiary-bg-dark: v.cor(neutro, 2, escuro),
+  $border-color-dark: v.cor(neutro, 6, escuro),
+  $link-color-dark: v.cor(verde, 11, escuro),
+  $link-hover-color-dark: v.cor(verde, 12, escuro),
+  $primary-bg-subtle-dark: v.cor(verde, 3, escuro),
+  $primary-border-subtle-dark: v.cor(verde, 6, escuro),
+  $primary-text-emphasis-dark: v.cor(verde, 11, escuro),
+  $secondary-bg-subtle-dark: v.cor(neutro, 3, escuro),
+  $secondary-border-subtle-dark: v.cor(neutro, 6, escuro),
+  $secondary-text-emphasis-dark: v.cor(neutro, 11, escuro),
+  $success-bg-subtle-dark: v.cor(verde, 3, escuro),
+  $success-border-subtle-dark: v.cor(verde, 6, escuro),
+  $success-text-emphasis-dark: v.cor(verde, 11, escuro),
+  $info-bg-subtle-dark: v.cor(azul, 3, escuro),
+  $info-border-subtle-dark: v.cor(azul, 6, escuro),
+  $info-text-emphasis-dark: v.cor(azul, 11, escuro),
+  $warning-bg-subtle-dark: v.cor(ambar, 3, escuro),
+  $warning-border-subtle-dark: v.cor(ambar, 6, escuro),
+  $warning-text-emphasis-dark: v.cor(ambar, 11, escuro),
+  $danger-bg-subtle-dark: v.cor(vermelho, 3, escuro),
+  $danger-border-subtle-dark: v.cor(vermelho, 6, escuro),
+  $danger-text-emphasis-dark: v.cor(vermelho, 11, escuro),
+  // Mensagens de validação dos formulários com as nossas cores (o Bootstrap usaria as dele)
+  $form-valid-color-dark: v.cor(verde, 11, escuro),
+  $form-valid-border-color-dark: v.cor(verde, 11, escuro),
+  $form-invalid-color-dark: v.cor(vermelho, 11, escuro),
+  $form-invalid-border-color-dark: v.cor(vermelho, 11, escuro),
+  // Letra
+  $font-family-sans-serif: v.$letra-texto,
+  $line-height-base: 1.55,
+  $headings-font-family: v.$letra-titulos,
+  $headings-font-weight: 750,
+  $headings-line-height: 1.08,
+  // Tamanhos dos títulos pensados primeiro para o telemóvel (Mobile First)
+  $h1-font-size: 1.75rem,
+  $h2-font-size: 1.375rem,
+  $h3-font-size: 1.125rem,
+  $h4-font-size: 1rem,
+  $h5-font-size: 1rem,
+  $h6-font-size: 1rem,
+  // Sem o redimensionamento automático de letra do Bootstrap (RFS), que encolheria
+  // ainda mais os títulos no telemóvel
+  $enable-rfs: false,
+  // Grelha: os pontos de quebra do enunciado são o md (768), o lg (1024) e o xl (1280).
+  // O sm e o xxl ficam como no Bootstrap, porque alguns componentes dependem deles.
+  $grid-breakpoints: (
+      xs: 0,
+      sm: 576px,
+      md: 768px,
+      lg: 1024px,
+      xl: 1280px,
+      xxl: 1400px
+    ),
+  // Contentor com 16 px de margem de cada lado (o Bootstrap aplica metade deste valor)
+  $container-padding-x: 2rem,
+  // Navegação (nav-pills): ligações em texto secundário e a página atual num fundo verde suave
+  $nav-link-padding-y: 0.5625rem,
+  $nav-link-padding-x: 0.875rem,
+  $nav-link-font-size: 0.875rem,
+  $nav-link-font-weight: 650,
+  $nav-link-color: var(--bs-secondary-color),
+  $nav-link-hover-color: var(--bs-emphasis-color),
+  $nav-pills-border-radius: var(--bs-border-radius-pill),
+  $nav-pills-link-active-color: var(--bs-primary-text-emphasis),
+  $nav-pills-link-active-bg: var(--bs-primary-bg-subtle),
+  // Forma: cantos generosos (10, 14, 20 e 28 px) em todos os componentes
+  $border-radius-sm: 0.625rem,
+  $border-radius: 0.875rem,
+  $border-radius-lg: 1.25rem,
+  $border-radius-xl: 1.75rem,
+  // Botões em pílula, com 48 px de altura: bons para tocar com o dedo
+  $btn-padding-y: 0.7rem,
+  $btn-padding-x: 1.375rem,
+  $btn-font-size: 0.9375rem,
+  $btn-font-weight: 700,
+  $btn-border-radius: var(--bs-border-radius-pill),
+  $btn-border-radius-sm: var(--bs-border-radius-pill),
+  $btn-border-radius-lg: var(--bs-border-radius-pill),
+  // Campos de formulário com 50 px de altura e o contorno bem visível (--borda-campo)
+  $form-label-font-size: 0.875rem,
+  $form-label-font-weight: 700,
+  $form-label-margin-bottom: 0.375rem,
+  $input-padding-y: 0.71875rem,
+  $input-padding-x: 1rem,
+  $input-border-width: 1.5px,
+  $input-border-color: var(--borda-campo),
+  $input-focus-border-color: v.cor(verde, 9),
+  $form-check-input-border: 1.5px solid var(--borda-campo),
+  // As mensagens de erro em texto vermelho (passo 11), mais legível do que a cor sólida
+  $form-invalid-color: v.cor(vermelho, 11),
+  $form-invalid-border-color: v.cor(vermelho, 11)
+);

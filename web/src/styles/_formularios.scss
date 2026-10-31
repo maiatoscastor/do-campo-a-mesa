@@ -1,0 +1,33 @@
+// Formulários. A forma dos campos do Bootstrap está no tema (_theme.scss); aqui fica o que é nosso.
+@use 'theme' as bs;
+@use 'variables' as v;
+
+// Contorno dos campos: o passo 9 do neutro, para se distinguirem bem do fundo (contraste de 3:1)
+:root {
+  --borda-campo: #{v.cor(neutro, 9)};
+}
+
+@include bs.color-mode(dark, true) {
+  --borda-campo: #{v.cor(neutro, 9, escuro)};
+}
+
+// Escolha entre opções, com a opção inteira a servir de alvo para tocar com o dedo
+.opcao {
+  display: flex;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid var(--borda-campo);
+  border-radius: var(--bs-border-radius);
+  cursor: pointer;
+
+  &:has(:checked) {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+  }
+
+  .form-check-input {
+    flex: none;
+    margin-top: 0.1875rem;
+  }
+}
