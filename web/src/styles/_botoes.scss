@@ -2,13 +2,15 @@
 @use 'theme' as bs;
 @use 'variables' as v;
 
-// Fundo do botão suave ao passar o rato: o passo 4 do verde, em cada modo
+// Fundo dos botões suaves ao passar o rato: o passo 4 da escala, em cada modo
 :root {
   --verde-suave-hover: #{v.cor(verde, 4)};
+  --vermelho-suave-hover: #{v.cor(vermelho, 4)};
 }
 
 @include bs.color-mode(dark, true) {
   --verde-suave-hover: #{v.cor(verde, 4, escuro)};
+  --vermelho-suave-hover: #{v.cor(vermelho, 4, escuro)};
 }
 
 // Botão secundário em verde suave. Usa as variáveis CSS do Bootstrap, que mudam com o modo escuro:
@@ -24,4 +26,21 @@
   --bs-btn-active-bg: var(--verde-suave-hover);
   --bs-btn-active-border-color: transparent;
   --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+// O mesmo botão em vermelho suave, para as ações negativas (por exemplo, rejeitar)
+.btn-suave-perigo {
+  --bs-btn-color: var(--bs-danger-text-emphasis);
+  --bs-btn-bg: var(--bs-danger-bg-subtle);
+  --bs-btn-border-color: transparent;
+  --bs-btn-hover-color: var(--bs-danger-text-emphasis);
+  --bs-btn-hover-bg: var(--vermelho-suave-hover);
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-color: var(--bs-danger-text-emphasis);
+  --bs-btn-active-bg: var(--vermelho-suave-hover);
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-disabled-color: var(--bs-danger-text-emphasis);
+  --bs-btn-disabled-bg: var(--bs-danger-bg-subtle);
+  --bs-btn-disabled-border-color: transparent;
+  --bs-btn-focus-shadow-rgb: var(--bs-danger-rgb);
 }

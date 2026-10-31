@@ -11,6 +11,7 @@ import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
 import Produtos from './pages/Produtos.jsx';
 import Registar from './pages/Registar.jsx';
+import ValidarProdutores from './pages/ValidarProdutores.jsx';
 
 // As páginas da aplicação. O App é a estrutura comum (cabeçalho, navegação e rodapé), e a página
 // de cada endereço aparece no lugar do <Outlet /> dele. O "*" apanha os endereços que não existem.
@@ -36,6 +37,12 @@ export const router = createBrowserRouter([
             children: [
               { path: 'encomendas', element: <Encomendas /> },
               { path: 'conta', element: <Conta /> },
+            ],
+          },
+          {
+            element: <RotaProtegida papeis={['admin']} />,
+            children: [
+              { path: 'admin/produtores', element: <ValidarProdutores /> },
             ],
           },
           { path: '*', element: <PaginaNaoEncontrada /> },
