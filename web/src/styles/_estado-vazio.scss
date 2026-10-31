@@ -1,0 +1,20 @@
+// Mensagem de lista vazia (componente EstadoVazio.jsx).
+.estado-vazio {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.25rem;
+  border-radius: var(--bs-border-radius-xl);
+  background-color: var(--bs-secondary-bg);
+  text-align: center;
+}
+
+.estado-vazio-icone {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+}
