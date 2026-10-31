@@ -5,7 +5,7 @@ import { ligarBaseDeDados } from './config/db.js';
 const porta = process.env.PORT ?? 3000;
 
 // Sem estas variáveis a API ficaria insegura, por isso nem chega a arrancar
-for (const variavel of ['JWT_SECRET']) {
+for (const variavel of ['JWT_SECRET', 'CLIENT_URL']) {
   if (!process.env[variavel]) {
     console.error(`Falta a variável ${variavel} (ver .env.example)`);
     process.exit(1);

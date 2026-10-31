@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
@@ -10,6 +11,9 @@ const app = express();
 
 // Não anunciar que o servidor usa Express
 app.disable('x-powered-by');
+
+// O browser só deixa outra origem chamar a API se esta o autorizar: autoriza-se só a aplicação web
+app.use(cors({ origin: process.env.CLIENT_URL }));
 
 // Converte o corpo JSON dos pedidos em req.body
 app.use(express.json({ limit: '1mb' }));
