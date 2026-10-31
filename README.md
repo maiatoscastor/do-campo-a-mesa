@@ -6,13 +6,14 @@ Trabalho prático individual de **Desenvolvimento Web e para a Cloud** · Mestra
 
 **Autor:** Diogo Esteves de Sá, 31378
 
-> **Estado:** em desenvolvimento, semana 2 de 7.
+> **Estado:** em desenvolvimento.
 > Este README é o relatório do projeto e contém as instruções de instalação. É escrito ao longo do trabalho, à medida que cada parte fica concluída.
 
 ## Estrutura do repositório
 
 ```
 .
+├── api/        servidor (API REST): Node.js · Express · MongoDB
 ├── web/        aplicação web (SPA): React · Vite
 └── README.md   relatório e instruções de instalação
 ```
@@ -39,6 +40,31 @@ O relatório vai seguir esta estrutura, preenchida passo a passo:
 
 - [Node.js](https://nodejs.org/) 24 ou mais recente (inclui o npm)
 - Git
+- Uma base de dados MongoDB, por exemplo um cluster gratuito no [MongoDB Atlas](https://www.mongodb.com/atlas)
+
+### Servidor (API)
+
+```bash
+cd api
+npm install            # só na primeira vez, ou quando mudam as dependências
+cp .env.example .env   # cria o ficheiro de configuração local
+```
+
+No ficheiro `.env`, preencher `MONGODB_URI` com o endereço de ligação à base de dados, incluindo o nome dela no fim do endereço. O `.env` tem a password e nunca vai para o Git; o `.env.example` explica cada variável.
+
+```bash
+npm run dev            # API em http://localhost:3000
+```
+
+Para confirmar que está a funcionar, abrir <http://localhost:3000/api/health>.
+
+| Comando                | O que faz                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run dev`          | Arranca a API com o `.env` e reinicia-a sempre que um ficheiro é guardado                  |
+| `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env` |
+| `npm run lint`         | Verifica o código com o ESLint                                                             |
+| `npm run format`       | Formata o código com o Prettier                                                            |
+| `npm run format:check` | Confirma que o código está formatado, sem o alterar                                        |
 
 ### Frontend (SPA)
 
