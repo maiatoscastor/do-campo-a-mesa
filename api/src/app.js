@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
 
 // Configura o Express sem o pôr a escutar: quem arranca o servidor é o server.js.
@@ -11,9 +12,13 @@ app.disable('x-powered-by');
 // Converte o corpo JSON dos pedidos em req.body
 app.use(express.json({ limit: '1mb' }));
 
-// Permite confirmar que a API está a responder
+// Diz se a API está a responder e se tem ligação à base de dados (readyState 1 quer dizer ligada)
 app.get('/api/health', (req, res) => {
-  res.json({ estado: 'ok' });
+  const ligada = mongoose.connection.readyState === 1;
+  res.status(ligada ? 200 : 503).json({
+    estado: ligada ? 'ok' : 'com problemas',
+    baseDeDados: ligada ? 'ligada' : 'desligada',
+  });
 });
 
 // Estes dois ficam sempre em último: só chega aqui o que nenhuma rota tratou

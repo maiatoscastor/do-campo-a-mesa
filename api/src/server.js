@@ -1,7 +1,17 @@
 import app from './app.js';
+import { ligarBaseDeDados } from './config/db.js';
 
 // A porta vem do ambiente: na Cloud é a plataforma que a escolhe
 const porta = process.env.PORT ?? 3000;
+
+// Só começa a aceitar pedidos depois de ligar à base de dados
+try {
+  await ligarBaseDeDados();
+} catch (erro) {
+  // Só a mensagem: o objeto completo do erro pode trazer o endereço, que tem a password
+  console.error(`Não foi possível ligar à base de dados: ${erro.message}`);
+  process.exit(1);
+}
 
 // No Express 5, o callback também recebe o erro se não conseguir escutar (por exemplo, porta ocupada)
 app.listen(porta, (erro) => {
