@@ -2,7 +2,7 @@ import { Link, NavLink } from 'react-router';
 import Icone from './Icone.jsx';
 import { DESTINOS } from '../navegacao.js';
 
-// Cabeçalho fixo no topo. No telemóvel só mostra a marca, porque a navegação está na barra
+// Cabeçalho fixo no topo. No telemóvel mostra a marca e a conta, porque a navegação está na barra
 // inferior; a partir do computador (lg, 1024 px) mostra também a navegação e o carrinho.
 export default function Cabecalho() {
   // O carrinho fica à direita, só com o ícone, como nas lojas online
@@ -36,13 +36,19 @@ export default function Cabecalho() {
           </ul>
         </nav>
 
-        <NavLink
-          className="botao-icone d-none d-lg-inline-grid ms-auto"
-          to="/carrinho"
-          aria-label="Carrinho"
-        >
-          {({ isActive }) => <Icone nome="carrinho" cheio={isActive} />}
-        </NavLink>
+        <div className="d-flex align-items-center gap-2 ms-auto">
+          <NavLink
+            className="botao-icone d-none d-lg-inline-grid"
+            to="/carrinho"
+            aria-label="Carrinho"
+          >
+            {({ isActive }) => <Icone nome="carrinho" cheio={isActive} />}
+          </NavLink>
+
+          <Link className="btn btn-suave btn-sm botao-entrar" to="/entrar">
+            Entrar
+          </Link>
+        </div>
       </div>
     </header>
   );

@@ -51,3 +51,11 @@
     background-color: var(--bs-secondary-bg);
   }
 }
+
+// Pequeno para caber ao lado da marca no telemóvel, mas com os 44 px para tocar com o dedo
+.botao-entrar {
+  display: inline-grid;
+  place-items: center;
+  min-height: 2.75rem;
+  padding-inline: 1rem;
+}
