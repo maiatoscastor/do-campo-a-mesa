@@ -46,9 +46,28 @@
   height: 2.75rem;
   border-radius: 50%;
   color: var(--bs-body-color);
+  text-decoration: none;
 
   &:hover {
     background-color: var(--bs-secondary-bg);
+  }
+}
+
+// Iniciais de quem tem a sessão iniciada, a preencher quando se está na página da conta
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--bs-primary-text-emphasis);
+  background-color: var(--bs-primary-bg-subtle);
+
+  .active > & {
+    color: #fff;
+    background-color: var(--bs-primary);
   }
 }
 

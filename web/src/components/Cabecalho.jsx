@@ -1,10 +1,20 @@
 import { Link, NavLink } from 'react-router';
 import Icone from './Icone.jsx';
+import { useSessao } from '../hooks/useSessao.js';
 import { DESTINOS } from '../navegacao.js';
+
+// As iniciais do primeiro e do último nome ("Ana Maria Costa" dá "AC")
+function iniciais(nome) {
+  const palavras = nome.trim().split(/\s+/);
+  const letras = [palavras[0], palavras.at(-1)].slice(0, palavras.length);
+  return letras.map(([letra]) => letra.toUpperCase()).join('');
+}
 
 // Cabeçalho fixo no topo. No telemóvel mostra a marca e a conta, porque a navegação está na barra
 // inferior; a partir do computador (lg, 1024 px) mostra também a navegação e o carrinho.
 export default function Cabecalho() {
+  const { utilizador } = useSessao();
+
   // O carrinho fica à direita, só com o ícone, como nas lojas online
   const ligacoes = DESTINOS.filter(
     (destino) => destino.caminho !== '/carrinho',
@@ -45,9 +55,21 @@ export default function Cabecalho() {
             {({ isActive }) => <Icone nome="carrinho" cheio={isActive} />}
           </NavLink>
 
-          <Link className="btn btn-suave btn-sm botao-entrar" to="/entrar">
-            Entrar
-          </Link>
+          {utilizador ? (
+            <NavLink
+              className="botao-icone"
+              to="/conta"
+              aria-label="A minha conta"
+            >
+              <span className="avatar" aria-hidden="true">
+                {iniciais(utilizador.nome)}
+              </span>
+            </NavLink>
+          ) : (
+            <Link className="btn btn-suave btn-sm botao-entrar" to="/entrar">
+              Entrar
+            </Link>
+          )}
         </div>
       </div>
     </header>

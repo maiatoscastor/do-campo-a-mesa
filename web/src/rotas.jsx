@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router';
 import App from './App.jsx';
+import RotaProtegida from './components/RotaProtegida.jsx';
 import Carrinho from './pages/Carrinho.jsx';
+import Conta from './pages/Conta.jsx';
 import Encomendas from './pages/Encomendas.jsx';
 import Entrar from './pages/Entrar.jsx';
 import Inicio from './pages/Inicio.jsx';
@@ -28,7 +30,14 @@ export const router = createBrowserRouter([
           { path: 'carrinho', element: <Carrinho /> },
           { path: 'entrar', element: <Entrar /> },
           { path: 'registar', element: <Registar /> },
-          { path: 'encomendas', element: <Encomendas /> },
+          {
+            // Páginas que exigem sessão iniciada
+            element: <RotaProtegida />,
+            children: [
+              { path: 'encomendas', element: <Encomendas /> },
+              { path: 'conta', element: <Conta /> },
+            ],
+          },
           { path: '*', element: <PaginaNaoEncontrada /> },
         ],
       },
