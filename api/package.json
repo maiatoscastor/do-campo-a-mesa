@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env src/server.js",
     "start": "node src/server.js",
+    "criar-admin": "node --env-file-if-exists=.env src/scripts/criarAdmin.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
