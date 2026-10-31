@@ -78,7 +78,7 @@ npm install      # só na primeira vez, ou quando mudam as dependências
 npm run dev      # servidor de desenvolvimento em http://localhost:5173
 ```
 
-A aplicação fala com a API em `http://localhost:3000`, por isso o servidor tem de estar a correr noutro terminal. Para usar outro endereço, copiar `.env.example` para `.env` e mudar `VITE_API_URL`.
+Em desenvolvimento, o Vite passa os pedidos a `/api` à API em `http://localhost:3000`, por isso o servidor tem de estar a correr noutro terminal. Na publicação, o endereço da API define-se em `VITE_API_URL` (ver `.env.example`).
 
 As alterações aos ficheiros aparecem no browser assim que são guardadas. Para abrir a aplicação no telemóvel (na mesma rede Wi-Fi), correr `npm run dev -- --host` e abrir o endereço indicado em "Network".
 
