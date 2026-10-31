@@ -50,7 +50,7 @@ npm install            # só na primeira vez, ou quando mudam as dependências
 cp .env.example .env   # cria o ficheiro de configuração local
 ```
 
-No ficheiro `.env`, preencher `MONGODB_URI` com o endereço de ligação à base de dados, incluindo o nome dela no fim do endereço. O `.env` tem a password e nunca vai para o Git; o `.env.example` explica cada variável.
+No ficheiro `.env`, preencher `MONGODB_URI` com o endereço de ligação à base de dados, incluindo o nome dela no fim do endereço, e `JWT_SECRET` com um valor gerado à sorte. O `.env` tem segredos e nunca vai para o Git; o `.env.example` explica cada variável e como gerar o segredo.
 
 ```bash
 npm run dev            # API em http://localhost:3000
@@ -58,10 +58,14 @@ npm run dev            # API em http://localhost:3000
 
 Para confirmar que está a funcionar, abrir <http://localhost:3000/api/health>.
 
+O registo público só cria compradores e produtores. A conta de administrador cria-se no terminal, com `npm run criar-admin`.
+
 | Comando                | O que faz                                                                                  |
 | ---------------------- | ------------------------------------------------------------------------------------------ |
 | `npm run dev`          | Arranca a API com o `.env` e reinicia-a sempre que um ficheiro é guardado                  |
 | `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env` |
+| `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim          |
+| `npm run criar-admin`  | Cria uma conta de administrador, pedindo os dados no terminal                              |
 | `npm run lint`         | Verifica o código com o ESLint                                                             |
 | `npm run format`       | Formata o código com o Prettier                                                            |
 | `npm run format:check` | Confirma que o código está formatado, sem o alterar                                        |
@@ -73,6 +77,8 @@ cd web
 npm install      # só na primeira vez, ou quando mudam as dependências
 npm run dev      # servidor de desenvolvimento em http://localhost:5173
 ```
+
+A aplicação fala com a API em `http://localhost:3000`, por isso o servidor tem de estar a correr noutro terminal. Para usar outro endereço, copiar `.env.example` para `.env` e mudar `VITE_API_URL`.
 
 As alterações aos ficheiros aparecem no browser assim que são guardadas. Para abrir a aplicação no telemóvel (na mesma rede Wi-Fi), correr `npm run dev -- --host` e abrir o endereço indicado em "Network".
 
