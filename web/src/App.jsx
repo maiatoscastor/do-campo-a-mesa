@@ -1,10 +1,11 @@
+import { Outlet, ScrollRestoration } from 'react-router';
 import Cabecalho from './components/Cabecalho.jsx';
 import NavegacaoInferior from './components/NavegacaoInferior.jsx';
 import Rodape from './components/Rodape.jsx';
 
-// Estrutura da página. A navegação vem antes do conteúdo (a barra inferior está fixa no fundo do
-// ecrã, mas no teclado chega-se a ela logo a seguir ao cabeçalho). O conteúdo ainda é provisório:
-// o design vai aparecendo commit a commit.
+// Estrutura comum a todas as páginas: a página aberta aparece no lugar do <Outlet />.
+// A navegação vem antes do conteúdo (a barra inferior está fixa no fundo do ecrã, mas no teclado
+// chega-se a ela logo a seguir ao cabeçalho).
 export default function App() {
   return (
     <>
@@ -14,16 +15,11 @@ export default function App() {
       <Cabecalho />
       <NavegacaoInferior />
       <main id="conteudo" className="container py-4" tabIndex={-1}>
-        <span className="badge rounded-pill bg-primary-subtle text-primary-emphasis">
-          Em construção
-        </span>
-        <h1 className="mt-2">Do Campo à Mesa</h1>
-        <p>Mercado digital de produtores locais do Alto Minho.</p>
-        <p className="text-body-secondary">
-          O design vai aparecendo aqui, commit a commit.
-        </p>
+        <Outlet />
       </main>
       <Rodape />
+      {/* Ao mudar de página volta ao topo; ao recuar, repõe a posição em que se estava */}
+      <ScrollRestoration />
     </>
   );
 }
