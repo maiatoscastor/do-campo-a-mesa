@@ -17,6 +17,11 @@ h6,
   text-wrap: balance;
 }
 
+// As barras fixas (cabeçalho e navegação inferior) não podem tapar o campo que recebe o foco
+html {
+  scroll-padding-block: 5.5rem;
+}
+
 // A página ocupa pelo menos a altura visível do ecrã (dvh: sem as barras do browser no
 // telemóvel), em coluna, para o rodapé poder ficar no fundo
 #root {
