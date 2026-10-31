@@ -4,6 +4,7 @@ import Carrinho from './pages/Carrinho.jsx';
 import Encomendas from './pages/Encomendas.jsx';
 import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
+import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
 import Produtos from './pages/Produtos.jsx';
 
@@ -13,13 +14,20 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
+    errorElement: <PaginaDeErro />,
     children: [
-      { index: true, element: <Inicio /> },
-      { path: 'produtos', element: <Produtos /> },
-      { path: 'leiloes', element: <Leiloes /> },
-      { path: 'carrinho', element: <Carrinho /> },
-      { path: 'encomendas', element: <Encomendas /> },
-      { path: '*', element: <PaginaNaoEncontrada /> },
+      {
+        // Um erro numa página aparece dentro da estrutura, com a navegação à mão
+        errorElement: <PaginaDeErro />,
+        children: [
+          { index: true, element: <Inicio /> },
+          { path: 'produtos', element: <Produtos /> },
+          { path: 'leiloes', element: <Leiloes /> },
+          { path: 'carrinho', element: <Carrinho /> },
+          { path: 'encomendas', element: <Encomendas /> },
+          { path: '*', element: <PaginaNaoEncontrada /> },
+        ],
+      },
     ],
   },
 ]);
