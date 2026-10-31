@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
+import auth from './routes/auth.js';
 
 // Configura o Express sem o pôr a escutar: quem arranca o servidor é o server.js.
 // Os middlewares correm pela ordem em que são registados.
@@ -20,6 +21,8 @@ app.get('/api/health', (req, res) => {
     baseDeDados: ligada ? 'ligada' : 'desligada',
   });
 });
+
+app.use('/api/auth', auth);
 
 // Estes dois ficam sempre em último: só chega aqui o que nenhuma rota tratou
 app.use(rotaNaoEncontrada);

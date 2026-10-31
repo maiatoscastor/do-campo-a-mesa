@@ -4,6 +4,14 @@ import { ligarBaseDeDados } from './config/db.js';
 // A porta vem do ambiente: na Cloud é a plataforma que a escolhe
 const porta = process.env.PORT ?? 3000;
 
+// Sem estas variáveis a API ficaria insegura, por isso nem chega a arrancar
+for (const variavel of ['JWT_SECRET']) {
+  if (!process.env[variavel]) {
+    console.error(`Falta a variável ${variavel} (ver .env.example)`);
+    process.exit(1);
+  }
+}
+
 // Só começa a aceitar pedidos depois de ligar à base de dados
 try {
   await ligarBaseDeDados();
