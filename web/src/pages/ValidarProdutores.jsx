@@ -71,7 +71,7 @@ export default function ValidarProdutores() {
 
       {pendentes?.length === 0 && (
         <EstadoVazio
-          icone="encomendas"
+          icone="validar"
           titulo="Não há produtores à espera"
           texto="Os produtores que se registarem aparecem aqui para serem validados."
         />

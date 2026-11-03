@@ -12,9 +12,10 @@ $altura: 4.25rem; // 68 px
 
 .navegacao-inferior-lista {
   display: grid;
-  // Colunas iguais; num ecrã muito estreito (320 px), a que tem o nome mais comprido
-  // ("Encomendas") alarga o que precisa e as outras encolhem um pouco
-  grid-template-columns: repeat(5, 1fr);
+  // Uma coluna por destino (são 4 ou 5, conforme o papel), todas iguais; num ecrã muito estreito
+  // (320 px), a que tem o nome mais comprido ("Encomendas") alarga o que precisa
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   max-width: 35rem; // 560 px: no tablet, as entradas não ficam demasiado afastadas
   height: $altura;
   margin: 0 auto;

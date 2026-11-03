@@ -12,7 +12,7 @@ export default function Inicio() {
       {utilizador?.produtor?.validacao === 'pendente' && (
         <div className="alert alert-warning" role="status">
           A sua conta de produtor está à espera de validação.{' '}
-          <Link className="alert-link" to="/conta">
+          <Link className="alert-link" to="/conta/quinta">
             Ver a conta
           </Link>
         </div>

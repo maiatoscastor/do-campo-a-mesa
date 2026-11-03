@@ -2,14 +2,8 @@ import { Link, NavLink } from 'react-router';
 import Icone from './Icone.jsx';
 import MarcaFechada from './MarcaFechada.jsx';
 import { useSessao } from '../hooks/useSessao.js';
-import { DESTINOS } from '../navegacao.js';
-
-// As iniciais do primeiro e do último nome ("Ana Maria Costa" dá "AC")
-function iniciais(nome) {
-  const palavras = nome.trim().split(/\s+/);
-  const letras = [palavras[0], palavras.at(-1)].slice(0, palavras.length);
-  return letras.map(([letra]) => letra.toUpperCase()).join('');
-}
+import { destinosPara } from '../navegacao.js';
+import { iniciais } from '../utilizador.js';
 
 // Cabeçalho fixo no topo. No telemóvel mostra a marca e a conta, porque a navegação está na barra
 // inferior; a partir do computador (lg, 1024 px) mostra também a navegação e o carrinho.
@@ -17,9 +11,9 @@ export default function Cabecalho() {
   const { utilizador } = useSessao();
 
   // O carrinho fica à direita, só com o ícone, como nas lojas online
-  const ligacoes = DESTINOS.filter(
-    (destino) => destino.caminho !== '/carrinho',
-  );
+  const destinos = destinosPara(utilizador);
+  const ligacoes = destinos.filter(({ caminho }) => caminho !== '/carrinho');
+  const temCarrinho = destinos.length > ligacoes.length;
 
   return (
     <header className="cabecalho sticky-top">
@@ -51,13 +45,15 @@ export default function Cabecalho() {
         </nav>
 
         <div className="d-flex align-items-center gap-2 ms-auto">
-          <NavLink
-            className="botao-icone d-none d-lg-inline-grid"
-            to="/carrinho"
-            aria-label="Carrinho"
-          >
-            {({ isActive }) => <Icone nome="carrinho" cheio={isActive} />}
-          </NavLink>
+          {temCarrinho && (
+            <NavLink
+              className="botao-icone d-none d-lg-inline-grid"
+              to="/carrinho"
+              aria-label="Carrinho"
+            >
+              {({ isActive }) => <Icone nome="carrinho" cheio={isActive} />}
+            </NavLink>
+          )}
 
           {utilizador ? (
             <NavLink
