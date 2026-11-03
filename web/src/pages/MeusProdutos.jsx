@@ -44,7 +44,7 @@ export default function MeusProdutos() {
       <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
         <h1 className="mb-0 me-auto">Os meus produtos</h1>
         {aprovado && (
-          <Link className="btn btn-primary" to="/produtor/produtos/novo">
+          <Link className="btn btn-primary" to="/conta/produtos/novo">
             Novo produto
           </Link>
         )}
@@ -96,7 +96,7 @@ export default function MeusProdutos() {
               <div className="d-flex gap-2">
                 <Link
                   className="btn btn-suave btn-sm"
-                  to={`/produtor/produtos/${produto.id}`}
+                  to={`/conta/produtos/${produto.id}`}
                 >
                   Editar
                 </Link>

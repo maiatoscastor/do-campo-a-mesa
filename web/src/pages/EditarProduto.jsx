@@ -24,7 +24,7 @@ function numero(texto) {
   return texto.trim() && Number.isFinite(valor) ? valor : undefined;
 }
 
-// Novo produto (/produtor/produtos/novo) ou edição de um existente (/produtor/produtos/:id)
+// Novo produto (/conta/produtos/novo) ou edição de um existente (/conta/produtos/:id)
 export default function EditarProduto() {
   const { id } = useParams();
   const { pedir } = useSessao();
@@ -48,17 +48,13 @@ export default function EditarProduto() {
   return (
     <>
       <title>{`${titulo} · Do Campo à Mesa`}</title>
-      <div className="row justify-content-center">
-        <div className="col-md-10 col-lg-8 col-xl-6">
-          <h1 className="mb-3">{titulo}</h1>
-          <AlertaDeErro erro={erro} />
-          {id && !produto && !erro && <p role="status">A carregar…</p>}
-          {/* O formulário só aparece com os dados prontos, porque começa com eles */}
-          {(!id || produto) && (
-            <FormularioProduto key={id ?? 'novo'} produto={produto} />
-          )}
-        </div>
-      </div>
+      <h1 className="mb-3">{titulo}</h1>
+      <AlertaDeErro erro={erro} />
+      {id && !produto && !erro && <p role="status">A carregar…</p>}
+      {/* O formulário só aparece com os dados prontos, porque começa com eles */}
+      {(!id || produto) && (
+        <FormularioProduto key={id ?? 'novo'} produto={produto} />
+      )}
     </>
   );
 }
@@ -142,7 +138,7 @@ function FormularioProduto({ produto }) {
       } else if (tirarFotografia && produto?.imagemUrl) {
         await pedir(caminhoDaImagem, { metodo: 'DELETE' });
       }
-      navegar('/produtor/produtos');
+      navegar('/conta/produtos');
     });
   }
 
@@ -300,7 +296,7 @@ function FormularioProduto({ produto }) {
           <button className="btn btn-primary" type="submit" disabled={aEnviar}>
             {aEnviar ? 'A guardar…' : 'Guardar'}
           </button>
-          <Link className="btn btn-suave" to="/produtor/produtos">
+          <Link className="btn btn-suave" to="/conta/produtos">
             Cancelar
           </Link>
         </div>
