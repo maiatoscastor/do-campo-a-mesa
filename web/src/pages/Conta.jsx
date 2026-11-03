@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useSessao } from '../hooks/useSessao.js';
 
 const PAPEIS = {
@@ -33,6 +33,14 @@ export default function Conta() {
   const { utilizador, atualizar, sair } = useSessao();
   const { nome, email, papel, produtor } = utilizador;
   const validacao = produtor && VALIDACAO[produtor.validacao];
+  const navegar = useNavigate();
+
+  // Volta ao início. O flushSync muda de página antes de a sessão acabar: sem ele, via-se por um
+  // instante a mensagem de que esta página exige conta.
+  function terminarSessao() {
+    navegar('/', { flushSync: true });
+    sair();
+  }
 
   // O estado da validação pode ter mudado desde que a página foi aberta. Se o pedido falhar, os dados
   // que já estão no ecrã continuam válidos.
@@ -94,7 +102,11 @@ export default function Conta() {
                 Validar produtores
               </Link>
             )}
-            <button className="btn btn-suave" type="button" onClick={sair}>
+            <button
+              className="btn btn-suave"
+              type="button"
+              onClick={terminarSessao}
+            >
               Terminar sessão
             </button>
           </div>
