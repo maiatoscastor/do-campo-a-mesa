@@ -1,18 +1,49 @@
 import { model, Schema } from 'mongoose';
+import { concelhoPorCodigo, freguesiaPorCodigo } from '../dados/territorio.js';
 
-// Os dez concelhos do Alto Minho, onde os produtores podem estar
-export const LOCALIDADES = [
-  'Arcos de Valdevez',
-  'Caminha',
-  'Melgaço',
-  'Monção',
-  'Paredes de Coura',
-  'Ponte da Barca',
-  'Ponte de Lima',
-  'Valença',
-  'Viana do Castelo',
-  'Vila Nova de Cerveira',
-];
+// Onde fica a quinta ou o negócio, em qualquer concelho do país. Guardam-se os códigos oficiais
+// (CAOP), porque há nomes repetidos (há um concelho Lagoa no Algarve e outro nos Açores), e também os
+// nomes, para se poderem mostrar sem voltar à lista.
+const localizacaoSchema = new Schema(
+  {
+    concelho: {
+      type: String,
+      required: [true, 'Escolha o concelho'],
+      validate: {
+        validator: (codigo) => Boolean(concelhoPorCodigo(codigo)),
+        message: 'Escolha o concelho',
+      },
+    },
+    freguesia: {
+      type: String,
+      required: [true, 'Escolha a freguesia'],
+      // A freguesia tem de existir e de pertencer ao concelho escolhido
+      validate: {
+        validator(codigo) {
+          const freguesia = freguesiaPorCodigo(codigo);
+          return Boolean(freguesia) && freguesia.concelho === this.concelho;
+        },
+        message: 'Escolha a freguesia',
+      },
+    },
+    nomeConcelho: String,
+    nomeFreguesia: String,
+    regiao: String,
+  },
+  { _id: false },
+);
+
+// Os nomes vêm sempre da lista oficial, a partir dos códigos: quem faz o pedido só envia os códigos
+localizacaoSchema.pre('validate', function preencherNomes() {
+  const concelho = concelhoPorCodigo(this.concelho);
+  const freguesia = freguesiaPorCodigo(this.freguesia);
+  this.nomeConcelho = concelho?.nome;
+  this.regiao = concelho?.regiao;
+  this.nomeFreguesia =
+    freguesia && freguesia.concelho === this.concelho
+      ? freguesia.nome
+      : undefined;
+});
 
 // Dados que só os produtores têm. É um subdocumento (embebido), porque pertencem ao utilizador e
 // são sempre lidos com ele; e o _id é desligado, porque nunca se procura um destes sozinho.
@@ -20,18 +51,11 @@ const produtorSchema = new Schema(
   {
     nomeExploracao: {
       type: String,
-      required: [true, 'Indique o nome da exploração'],
+      required: [true, 'Indique o nome da quinta ou do negócio'],
       trim: true,
-      maxlength: [100, 'O nome da exploração é demasiado comprido'],
+      maxlength: [100, 'O nome é demasiado comprido'],
     },
-    localidade: {
-      type: String,
-      required: [true, 'Indique a localidade'],
-      enum: {
-        values: LOCALIDADES,
-        message: 'Escolha um concelho do Alto Minho',
-      },
-    },
+    localizacao: { type: localizacaoSchema, required: true },
     descricao: {
       type: String,
       trim: true,

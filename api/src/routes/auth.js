@@ -48,7 +48,11 @@ router.post('/registo', async (req, res) => {
       papel === 'produtor'
         ? {
             nomeExploracao: texto(corpo.nomeExploracao),
-            localidade: texto(corpo.localidade),
+            // Só os códigos: os nomes são preenchidos pelo modelo, a partir da lista oficial
+            localizacao: {
+              concelho: texto(corpo.concelho),
+              freguesia: texto(corpo.freguesia),
+            },
             descricao: texto(corpo.descricao),
           }
         : undefined,

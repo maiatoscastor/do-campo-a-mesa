@@ -95,3 +95,4 @@ As alterações aos ficheiros aparecem no browser assim que são guardadas. Para
 
 - **Ícones:** desenhos do [Material Symbols](https://fonts.google.com/icons), da Google, com licença [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0). Estão em `web/src/components/Icone.jsx`.
 - **Letra:** [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) e [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans), com licença [SIL Open Font License 1.1](https://openfontlicense.org), instaladas através do [Fontsource](https://fontsource.org).
+- **Concelhos e freguesias:** [Carta Administrativa Oficial de Portugal (CAOP 2025)](https://dados.gov.pt/datasets/carta-administrativa-oficial-de-portugal-caop2025-continente), da Direção-Geral do Território, com licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Só os códigos e os nomes, em `api/src/dados/territorio.json`.

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useSessao } from '../hooks/useSessao.js';
+import { textoDaLocalizacao } from '../localizacao.js';
 
 const PAPEIS = {
   comprador: 'Comprador',
@@ -72,7 +73,7 @@ export default function Conta() {
             <section className="card mb-3">
               <div className="card-body">
                 <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-                  <h2 className="h3 mb-0 me-auto">Exploração</h2>
+                  <h2 className="h3 mb-0 me-auto">Quinta ou negócio</h2>
                   <span className={`badge ${validacao.classe}`}>
                     {validacao.nome}
                   </span>
@@ -83,7 +84,7 @@ export default function Conta() {
                   <dd>{produtor.nomeExploracao}</dd>
                   <dt>Localidade</dt>
                   <dd className={produtor.descricao ? undefined : 'mb-0'}>
-                    {produtor.localidade}
+                    {textoDaLocalizacao(produtor.localizacao)}
                   </dd>
                   {produtor.descricao && (
                     <>

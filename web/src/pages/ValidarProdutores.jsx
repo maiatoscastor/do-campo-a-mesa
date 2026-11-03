@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import { useSessao } from '../hooks/useSessao.js';
+import { textoDaLocalizacao } from '../localizacao.js';
 
 // Página do administrador: aprovar ou rejeitar os produtores que se registaram.
 export default function ValidarProdutores() {
@@ -83,7 +84,9 @@ export default function ValidarProdutores() {
               <article className="card h-100">
                 <div className="card-body d-flex flex-column">
                   <h2 className="h3">{conta.produtor.nomeExploracao}</h2>
-                  <p className="mb-1">{conta.produtor.localidade}</p>
+                  <p className="mb-1">
+                    {textoDaLocalizacao(conta.produtor.localizacao)}
+                  </p>
                   <p className="text-body-secondary text-break">
                     {conta.nome} · {conta.email}
                   </p>

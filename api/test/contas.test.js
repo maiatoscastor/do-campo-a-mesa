@@ -21,7 +21,9 @@ const PRODUTOR = {
   password: PASSWORD,
   papel: 'produtor',
   nomeExploracao: 'Exploração de Teste',
-  localidade: 'Monção',
+  // Códigos oficiais (CAOP): Ponte de Lima e a freguesia de Arcozelo
+  concelho: '1607',
+  freguesia: '160704',
 };
 
 let servidor;
@@ -109,7 +111,51 @@ describe('registo', () => {
     assert.equal(estado, 201);
     assert.equal(dados.utilizador.papel, 'produtor');
     assert.equal(dados.utilizador.produtor.validacao, 'pendente');
-    assert.equal(dados.utilizador.produtor.localidade, 'Monção');
+    assert.deepEqual(dados.utilizador.produtor.localizacao, {
+      concelho: '1607',
+      freguesia: '160704',
+      nomeConcelho: 'Ponte de Lima',
+      nomeFreguesia: 'Arcozelo',
+      regiao: 'Viana do Castelo',
+    });
+  });
+
+  it('aceita os códigos novos das freguesias repostas em 2025', async () => {
+    const { estado, dados } = await registar({
+      ...PRODUTOR,
+      concelho: '0302',
+      freguesia: '0302FI',
+    });
+
+    assert.equal(estado, 201);
+    assert.equal(
+      dados.utilizador.produtor.localizacao.nomeFreguesia,
+      'Barcelos',
+    );
+  });
+
+  it('não aceita uma freguesia de outro concelho', async () => {
+    const { estado, dados } = await registar({ ...PRODUTOR, concelho: '1604' });
+
+    assert.equal(estado, 400);
+    assert.deepEqual(Object.keys(dados.detalhes), ['freguesia']);
+  });
+
+  it('ignora os nomes enviados: vêm sempre da lista oficial', async () => {
+    const { dados } = await registar({
+      ...PRODUTOR,
+      nomeConcelho: 'Inventado',
+      localizacao: { nomeFreguesia: 'Inventada' },
+    });
+
+    assert.equal(
+      dados.utilizador.produtor.localizacao.nomeConcelho,
+      'Ponte de Lima',
+    );
+    assert.equal(
+      dados.utilizador.produtor.localizacao.nomeFreguesia,
+      'Arcozelo',
+    );
   });
 
   it('não deixa criar administradores', async () => {
@@ -153,12 +199,13 @@ describe('registo', () => {
     const { estado, dados } = await registar({
       ...COMPRADOR,
       papel: 'produtor',
-      localidade: 'Lisboa',
+      concelho: 'Lisboa',
     });
 
     assert.equal(estado, 400);
     assert.deepEqual(Object.keys(dados.detalhes).sort(), [
-      'localidade',
+      'concelho',
+      'freguesia',
       'nomeExploracao',
     ]);
   });
@@ -381,5 +428,47 @@ describe('validação de produtores', () => {
       );
       assert.equal(estado, esperado, caso);
     }
+  });
+});
+
+describe('localidades', () => {
+  it('lista os 308 concelhos, agrupados, com a fonte', async () => {
+    const resposta = await fetch(`${base}/api/localidades`);
+    const dados = await resposta.json();
+    const concelhos = dados.regioes.flatMap((regiao) => regiao.concelhos);
+
+    assert.equal(resposta.status, 200);
+    assert.match(resposta.headers.get('cache-control'), /max-age=86400/);
+    assert.match(dados.fonte, /CAOP 2025/);
+    assert.equal(dados.regioes.length, 20);
+    assert.equal(concelhos.length, 308);
+    assert.equal(concelhos[0].freguesias, undefined);
+  });
+
+  it('distingue concelhos com o mesmo nome pelo código', async () => {
+    const { dados } = await pedir('GET', '/localidades');
+    const lagoas = dados.regioes.flatMap((regiao) =>
+      regiao.concelhos
+        .filter((concelho) => concelho.nome === 'Lagoa')
+        .map((concelho) => `${concelho.codigo} ${regiao.nome}`),
+    );
+
+    assert.deepEqual(lagoas, ['0806 Faro', '4201 Região Autónoma dos Açores']);
+  });
+
+  it('dá as freguesias de um concelho', async () => {
+    const { estado, dados } = await pedir(
+      'GET',
+      '/localidades/1607/freguesias',
+    );
+
+    assert.equal(estado, 200);
+    assert.ok(dados.some((freguesia) => freguesia.nome === 'Arcozelo'));
+  });
+
+  it('responde 404 a um concelho que não existe', async () => {
+    const { estado } = await pedir('GET', '/localidades/9999/freguesias');
+
+    assert.equal(estado, 404);
   });
 });

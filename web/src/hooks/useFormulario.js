@@ -14,10 +14,14 @@ export function useFormulario(valoresIniciais) {
     formulario.current?.querySelector('.is-invalid')?.focus();
   }, [erro]);
 
+  // Muda um valor a partir do código (por exemplo, limpar a freguesia quando muda o concelho)
+  function definir(nome, valor) {
+    setValores((atuais) => ({ ...atuais, [nome]: valor }));
+  }
+
   // Serve para qualquer campo, porque o atributo name indica o valor a mudar
   function mudar(evento) {
-    const { name, value } = evento.target;
-    setValores((atuais) => ({ ...atuais, [name]: value }));
+    definir(evento.target.name, evento.target.value);
   }
 
   async function enviar(pedido) {
@@ -36,5 +40,5 @@ export function useFormulario(valoresIniciais) {
     }
   }
 
-  return { valores, mudar, erro, aEnviar, enviar, formulario };
+  return { valores, mudar, definir, erro, aEnviar, enviar, formulario };
 }

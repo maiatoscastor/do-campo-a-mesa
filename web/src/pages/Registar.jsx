@@ -2,10 +2,10 @@ import { Navigate, useLocation } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import Campo from '../components/Campo.jsx';
 import CampoPassword from '../components/CampoPassword.jsx';
+import CamposLocalizacao from '../components/CamposLocalizacao.jsx';
 import Ilustracao from '../components/Ilustracao.jsx';
 import { useFormulario } from '../hooks/useFormulario.js';
 import { useSessao } from '../hooks/useSessao.js';
-import { LOCALIDADES } from '../localidades.js';
 
 const TIPOS_DE_CONTA = [
   {
@@ -26,15 +26,17 @@ const TIPOS_DE_CONTA = [
 export default function Registar() {
   const { utilizador, registar } = useSessao();
   const { state } = useLocation();
-  const { valores, mudar, erro, aEnviar, enviar, formulario } = useFormulario({
-    papel: 'comprador',
-    nome: '',
-    email: '',
-    password: '',
-    nomeExploracao: '',
-    localidade: '',
-    descricao: '',
-  });
+  const { valores, mudar, definir, erro, aEnviar, enviar, formulario } =
+    useFormulario({
+      papel: 'comprador',
+      nome: '',
+      email: '',
+      password: '',
+      nomeExploracao: '',
+      concelho: '',
+      freguesia: '',
+      descricao: '',
+    });
   const detalhes = erro?.detalhes ?? {};
 
   // Ao criar a conta, a sessão muda e o componente volta a ser desenhado: é aqui que segue em frente
@@ -114,26 +116,20 @@ export default function Registar() {
         {valores.papel === 'produtor' && (
           <>
             <Campo
-              rotulo="Nome da exploração"
+              rotulo="Nome da quinta ou do negócio"
               nome="nomeExploracao"
               autoComplete="organization"
+              ajuda="O nome que os compradores veem na sua página."
               value={valores.nomeExploracao}
               onChange={mudar}
               erro={detalhes.nomeExploracao}
             />
-            <Campo
-              rotulo="Localidade"
-              nome="localidade"
-              tipo="select"
-              value={valores.localidade}
-              onChange={mudar}
-              erro={detalhes.localidade}
-            >
-              <option value="">Escolha o concelho</option>
-              {LOCALIDADES.map((localidade) => (
-                <option key={localidade}>{localidade}</option>
-              ))}
-            </Campo>
+            <CamposLocalizacao
+              concelho={valores.concelho}
+              freguesia={valores.freguesia}
+              definir={definir}
+              detalhes={detalhes}
+            />
             <Campo
               rotulo="Descrição (opcional)"
               nome="descricao"
