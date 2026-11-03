@@ -25,6 +25,15 @@ export function tratarErros(erro, req, res, next) {
       .json({ erro: 'Dados inválidos', detalhes: detalhesDeValidacao(erro) });
   }
 
+  // Erros ao receber uma fotografia (por exemplo, um ficheiro grande demais)
+  if (erro.name === 'MulterError') {
+    const mensagem =
+      erro.code === 'LIMIT_FILE_SIZE'
+        ? 'A fotografia não pode ter mais de 5 MB'
+        : 'Não foi possível receber a fotografia';
+    return res.status(400).json({ erro: mensagem });
+  }
+
   // Por exemplo, um identificador com um formato que não é o do MongoDB
   if (erro.name === 'CastError') {
     return res.status(400).json({ erro: 'Identificador ou valor inválido' });

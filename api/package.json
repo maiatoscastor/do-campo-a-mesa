@@ -10,8 +10,9 @@
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env src/server.js",
     "start": "node src/server.js",
-    "test": "node --env-file-if-exists=.env --test",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1",
     "criar-admin": "node --env-file-if-exists=.env src/scripts/criarAdmin.js",
+    "exemplo": "node --env-file-if-exists=.env src/scripts/exemplo.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -21,7 +22,8 @@
     "cors": "^2.8.6",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.11.4"
+    "mongoose": "^9.11.4",
+    "multer": "^2.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

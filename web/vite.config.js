@@ -7,7 +7,10 @@ export default defineConfig({
   server: {
     // O Vite passa os pedidos a /api à API local. Para o browser, a aplicação e a API ficam no mesmo
     // endereço, por isso também funciona no telemóvel, onde "localhost" seria o próprio telemóvel.
-    proxy: { '/api': 'http://localhost:3000' },
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/uploads': 'http://localhost:3000',
+    },
   },
   css: {
     preprocessorOptions: {

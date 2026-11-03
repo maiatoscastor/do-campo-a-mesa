@@ -102,6 +102,19 @@ const DESENHOS = {
       <circle cx="62" cy="46" r="4" fill="#E9B43A" />
     </>
   ),
+  broa: (
+    <>
+      <ellipse cx="60" cy="70" rx="46" ry="32" fill="#C98A3E" />
+      <ellipse cx="60" cy="64" rx="42" ry="27" fill="#E2AA5C" />
+      <path
+        d="M34 58c8-6 16-8 24-8M46 70c10-6 20-8 30-8M62 82c8-4 14-5 20-5"
+        stroke="#F6D79A"
+        strokeWidth="4"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </>
+  ),
   castanha: (
     <>
       <path

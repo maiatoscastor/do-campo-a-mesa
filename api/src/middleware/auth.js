@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { User } from '../models/User.js';
 
 // Exige um token válido e, se forem indicados papéis, um desses papéis:
 //   auth()             qualquer utilizador autenticado
@@ -27,4 +28,16 @@ export function auth(...papeis) {
 
     next();
   };
+}
+
+// Só deixa passar produtores aprovados pelo administrador. Consulta a base de dados, porque a
+// aprovação pode ter mudado depois de o token ser emitido. Usa-se a seguir ao auth('produtor').
+export async function produtorAprovado(req, res, next) {
+  const utilizador = await User.findById(req.user.id);
+  if (utilizador?.produtor?.validacao !== 'aprovado') {
+    return res
+      .status(403)
+      .json({ erro: 'A sua conta de produtor ainda não foi aprovada' });
+  }
+  next();
 }
