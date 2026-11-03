@@ -4,10 +4,12 @@ import LayoutEntrada from './components/LayoutEntrada.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
 import Carrinho from './pages/Carrinho.jsx';
 import Conta from './pages/Conta.jsx';
+import EditarProduto from './pages/EditarProduto.jsx';
 import Encomendas from './pages/Encomendas.jsx';
 import Entrar from './pages/Entrar.jsx';
 import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
+import MeusProdutos from './pages/MeusProdutos.jsx';
 import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
 import Produtos from './pages/Produtos.jsx';
@@ -60,6 +62,14 @@ export const router = createBrowserRouter([
           {
             element: <RotaProtegida fechada={CONTA_FECHADA} />,
             children: [{ path: 'conta', element: <Conta /> }],
+          },
+          {
+            element: <RotaProtegida papeis={['produtor']} />,
+            children: [
+              { path: 'produtor/produtos', element: <MeusProdutos /> },
+              { path: 'produtor/produtos/novo', element: <EditarProduto /> },
+              { path: 'produtor/produtos/:id', element: <EditarProduto /> },
+            ],
           },
           {
             element: <RotaProtegida papeis={['admin']} />,

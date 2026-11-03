@@ -98,6 +98,11 @@ export default function Conta() {
           )}
 
           <div className="d-flex flex-wrap gap-2">
+            {papel === 'produtor' && (
+              <Link className="btn btn-primary" to="/produtor/produtos">
+                Os meus produtos
+              </Link>
+            )}
             {papel === 'admin' && (
               <Link className="btn btn-primary" to="/admin/produtores">
                 Validar produtores

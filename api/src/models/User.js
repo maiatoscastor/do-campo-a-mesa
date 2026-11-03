@@ -95,6 +95,8 @@ const userSchema = new Schema(
       default: 'comprador',
     },
     produtor: { type: produtorSchema, default: undefined },
+    // Contas inventadas para testar (produtores de exemplo), identificadas como tal na aplicação
+    exemplo: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

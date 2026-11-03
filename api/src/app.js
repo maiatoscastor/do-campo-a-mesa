@@ -1,10 +1,14 @@
 import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
+import { fileURLToPath } from 'node:url';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
 import admin from './routes/admin.js';
 import auth from './routes/auth.js';
 import localidades from './routes/localidades.js';
+import producers from './routes/producers.js';
+import products from './routes/products.js';
+import { PASTA_UPLOADS } from './utils/imagens.js';
 
 // Configura o Express sem o pôr a escutar: quem arranca o servidor é o server.js.
 // Os middlewares correm pela ordem em que são registados.
@@ -31,6 +35,20 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', auth);
 app.use('/api/admin', admin);
 app.use('/api/localidades', localidades);
+app.use('/api/products', products);
+app.use('/api/producers', producers);
+
+// As fotografias dos produtos. Cada ficheiro tem um nome aleatório que nunca muda, por isso o browser
+// pode guardá-lo sem voltar a perguntar; o nosniff impede o browser de o tratar como outro tipo.
+app.use(
+  '/uploads',
+  express.static(fileURLToPath(PASTA_UPLOADS), {
+    immutable: true,
+    maxAge: '365d',
+    index: false,
+    setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff'),
+  }),
+);
 
 // Estes dois ficam sempre em último: só chega aqui o que nenhuma rota tratou
 app.use(rotaNaoEncontrada);
