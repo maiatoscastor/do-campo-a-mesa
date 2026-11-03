@@ -1,10 +1,11 @@
-import { Link, Navigate, useLocation } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import Campo from '../components/Campo.jsx';
+import CampoPassword from '../components/CampoPassword.jsx';
 import { useFormulario } from '../hooks/useFormulario.js';
 import { useSessao } from '../hooks/useSessao.js';
 
-// Início de sessão. Quem veio de uma página protegida volta a ela depois de entrar.
+// Início de sessão. Quem veio de uma página que exige conta volta a ela depois de entrar.
 export default function Entrar() {
   const { utilizador, entrar } = useSessao();
   const { state } = useLocation();
@@ -26,49 +27,40 @@ export default function Entrar() {
   return (
     <>
       <title>Entrar · Do Campo à Mesa</title>
-      <div className="row justify-content-center">
-        <div className="col-md-8 col-lg-6 col-xl-5">
-          <h1 className="mb-3">Entrar</h1>
-          {state?.depois && (
-            <p className="text-body-secondary">
-              Entre na sua conta para continuar.
-            </p>
-          )}
-          <AlertaDeErro erro={erro} />
-          {/* noValidate: as validações e as mensagens vêm todas da API */}
-          <form onSubmit={submeter} noValidate>
-            <Campo
-              rotulo="Email"
-              nome="email"
-              tipo="email"
-              autoComplete="email"
-              value={valores.email}
-              onChange={mudar}
-            />
-            <Campo
-              rotulo="Password"
-              nome="password"
-              tipo="password"
-              autoComplete="current-password"
-              value={valores.password}
-              onChange={mudar}
-            />
-            <button
-              className="btn btn-primary w-100"
-              type="submit"
-              disabled={aEnviar}
-            >
-              {aEnviar ? 'A entrar…' : 'Entrar'}
-            </button>
-          </form>
-          <p className="mt-3 mb-0 text-center">
-            Ainda não tem conta?{' '}
-            <Link to="/registar" state={state}>
-              Criar conta
-            </Link>
-          </p>
-        </div>
-      </div>
+      <h1>Olá de novo</h1>
+      {state?.depois && (
+        <p className="text-body-secondary">Entre para continuar onde estava.</p>
+      )}
+      <AlertaDeErro erro={erro} />
+      {/* noValidate: as validações e as mensagens vêm todas da API.
+          O autoComplete é o que permite aos gestores de passwords preencher o formulário. */}
+      <form onSubmit={submeter} noValidate>
+        <Campo
+          rotulo="Email"
+          nome="email"
+          tipo="email"
+          icone="correio"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={valores.email}
+          onChange={mudar}
+        />
+        <CampoPassword
+          rotulo="Password"
+          nome="password"
+          autoComplete="current-password"
+          value={valores.password}
+          onChange={mudar}
+        />
+        <button
+          className="btn btn-primary w-100 mt-1"
+          type="submit"
+          disabled={aEnviar}
+        >
+          {aEnviar ? 'A entrar…' : 'Entrar'}
+        </button>
+      </form>
     </>
   );
 }

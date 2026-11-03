@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router';
 import App from './App.jsx';
+import LayoutEntrada from './components/LayoutEntrada.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
 import Carrinho from './pages/Carrinho.jsx';
 import Conta from './pages/Conta.jsx';
@@ -31,6 +32,15 @@ const CONTA_FECHADA = {
 // Aberto a todos: início, produtos, leilões e carrinho. Encomendar e licitar é que exigem conta.
 export const router = createBrowserRouter([
   {
+    // Entrar e criar conta têm uma estrutura própria, sem a navegação da aplicação
+    element: <LayoutEntrada />,
+    errorElement: <PaginaDeErro />,
+    children: [
+      { path: 'entrar', element: <Entrar /> },
+      { path: 'registar', element: <Registar /> },
+    ],
+  },
+  {
     path: '/',
     element: <App />,
     errorElement: <PaginaDeErro />,
@@ -43,8 +53,6 @@ export const router = createBrowserRouter([
           { path: 'produtos', element: <Produtos /> },
           { path: 'leiloes', element: <Leiloes /> },
           { path: 'carrinho', element: <Carrinho /> },
-          { path: 'entrar', element: <Entrar /> },
-          { path: 'registar', element: <Registar /> },
           {
             element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
             children: [{ path: 'encomendas', element: <Encomendas /> }],

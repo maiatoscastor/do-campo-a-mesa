@@ -1,0 +1,412 @@
+// Páginas para entrar e criar conta (LayoutEntrada.jsx e PainelEntrada.jsx).
+// Mobile First: no telemóvel, uma faixa verde com produtos e o formulário numa folha por cima dela.
+// A partir do lg, dois blocos lado a lado: o formulário e o painel com o mosaico de produtos.
+@use 'mixins' as m;
+@use 'theme' as bs;
+@use 'variables' as v;
+
+// Cores destas páginas, em cada modo. O texto sobre o verde tem pelo menos 4,5:1 de contraste.
+:root {
+  --entrada-fundo: #{v.cor(neutro, 2)};
+  --entrada-bloco: #{v.cor(neutro, 1)};
+  --painel-claro: #{v.cor(verde, 9)};
+  --painel-escuro: #{v.cor(verde, 12)};
+  --painel-texto: #fff;
+  --painel-linhas: rgba(255, 255, 255, 0.07);
+  --ladrilho-verde: #{v.cor(verde, 3)};
+  --ladrilho-ambar: #{v.cor(ambar, 3)};
+  --ladrilho-neutro: #{v.cor(neutro, 1)};
+  --ladrilho-fundo: #{v.cor(verde, 10)};
+}
+
+@include bs.color-mode(dark, true) {
+  --entrada-fundo: #{v.cor(neutro, 1, escuro)};
+  --entrada-bloco: #{v.cor(neutro, 2, escuro)};
+  --painel-claro: #{v.cor(verde, 4, escuro)};
+  --painel-escuro: #{v.cor(verde, 2, escuro)};
+  --painel-texto: #{v.cor(verde, 12, escuro)};
+  --painel-linhas: rgba(255, 255, 255, 0.04);
+  --ladrilho-verde: #{v.cor(verde, 5, escuro)};
+  --ladrilho-ambar: #{v.cor(ambar, 5, escuro)};
+  --ladrilho-neutro: #{v.cor(neutro, 5, escuro)};
+  --ladrilho-fundo: #{v.cor(verde, 2, escuro)};
+}
+
+// O verde do painel, com linhas finas a lembrar as curvas de nível dos socalcos do Minho
+@mixin fundo-do-painel {
+  background-image:
+    repeating-radial-gradient(
+      circle at 100% 0,
+      var(--painel-linhas) 0 1px,
+      transparent 1px 1.75rem
+    ),
+    linear-gradient(165deg, var(--painel-claro), var(--painel-escuro));
+  color: var(--painel-texto);
+}
+
+// Nestas páginas não há barra inferior, por isso não é preciso reservar espaço para ela
+#root:has(.entrada) {
+  padding-bottom: 0;
+}
+
+.entrada {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+
+  @include m.a-partir-de(lg) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--entrada-fundo);
+  }
+}
+
+.entrada-coluna {
+  @include fundo-do-painel;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+
+  @include m.a-partir-de(lg) {
+    min-height: 0;
+    padding-inline: 2rem;
+    border-radius: var(--bs-border-radius-xl);
+    background-color: var(--entrada-bloco);
+    background-image: radial-gradient(
+      36rem 20rem at 0 0,
+      var(--bs-primary-bg-subtle),
+      transparent 70%
+    );
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    color: var(--bs-body-color);
+  }
+}
+
+.entrada-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.75rem;
+  padding-inline: 1rem;
+
+  // A marca sobre o verde fica branca; no computador, o bloco é claro e volta à cor normal
+  .marca {
+    color: inherit;
+  }
+
+  @include m.a-partir-de(lg) {
+    min-height: 4.5rem;
+    padding-inline: 0;
+  }
+}
+
+// O nome da marca só cabe ao lado da ligação de saída a partir dos 375 px
+.entrada-marca-nome {
+  display: none;
+
+  @media (min-width: 23.4375rem) {
+    display: inline;
+  }
+}
+
+.entrada-sair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+
+  @include m.a-partir-de(lg) {
+    color: var(--bs-link-color);
+  }
+}
+
+// Produtos a espreitar por cima da folha do formulário, como numa banca. Só no telemóvel.
+.entrada-banca {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  padding-inline: 0.5rem;
+  margin-bottom: -1rem;
+
+  svg {
+    --rodar: 0deg;
+    flex: 0 1 auto;
+    width: clamp(3rem, 15vw, 5rem);
+    height: auto;
+    transform: rotate(var(--rodar));
+
+    &:nth-child(odd) {
+      --rodar: -6deg;
+    }
+
+    &:nth-child(even) {
+      --rodar: 5deg;
+    }
+  }
+
+  @include m.a-partir-de(lg) {
+    display: none;
+  }
+}
+
+// A folha do formulário. Nas larguras intermédias, o conteúdo fica com 28rem ao centro.
+.entrada-conteudo {
+  position: relative;
+  flex: 1;
+  padding: 1.25rem max(1rem, calc((100% - 28rem) / 2)) 2rem;
+  border-radius: var(--bs-border-radius-xl) var(--bs-border-radius-xl) 0 0;
+  background-color: var(--entrada-bloco);
+  box-shadow: 0 -0.5rem 1.5rem rgba(0, 0, 0, 0.14);
+  color: var(--bs-body-color);
+
+  // O main recebe o foco de quem usa o teclado, mas não precisa de contorno
+  &:focus {
+    outline: none;
+  }
+
+  // No computador deixa de ser uma folha, e fica centrado na vertical do bloco
+  @include m.a-partir-de(lg) {
+    flex: none;
+    width: 100%;
+    max-width: 28rem;
+    margin: auto;
+    padding: 1.5rem 0 3rem;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  @include m.a-partir-de(xl) {
+    max-width: 30rem;
+  }
+
+  // Ecrãs grandes: o formulário cresce com o espaço, para não ficar perdido no meio do bloco.
+  // O clamp vai dos 34rem (544 px) aos 40rem (640 px), conforme a largura do ecrã.
+  @include m.a-partir-de(xxl) {
+    max-width: clamp(34rem, 20rem + 12vw, 40rem);
+
+    .form-label {
+      font-size: 0.9375rem;
+    }
+
+    .form-control,
+    .form-select {
+      min-height: 3.5rem;
+      font-size: 1.0625rem;
+    }
+
+    .alternador a {
+      min-height: 3rem;
+      font-size: 1rem;
+    }
+  }
+
+  h1 {
+    margin-bottom: 1rem;
+    font-size: 1.875rem;
+
+    @include m.a-partir-de(lg) {
+      font-size: 2.5rem;
+    }
+
+    @include m.a-partir-de(xxl) {
+      margin-bottom: 1.5rem;
+      font-size: clamp(3rem, 1.75rem + 1.5vw, 3.5rem);
+    }
+  }
+
+  h1 + p {
+    margin-top: -0.5rem;
+  }
+
+  // Botão principal com mais presença. O brilho é fraco, para o texto manter o contraste.
+  .btn-primary {
+    min-height: 3.25rem;
+    background-image: linear-gradient(
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0)
+    );
+    box-shadow: 0 0.75rem 1.5rem -0.75rem var(--bs-primary);
+
+    @include m.a-partir-de(xxl) {
+      min-height: 3.5rem;
+      font-size: 1rem;
+    }
+  }
+}
+
+// Alternador entre entrar e criar conta. São ligações a duas páginas com a forma de um interruptor.
+.alternador {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  padding: 0.25rem;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: var(--bs-secondary-bg);
+
+  a {
+    display: grid;
+    place-items: center;
+    min-height: 2.75rem;
+    border-radius: var(--bs-border-radius-pill);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+  }
+
+  a.active {
+    background-color: var(--entrada-bloco);
+    color: var(--bs-body-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+    // Com o mesmo nome nas duas páginas, o browser anima a pílula de um lado para o outro
+    view-transition-name: alternador-ativo;
+  }
+}
+
+// Painel com o mosaico de produtos: só no computador, parado enquanto o formulário muda
+.painel-entrada {
+  display: none;
+
+  @include m.a-partir-de(lg) {
+    @include fundo-do-painel;
+    view-transition-name: painel-entrada;
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    height: calc(100dvh - 2rem);
+    padding: 2rem;
+    overflow: hidden;
+    border-radius: var(--bs-border-radius-xl);
+  }
+}
+
+.painel-entrada-titulo {
+  margin: 0;
+  font-family: v.$letra-titulos;
+  font-size: 2rem;
+  font-weight: 750;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+
+  @include m.a-partir-de(xl) {
+    font-size: 2.5rem;
+  }
+}
+
+// Mosaico: ocupa a altura que sobra no painel, com o tamanho de cada ladrilho definido abaixo
+.mosaico {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.ladrilho {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 12%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: 0 0.75rem 1.5rem -0.75rem rgba(0, 0, 0, 0.45);
+
+  svg {
+    --rodar: 0deg;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.ladrilho-verde {
+  background-color: var(--ladrilho-verde);
+}
+
+.ladrilho-ambar {
+  background-color: var(--ladrilho-ambar);
+}
+
+.ladrilho-neutro {
+  background-color: var(--ladrilho-neutro);
+}
+
+.ladrilho-fundo {
+  background-color: var(--ladrilho-fundo);
+}
+
+.ladrilho-grande {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+// A garrafa é estreita: com menos margem, ocupa melhor um ladrilho alto
+.ladrilho-alto {
+  grid-row: span 2;
+  padding: 4%;
+}
+
+// Movimento discreto: só para quem não pediu ao sistema para o reduzir
+@media (prefers-reduced-motion: no-preference) {
+  .ladrilho {
+    animation: aparecer 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--ordem) * 60ms);
+  }
+
+  .ladrilho svg,
+  .entrada-banca svg {
+    animation: flutuar 6s ease-in-out infinite alternate;
+  }
+
+  .ladrilho:nth-child(even) svg,
+  .entrada-banca svg:nth-child(even) {
+    animation-delay: -3s;
+  }
+
+  .entrada-conteudo .btn-primary:active {
+    transform: translateY(1px);
+  }
+
+  ::view-transition-group(alternador-ativo) {
+    animation-duration: 240ms;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.96);
+  }
+}
+
+@keyframes flutuar {
+  from {
+    transform: rotate(var(--rodar));
+  }
+
+  to {
+    transform: translateY(-4%) rotate(calc(var(--rodar) - 2deg));
+  }
+}
