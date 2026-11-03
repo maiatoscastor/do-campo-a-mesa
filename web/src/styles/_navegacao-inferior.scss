@@ -45,11 +45,26 @@ $altura: 4.25rem; // 68 px
 }
 
 .navegacao-inferior-icone {
+  position: relative;
   display: grid;
   place-items: center;
   width: 3.5rem;
   height: 1.875rem;
   border-radius: var(--bs-border-radius-pill);
+}
+
+// Cadeado de um destino que exige conta, no canto do ícone, com fundo para se destacar do desenho
+.navegacao-inferior-fechado {
+  position: absolute;
+  top: -0.125rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.0625rem;
+  height: 1.0625rem;
+  border-radius: 50%;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
 }
 
 // O conteúdo e o rodapé não podem ficar escondidos atrás da barra. O espaço fica dentro do

@@ -13,8 +13,22 @@ import Produtos from './pages/Produtos.jsx';
 import Registar from './pages/Registar.jsx';
 import ValidarProdutores from './pages/ValidarProdutores.jsx';
 
+// O que um visitante vê nas páginas que exigem conta
+const ENCOMENDAS_FECHADAS = {
+  pagina: 'Encomendas',
+  titulo: 'Entre para ver as suas encomendas',
+  texto: 'As suas encomendas e o estado de cada uma aparecem aqui.',
+};
+
+const CONTA_FECHADA = {
+  pagina: 'A minha conta',
+  titulo: 'Entre na sua conta',
+  texto: 'Os seus dados aparecem aqui.',
+};
+
 // As páginas da aplicação. O App é a estrutura comum (cabeçalho, navegação e rodapé), e a página
 // de cada endereço aparece no lugar do <Outlet /> dele. O "*" apanha os endereços que não existem.
+// Aberto a todos: início, produtos, leilões e carrinho. Encomendar e licitar é que exigem conta.
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -32,12 +46,12 @@ export const router = createBrowserRouter([
           { path: 'entrar', element: <Entrar /> },
           { path: 'registar', element: <Registar /> },
           {
-            // Páginas que exigem sessão iniciada
-            element: <RotaProtegida />,
-            children: [
-              { path: 'encomendas', element: <Encomendas /> },
-              { path: 'conta', element: <Conta /> },
-            ],
+            element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
+            children: [{ path: 'encomendas', element: <Encomendas /> }],
+          },
+          {
+            element: <RotaProtegida fechada={CONTA_FECHADA} />,
+            children: [{ path: 'conta', element: <Conta /> }],
           },
           {
             element: <RotaProtegida papeis={['admin']} />,

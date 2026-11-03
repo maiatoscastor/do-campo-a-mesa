@@ -38,6 +38,12 @@
   background-color: var(--bs-secondary-bg);
 }
 
+// Cadeado ao lado do nome de um destino que exige conta
+.cabecalho-fechado {
+  margin-left: 0.25rem;
+  vertical-align: -0.0625rem;
+}
+
 // Botão redondo só com ícone, com 44 px: o tamanho mínimo recomendado para tocar com o dedo
 .botao-icone {
   display: inline-grid;
