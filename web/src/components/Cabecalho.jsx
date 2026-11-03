@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router';
 import Icone from './Icone.jsx';
+import MarcaFechada from './MarcaFechada.jsx';
 import { useSessao } from '../hooks/useSessao.js';
 import { DESTINOS } from '../navegacao.js';
 
@@ -30,7 +31,7 @@ export default function Cabecalho() {
 
         <nav className="d-none d-lg-block" aria-label="Navegação principal">
           <ul className="nav nav-pills">
-            {ligacoes.map(({ nome, caminho }) => (
+            {ligacoes.map(({ nome, caminho, fechado }) => (
               <li className="nav-item" key={caminho}>
                 {/* O NavLink marca a página atual sozinho (classe active e aria-current).
                     O end faz com que o Início só fique marcado no endereço "/" exato. */}
@@ -40,6 +41,9 @@ export default function Cabecalho() {
                   end={caminho === '/'}
                 >
                   {nome}
+                  {fechado && !utilizador && (
+                    <MarcaFechada className="cabecalho-fechado" />
+                  )}
                 </NavLink>
               </li>
             ))}
@@ -66,7 +70,11 @@ export default function Cabecalho() {
               </span>
             </NavLink>
           ) : (
-            <Link className="btn btn-suave btn-sm botao-entrar" to="/entrar">
+            <Link
+              className="btn btn-suave btn-sm botao-entrar"
+              to="/entrar"
+              viewTransition
+            >
               Entrar
             </Link>
           )}

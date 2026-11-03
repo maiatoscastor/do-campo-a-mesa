@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useSessao } from '../hooks/useSessao.js';
+import { textoDaLocalizacao } from '../localizacao.js';
 
 const PAPEIS = {
   comprador: 'Comprador',
@@ -33,6 +34,14 @@ export default function Conta() {
   const { utilizador, atualizar, sair } = useSessao();
   const { nome, email, papel, produtor } = utilizador;
   const validacao = produtor && VALIDACAO[produtor.validacao];
+  const navegar = useNavigate();
+
+  // Volta ao início. O flushSync muda de página antes de a sessão acabar: sem ele, via-se por um
+  // instante a mensagem de que esta página exige conta.
+  function terminarSessao() {
+    navegar('/', { flushSync: true });
+    sair();
+  }
 
   // O estado da validação pode ter mudado desde que a página foi aberta. Se o pedido falhar, os dados
   // que já estão no ecrã continuam válidos.
@@ -64,7 +73,7 @@ export default function Conta() {
             <section className="card mb-3">
               <div className="card-body">
                 <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-                  <h2 className="h3 mb-0 me-auto">Exploração</h2>
+                  <h2 className="h3 mb-0 me-auto">Quinta ou negócio</h2>
                   <span className={`badge ${validacao.classe}`}>
                     {validacao.nome}
                   </span>
@@ -75,7 +84,7 @@ export default function Conta() {
                   <dd>{produtor.nomeExploracao}</dd>
                   <dt>Localidade</dt>
                   <dd className={produtor.descricao ? undefined : 'mb-0'}>
-                    {produtor.localidade}
+                    {textoDaLocalizacao(produtor.localizacao)}
                   </dd>
                   {produtor.descricao && (
                     <>
@@ -94,7 +103,11 @@ export default function Conta() {
                 Validar produtores
               </Link>
             )}
-            <button className="btn btn-suave" type="button" onClick={sair}>
+            <button
+              className="btn btn-suave"
+              type="button"
+              onClick={terminarSessao}
+            >
               Terminar sessão
             </button>
           </div>

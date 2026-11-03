@@ -11,14 +11,63 @@
   --borda-campo: #{v.cor(neutro, 9, escuro)};
 }
 
+// À volta do campo, para poder ter um ícone à esquerda e um botão à direita
+.campo-controlo {
+  position: relative;
+
+  &:has(.campo-icone) .form-control {
+    padding-left: 2.875rem;
+  }
+
+  // O ícone de erro do Bootstrap ficaria por baixo do botão: a mensagem por baixo do campo chega
+  &:has(.campo-mostrar) .form-control {
+    padding-right: 3.25rem;
+    background-image: none;
+  }
+
+  // O ícone acompanha o campo que está a ser preenchido
+  &:focus-within .campo-icone {
+    color: var(--bs-primary-text-emphasis);
+  }
+}
+
+.campo-icone {
+  position: absolute;
+  top: 50%;
+  left: 0.875rem;
+  color: var(--bs-secondary-color);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.campo-mostrar {
+  position: absolute;
+  inset-block: 0;
+  right: 0.25rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: none;
+  color: var(--bs-secondary-color);
+
+  &:hover {
+    color: var(--bs-body-color);
+  }
+}
+
 // Escolha entre opções, com a opção inteira a servir de alvo para tocar com o dedo
 .opcao {
-  display: flex;
-  gap: 0.75rem;
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
   height: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.875rem;
   border: 1.5px solid var(--borda-campo);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--bs-border-radius-lg);
   cursor: pointer;
 
   &:has(:checked) {
@@ -27,7 +76,14 @@
   }
 
   .form-check-input {
-    flex: none;
-    margin-top: 0.1875rem;
+    margin: 0;
   }
+}
+
+.opcao-ilustracao {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  width: 2.75rem;
+  height: 2.25rem;
 }
