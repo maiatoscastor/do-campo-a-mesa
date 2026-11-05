@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { auth } from '../middleware/auth.js';
 import { User } from '../models/User.js';
+import { avisar } from '../sockets/avisos.js';
 import { criarErro } from '../utils/erro.js';
 
 const router = Router();
@@ -32,6 +33,8 @@ router.patch('/produtores/:id/validacao', async (req, res) => {
     throw criarErro(404, 'Produtor não encontrado');
   }
 
+  // O produtor fica logo a saber, sem ter de voltar a entrar
+  avisar(req, produtor._id, 'conta-validada', { aprovado });
   res.json(produtor.publico());
 });
 

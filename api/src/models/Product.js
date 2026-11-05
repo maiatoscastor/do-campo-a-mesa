@@ -1,4 +1,5 @@
 import { model, Schema } from 'mongoose';
+import { temAteDoisDecimais } from '../utils/dinheiro.js';
 
 export const CATEGORIAS = [
   'Hortícolas',
@@ -32,16 +33,14 @@ const productSchema = new Schema(
       required: [true, 'Escolha a categoria'],
       enum: { values: CATEGORIAS, message: 'Escolha a categoria' },
     },
-    // Em euros, com no máximo duas casas decimais. A comparação tem uma pequena margem, porque os
-    // números decimais não são exatos no computador (2,9 × 100 dá 289,99999999999997).
+    // Em euros, com no máximo duas casas decimais
     preco: {
       type: Number,
       required: [true, 'Indique o preço'],
       min: [0.01, 'O preço tem de ser maior do que zero'],
       max: [10000, 'O preço é demasiado alto'],
       validate: {
-        validator: (preco) =>
-          Math.abs(preco * 100 - Math.round(preco * 100)) < 1e-6,
+        validator: temAteDoisDecimais,
         message: 'O preço só pode ter até dois decimais',
       },
     },

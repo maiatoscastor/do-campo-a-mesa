@@ -90,13 +90,14 @@ export default function SessaoProvider({ children }) {
   const valor = useMemo(
     () => ({
       utilizador: sessao?.utilizador ?? null,
+      token,
       entrar,
       registar,
       sair,
       pedir,
       atualizar,
     }),
-    [sessao, entrar, registar, sair, pedir, atualizar],
+    [sessao, token, entrar, registar, sair, pedir, atualizar],
   );
 
   return (

@@ -1,23 +1,16 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/cliente.js';
-import Campo from './Campo.jsx';
+import CampoPesquisa from './CampoPesquisa.jsx';
+import { semAcentos } from '../produtos.js';
 
-// Tira os acentos e as maiúsculas, para "moncao" encontrar "Monção"
-function normalizar(texto) {
-  return texto
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .trim();
-}
-
+// A opção com este nome, sem contar com acentos nem maiúsculas ("moncao" encontra "Monção")
 function procurar(opcoes, texto) {
-  const alvo = normalizar(texto);
-  return opcoes.find((opcao) => normalizar(opcao.texto) === alvo);
+  const alvo = semAcentos(texto.trim());
+  return opcoes.find((opcao) => semAcentos(opcao.texto) === alvo);
 }
 
 // Concelho e freguesia, de qualquer parte do país, a partir da lista oficial que a API disponibiliza.
-// São campos de texto com sugestões (datalist): escreve-se parte do nome e escolhe-se da lista.
+// São campos de pesquisa: escreve-se parte do nome e escolhe-se da lista.
 // O formulário guarda os códigos; o texto escrito só serve para os encontrar.
 export default function CamposLocalizacao({
   concelho,
@@ -30,8 +23,6 @@ export default function CamposLocalizacao({
   const [falhou, setFalhou] = useState(false);
   const [textoConcelho, setTextoConcelho] = useState('');
   const [textoFreguesia, setTextoFreguesia] = useState('');
-  const listaConcelhos = useId();
-  const listaFreguesias = useId();
 
   useEffect(() => {
     let cancelado = false;
@@ -78,9 +69,9 @@ export default function CamposLocalizacao({
     texto: nome,
   }));
 
-  function escreverConcelho(evento) {
-    setTextoConcelho(evento.target.value);
-    const codigo = procurar(opcoesConcelho, evento.target.value)?.codigo ?? '';
+  function escreverConcelho(texto) {
+    setTextoConcelho(texto);
+    const codigo = procurar(opcoesConcelho, texto)?.codigo ?? '';
     // Ao mudar de concelho, a freguesia escolhida deixa de fazer sentido
     if (codigo !== concelho) {
       definir('concelho', codigo);
@@ -89,12 +80,9 @@ export default function CamposLocalizacao({
     }
   }
 
-  function escreverFreguesia(evento) {
-    setTextoFreguesia(evento.target.value);
-    definir(
-      'freguesia',
-      procurar(opcoesFreguesia, evento.target.value)?.codigo ?? '',
-    );
+  function escreverFreguesia(texto) {
+    setTextoFreguesia(texto);
+    definir('freguesia', procurar(opcoesFreguesia, texto)?.codigo ?? '');
   }
 
   // Ao sair do campo, o nome fica escrito como na lista oficial ("moncao" passa a "Monção")
@@ -112,14 +100,13 @@ export default function CamposLocalizacao({
 
   return (
     <>
-      <Campo
+      <CampoPesquisa
         rotulo="Concelho"
         nome="concelho"
-        list={listaConcelhos}
-        autoComplete="off"
+        opcoes={opcoesConcelho}
         placeholder={regioes ? 'Escreva para pesquisar' : 'A carregar…'}
         value={textoConcelho}
-        onChange={escreverConcelho}
+        aoMudar={escreverConcelho}
         onBlur={() => acertar(opcoesConcelho, concelho, setTextoConcelho)}
         disabled={!regioes}
         erro={detalhes.concelho}
@@ -129,29 +116,18 @@ export default function CamposLocalizacao({
             : undefined
         }
       />
-      <datalist id={listaConcelhos}>
-        {opcoesConcelho.map(({ codigo, texto }) => (
-          <option key={codigo} value={texto} />
-        ))}
-      </datalist>
 
-      <Campo
+      <CampoPesquisa
         rotulo="Freguesia"
         nome="freguesia"
-        list={listaFreguesias}
-        autoComplete="off"
+        opcoes={opcoesFreguesia}
         placeholder={textoDaFreguesia}
         value={textoFreguesia}
-        onChange={escreverFreguesia}
+        aoMudar={escreverFreguesia}
         onBlur={() => acertar(opcoesFreguesia, freguesia, setTextoFreguesia)}
         disabled={!lista}
         erro={detalhes.freguesia}
       />
-      <datalist id={listaFreguesias}>
-        {opcoesFreguesia.map(({ codigo, texto }) => (
-          <option key={codigo} value={texto} />
-        ))}
-      </datalist>
     </>
   );
 }

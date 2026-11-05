@@ -195,6 +195,23 @@ describe('catálogo', () => {
     assert.deepEqual(await nomes({ concelho: '1604' }), ['Alvarinho']);
   });
 
+  it('devolve só os produtos pedidos pelos ids, como o carrinho precisa', async () => {
+    const { token } = await criarConta('Quinta dos Ids');
+    const criar = async (nome) =>
+      (await pedir('POST', '/products', { token, corpo: { ...PRODUTO, nome } }))
+        .dados.id;
+    const mel = await criar('Mel');
+    const kiwi = await criar('Kiwi');
+    await criar('Grelos');
+
+    const { dados } = await pedir('GET', `/products?ids=${mel},${kiwi},xpto`);
+
+    assert.deepEqual(
+      dados.map((p) => p.nome),
+      ['Kiwi', 'Mel'],
+    );
+  });
+
   it('lista só os produtores aprovados', async () => {
     await criarConta('Quinta Aprovada');
     await criarConta('Quinta Pendente', { aprovado: false });

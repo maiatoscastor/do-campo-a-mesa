@@ -2,11 +2,14 @@
 // A ordem conta: primeiro o Bootstrap com o nosso tema, depois os estilos próprios.
 @use 'theme';
 @use 'base';
+@use 'avisos';
 @use 'botoes';
 @use 'cabecalho';
 @use 'conta';
+@use 'encomendas';
 @use 'entrada';
 @use 'estado-vazio';
+@use 'leiloes';
 @use 'formularios';
 @use 'navegacao-inferior';
 @use 'produtos';

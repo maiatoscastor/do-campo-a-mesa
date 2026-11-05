@@ -1,4 +1,10 @@
-import { Link, Navigate, Outlet, useLocation } from 'react-router';
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useLocation,
+  useOutletContext,
+} from 'react-router';
 import EstadoVazio from './EstadoVazio.jsx';
 import { useSessao } from '../hooks/useSessao.js';
 
@@ -10,6 +16,8 @@ import { useSessao } from '../hooks/useSessao.js';
 export default function RotaProtegida({ papeis, fechada }) {
   const { utilizador } = useSessao();
   const { pathname, search } = useLocation();
+  // O que a estrutura de cima partilha com as páginas (por exemplo, a conta) passa por aqui também
+  const contexto = useOutletContext();
   // Guarda a página pedida, para voltar a ela depois de entrar
   const depois = { depois: pathname + search };
 
@@ -62,5 +70,5 @@ export default function RotaProtegida({ papeis, fechada }) {
     );
   }
 
-  return <Outlet />;
+  return <Outlet context={contexto} />;
 }

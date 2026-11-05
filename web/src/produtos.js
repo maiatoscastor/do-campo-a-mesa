@@ -22,7 +22,7 @@ export const ILUSTRACAO_DA_CATEGORIA = {
   Outros: 'cesto',
 };
 
-// "Hortícolas" passa a "horticolas", para usar em nomes de classes CSS
+// "Hortícolas" passa a "horticolas": para nomes de classes CSS e para pesquisar sem acentos
 export function semAcentos(texto) {
   return texto
     .normalize('NFD')

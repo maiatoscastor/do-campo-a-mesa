@@ -1,11 +1,16 @@
 import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import swaggerUi from 'swagger-ui-express';
+import { parse } from 'yaml';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
 import admin from './routes/admin.js';
+import auctions from './routes/auctions.js';
 import auth from './routes/auth.js';
 import localidades from './routes/localidades.js';
+import orders from './routes/orders.js';
 import producers from './routes/producers.js';
 import products from './routes/products.js';
 import { PASTA_UPLOADS } from './utils/imagens.js';
@@ -32,9 +37,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// A documentação da API (OpenAPI), para ler e experimentar os pedidos no browser
+const especificacao = parse(
+  readFileSync(new URL('../openapi.yaml', import.meta.url), 'utf8'),
+);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(especificacao));
+
 app.use('/api/auth', auth);
 app.use('/api/admin', admin);
+app.use('/api/auctions', auctions);
 app.use('/api/localidades', localidades);
+app.use('/api/orders', orders);
 app.use('/api/products', products);
 app.use('/api/producers', producers);
 

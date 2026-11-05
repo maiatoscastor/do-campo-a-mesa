@@ -15,10 +15,10 @@ export function detalhesDeValidacao(erro) {
 }
 
 // Valida um documento antes de o gravar e devolve os problemas, em vez de parar no primeiro erro.
-// O campo do hash fica de fora: só se calcula depois de o resto estar certo, porque é lento.
-export async function problemasDeUtilizador(utilizador) {
+// Os campos em "saltar" ficam de fora (por exemplo, os que a rota verifica de outra forma).
+export async function problemasDe(documento, saltar = []) {
   try {
-    await utilizador.validate({ pathsToSkip: ['passwordHash'] });
+    await documento.validate({ pathsToSkip: saltar });
     return {};
   } catch (erro) {
     if (erro.name !== 'ValidationError') {
@@ -26,4 +26,9 @@ export async function problemasDeUtilizador(utilizador) {
     }
     return detalhesDeValidacao(erro);
   }
+}
+
+// O campo do hash fica de fora: só se calcula depois de o resto estar certo, porque é lento
+export function problemasDeUtilizador(utilizador) {
+  return problemasDe(utilizador, ['passwordHash']);
 }

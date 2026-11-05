@@ -1,0 +1,904 @@
+openapi: 3.0.3
+info:
+  title: Do Campo à Mesa API
+  version: 1.0.0
+  description: >
+    API REST do Do Campo à Mesa, um mercado de produtores locais com encomendas e leilões em
+    direto. As rotas marcadas com um cadeado exigem o token devolvido por /auth/login ou
+    /auth/registo: use o botão "Authorize" e cole só o token.
+
+
+    Os erros vêm sempre em JSON, com a mensagem em "erro". Nos dados inválidos (400), "detalhes"
+    tem a mensagem de cada campo.
+servers:
+  - url: /api
+tags:
+  - name: Saúde
+  - name: Contas
+    description: Registo, início de sessão e dados de quem tem a sessão
+  - name: Administração
+    description: Só para administradores
+  - name: Localidades
+    description: Concelhos e freguesias de Portugal (CAOP 2025, Direção-Geral do Território)
+  - name: Produtos
+  - name: Produtores
+  - name: Encomendas
+  - name: Leilões
+    description: >
+      A agenda e a criação de leilões. As licitações em direto não passam por aqui: usam o
+      Socket.io, no mesmo servidor (eventos entrar, sair, licitar, estado, presenca,
+      nova-licitacao, recusada, aberto e terminado).
+
+paths:
+  /health:
+    get:
+      tags: [Saúde]
+      summary: Estado da API e da ligação à base de dados
+      responses:
+        '200':
+          description: A API e a base de dados estão a funcionar
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Saude' }
+        '503':
+          description: Sem ligação à base de dados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Saude' }
+
+  /auth/registo:
+    post:
+      tags: [Contas]
+      summary: Criar uma conta de comprador ou de produtor
+      description: >
+        Inicia logo a sessão. Só se aceitam os campos do pedido: ninguém se regista como
+        administrador nem como produtor já aprovado. Os produtores ficam à espera de validação.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Registo' }
+      responses:
+        '201':
+          description: Conta criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '409':
+          description: Já existe uma conta com este email
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /auth/login:
+    post:
+      tags: [Contas]
+      summary: Iniciar a sessão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Login' }
+      responses:
+        '200':
+          description: Sessão iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+        '401':
+          description: Email ou password incorretos (a mesma resposta para os dois casos)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /auth/eu:
+    get:
+      tags: [Contas]
+      summary: Os dados atuais de quem tem a sessão
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: O utilizador
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Utilizador' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+    patch:
+      tags: [Contas]
+      summary: Mudar o nome ou o email
+      description: Só estes dois campos; o tipo de conta não se muda aqui.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome: { type: string, maxLength: 100 }
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Dados guardados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Utilizador' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '409':
+          description: Já existe uma conta com este email
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /admin/produtores/pendentes:
+    get:
+      tags: [Administração]
+      summary: Produtores à espera de validação, primeiro os mais antigos
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de produtores
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Utilizador' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/produtores/{id}/validacao:
+    patch:
+      tags: [Administração]
+      summary: Aprovar ou rejeitar um produtor
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aprovado]
+              properties:
+                aprovado: { type: boolean }
+      responses:
+        '200':
+          description: O produtor, com a validação atualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Utilizador' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /localidades:
+    get:
+      tags: [Localidades]
+      summary: Os concelhos, agrupados por distrito ou região autónoma
+      responses:
+        '200':
+          description: A lista oficial, com a fonte e a licença
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Localidades' }
+
+  /localidades/{concelho}/freguesias:
+    get:
+      tags: [Localidades]
+      summary: As freguesias de um concelho
+      parameters:
+        - name: concelho
+          in: path
+          required: true
+          description: Código oficial do concelho (por exemplo, 1607 para Ponte de Lima)
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lista de freguesias
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Localidade' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /products:
+    get:
+      tags: [Produtos]
+      summary: Pesquisar no catálogo
+      description: Só mostra produtos de produtores aprovados, por ordem alfabética (até 200).
+      parameters:
+        - name: q
+          in: query
+          description: Texto a procurar no nome e na descrição do produto e no nome do produtor
+          schema: { type: string }
+        - name: categoria
+          in: query
+          schema: { $ref: '#/components/schemas/Categoria' }
+        - name: concelho
+          in: query
+          description: Código do concelho do produtor
+          schema: { type: string }
+        - name: produtor
+          in: query
+          description: Identificador do produtor
+          schema: { type: string }
+        - name: epoca
+          in: query
+          description: Os produtos sem épocas existem todo o ano e aparecem sempre
+          schema: { $ref: '#/components/schemas/Epoca' }
+        - name: biologico
+          in: query
+          schema: { type: string, enum: ['true'] }
+        - name: precoMin
+          in: query
+          schema: { type: number }
+        - name: precoMax
+          in: query
+          schema: { type: number }
+        - name: ids
+          in: query
+          description: Só estes produtos, separados por vírgulas (o carrinho usa-o para ter o preço e o stock atuais)
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lista de produtos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+    post:
+      tags: [Produtos]
+      summary: Criar um produto (produtor aprovado)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '201':
+          description: Produto criado
+          headers:
+            Location:
+              description: Endereço do novo produto
+              schema:
+                {
+                  type: string,
+                  example: /api/products/6720f1c2a1b2c3d4e5f60718,
+                }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /products/meus:
+    get:
+      tags: [Produtos]
+      summary: Os produtos do produtor com sessão, mesmo antes de ser aprovado
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de produtos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /products/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Produtos]
+      summary: Um produto (de um produtor aprovado)
+      responses:
+        '200':
+          description: O produto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    put:
+      tags: [Produtos]
+      summary: Substituir os dados de um produto (só o dono)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '200':
+          description: Produto atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    delete:
+      tags: [Produtos]
+      summary: Apagar um produto e a fotografia (só o dono)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Apagado, sem corpo
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /products/{id}/imagem:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    put:
+      tags: [Produtos]
+      summary: Pôr ou trocar a fotografia (só o dono)
+      description: JPEG, PNG ou WebP, até 5 MB. O tipo é confirmado pelo conteúdo do ficheiro.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagem]
+              properties:
+                imagem: { type: string, format: binary }
+      responses:
+        '200':
+          description: Produto com a nova fotografia
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    delete:
+      tags: [Produtos]
+      summary: Tirar a fotografia (o produto volta a mostrar a ilustração da categoria)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Produto sem fotografia
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /producers:
+    get:
+      tags: [Produtores]
+      summary: Os produtores aprovados
+      parameters:
+        - name: comProdutos
+          in: query
+          description: Só os que têm produtos (para os filtros do catálogo)
+          schema: { type: string, enum: ['true'] }
+      responses:
+        '200':
+          description: Lista de produtores
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Produtor' }
+
+  /orders:
+    get:
+      tags: [Encomendas]
+      summary: As encomendas que quem tem a sessão fez, das mais recentes para as mais antigas
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de encomendas, com os dados do produtor
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+    post:
+      tags: [Encomendas]
+      summary: Encomendar (comprador ou produtor)
+      description: >
+        Cria uma encomenda por produtor. Os preços vêm sempre do servidor. O stock de todos os
+        produtos desce numa transação: se faltar stock de um, nada muda e a resposta é 409.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NovaEncomenda' }
+      responses:
+        '201':
+          description: As encomendas criadas, uma por produtor
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '409':
+          description: Falta stock de um produto, ou um produto já não está à venda
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /orders/recebidas:
+    get:
+      tags: [Encomendas]
+      summary: As encomendas feitas ao produtor com sessão
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de encomendas, com o nome e o email do comprador
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /orders/{id}/estado:
+    patch:
+      tags: [Encomendas]
+      summary: Passar a encomenda ao estado seguinte (só o produtor dela)
+      description: pendente → confirmada → pronta → entregue, um passo de cada vez.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado: { $ref: '#/components/schemas/EstadoDaEncomenda' }
+      responses:
+        '200':
+          description: A encomenda no novo estado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: Não é o estado seguinte, ou a encomenda mudou entretanto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /auctions:
+    get:
+      tags: [Leilões]
+      summary: A agenda dos leilões
+      description: >
+        Por omissão, os leilões a decorrer e os próximos, pela hora de início. Com
+        estado=terminado, os que já acabaram, dos mais recentes para os mais antigos.
+      parameters:
+        - name: estado
+          in: query
+          schema: { type: string, enum: [terminado] }
+      responses:
+        '200':
+          description: Lista de leilões, com os dados do produtor
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Auction' }
+    post:
+      tags: [Leilões]
+      summary: Pôr em leilão um lote de um dos seus produtos (produtor aprovado)
+      description: A licitação atual começa no preço base.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NovoLeilao' }
+      responses:
+        '201':
+          description: Leilão criado
+          headers:
+            Location:
+              description: Endereço do novo leilão
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Auction' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /auctions/meus:
+    get:
+      tags: [Leilões]
+      summary: Os leilões do produtor com sessão, dos mais recentes para os mais antigos
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de leilões
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Auction' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /auctions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Leilões]
+      summary: Um leilão
+      responses:
+        '200':
+          description: O leilão
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Auction' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    delete:
+      tags: [Leilões]
+      summary: Cancelar um leilão que ainda não começou (só o produtor dele)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Cancelado, sem corpo
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: O leilão já começou
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: Identificador do MongoDB (24 caracteres hexadecimais)
+      schema: { type: string, example: 6720f1c2a1b2c3d4e5f60718 }
+
+  responses:
+    DadosInvalidos:
+      description: Dados inválidos (em "detalhes", a mensagem de cada campo)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    SemSessao:
+      description: Token em falta, inválido ou expirado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    SemPermissao:
+      description: A conta não tem permissão (papel errado, produtor por aprovar ou recurso de outra pessoa)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    NaoEncontrado:
+      description: Não encontrado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+
+  schemas:
+    Erro:
+      type: object
+      properties:
+        erro: { type: string, example: Dados inválidos }
+        detalhes:
+          type: object
+          additionalProperties: { type: string }
+          example: { email: O email não é válido }
+
+    Saude:
+      type: object
+      properties:
+        estado: { type: string, enum: [ok, com problemas] }
+        baseDeDados: { type: string, enum: [ligada, desligada] }
+
+    Papel:
+      type: string
+      enum: [comprador, produtor, admin]
+
+    Localizacao:
+      type: object
+      description: Os códigos oficiais e os nomes, preenchidos pelo servidor a partir dos códigos
+      properties:
+        concelho: { type: string, example: '1607' }
+        freguesia: { type: string, example: '160704' }
+        nomeConcelho: { type: string, example: Ponte de Lima }
+        nomeFreguesia: { type: string, example: Arcozelo }
+        regiao: { type: string, example: Viana do Castelo }
+
+    DadosDeProdutor:
+      type: object
+      properties:
+        nomeExploracao: { type: string, example: Horta da Dona Graça }
+        localizacao: { $ref: '#/components/schemas/Localizacao' }
+        descricao: { type: string }
+        validacao: { type: string, enum: [pendente, aprovado, rejeitado] }
+
+    Utilizador:
+      type: object
+      properties:
+        id: { type: string }
+        nome: { type: string }
+        email: { type: string, format: email }
+        papel: { $ref: '#/components/schemas/Papel' }
+        produtor: { $ref: '#/components/schemas/DadosDeProdutor' }
+
+    Registo:
+      type: object
+      required: [nome, email, password]
+      properties:
+        nome: { type: string, maxLength: 100 }
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        papel: { type: string, enum: [comprador, produtor], default: comprador }
+        nomeExploracao: { type: string, description: Só para produtores }
+        concelho:
+          { type: string, description: Só para produtores (código oficial) }
+        freguesia:
+          { type: string, description: Só para produtores (código oficial) }
+        descricao: { type: string, description: Só para produtores (opcional) }
+
+    Login:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    Sessao:
+      type: object
+      properties:
+        token: { type: string, description: 'JWT, válido durante 2 horas' }
+        utilizador: { $ref: '#/components/schemas/Utilizador' }
+
+    Localidade:
+      type: object
+      properties:
+        codigo: { type: string }
+        nome: { type: string }
+
+    Localidades:
+      type: object
+      properties:
+        fonte: { type: string }
+        licenca: { type: string }
+        url: { type: string }
+        regioes:
+          type: array
+          items:
+            type: object
+            properties:
+              nome: { type: string, example: Viana do Castelo }
+              concelhos:
+                type: array
+                items: { $ref: '#/components/schemas/Localidade' }
+
+    Categoria:
+      type: string
+      enum: [Hortícolas, Fruta, Mel, Vinho, Queijo, Padaria, Outros]
+
+    Epoca:
+      type: string
+      enum: [Primavera, Verão, Outono, Inverno]
+
+    Produtor:
+      type: object
+      description: Um produtor aprovado, como aparece no catálogo
+      properties:
+        id: { type: string }
+        nomeExploracao: { type: string }
+        localizacao: { $ref: '#/components/schemas/Localizacao' }
+        exemplo: { type: boolean }
+
+    ProductInput:
+      type: object
+      required: [nome, categoria, preco, unidade, stock]
+      properties:
+        nome: { type: string, maxLength: 100, example: Mel de urze }
+        descricao: { type: string, maxLength: 1000 }
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        preco:
+          type: number
+          minimum: 0.01
+          maximum: 10000
+          description: Em euros, com até dois decimais
+          example: 8.5
+        unidade: { type: string, maxLength: 30, example: frasco 500 g }
+        stock: { type: integer, minimum: 0, example: 30 }
+        biologico: { type: boolean, default: false }
+        epocas:
+          type: array
+          description: Sem épocas, o produto existe todo o ano
+          items: { $ref: '#/components/schemas/Epoca' }
+
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductInput'
+        - type: object
+          properties:
+            id: { type: string }
+            produtor:
+              description: O produtor (só o identificador em /products/meus)
+              oneOf:
+                - $ref: '#/components/schemas/Produtor'
+                - type: string
+            imagemUrl: { type: string, example: /uploads/3f2a9c1e.webp }
+            exemplo:
+              { type: boolean, description: Dados inventados para testar }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    EstadoDaEncomenda:
+      type: string
+      enum: [pendente, confirmada, pronta, entregue]
+
+    NovaEncomenda:
+      type: object
+      required: [linhas, modo]
+      properties:
+        linhas:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            required: [produto, quantidade]
+            properties:
+              produto: { type: string, description: Identificador do produto }
+              quantidade: { type: integer, minimum: 1, maximum: 1000 }
+        modo: { type: string, enum: [levantamento, entrega] }
+        morada:
+          {
+            type: string,
+            maxLength: 300,
+            description: Obrigatória nas entregas,
+          }
+
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        comprador:
+          description: Quem encomendou (com o nome e o email nas encomendas recebidas)
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                id: { type: string }
+                nome: { type: string }
+                email: { type: string }
+        produtor:
+          description: O produtor (com os dados dele nas encomendas feitas)
+          oneOf:
+            - type: string
+            - $ref: '#/components/schemas/Produtor'
+        linhas:
+          type: array
+          description: O nome, a unidade e o preço de cada produto no momento da encomenda
+          items:
+            type: object
+            properties:
+              produto: { type: string }
+              nome: { type: string }
+              unidade: { type: string }
+              preco: { type: number }
+              quantidade: { type: integer }
+        total: { type: number, description: Em euros }
+        modo: { type: string, enum: [levantamento, entrega] }
+        morada: { type: string }
+        estado: { $ref: '#/components/schemas/EstadoDaEncomenda' }
+        origem:
+          type: string
+          enum: [loja, leilao]
+          description: As encomendas de leilão são criadas para o vencedor, já confirmadas
+        historico:
+          type: array
+          description: Quando a encomenda passou a cada estado
+          items:
+            type: object
+            properties:
+              estado: { $ref: '#/components/schemas/EstadoDaEncomenda' }
+              data: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    NovoLeilao:
+      type: object
+      required: [produto, lote, precoBase, incremento, duracao]
+      properties:
+        produto: { type: string, description: Um dos produtos do produtor }
+        lote: { type: string, maxLength: 150, example: 200 kg }
+        descricao: { type: string, maxLength: 1000 }
+        precoBase: { type: number, minimum: 0.01, example: 200 }
+        incremento:
+          type: number
+          minimum: 0.01
+          description: Quanto cada licitação tem de subir, no mínimo
+          example: 5
+        iniciaEm:
+          type: string
+          format: date-time
+          description: Sem início, o leilão começa já; no máximo daqui a 90 dias
+        duracao:
+          type: integer
+          minimum: 1
+          maximum: 10080
+          description: Em minutos (até 7 dias)
+
+    Auction:
+      type: object
+      properties:
+        id: { type: string }
+        produtor:
+          description: O produtor (só o identificador em /auctions/meus)
+          oneOf:
+            - $ref: '#/components/schemas/Produtor'
+            - type: string
+        produto: { type: string }
+        nome: { type: string, example: Kiwi Hayward }
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        imagemUrl: { type: string }
+        lote: { type: string, example: 200 kg }
+        descricao: { type: string }
+        precoBase: { type: number }
+        incremento: { type: number }
+        licitacaoAtual:
+          type: object
+          description: A maior licitação até agora; começa no preço base, sem comprador
+          properties:
+            valor: { type: number }
+            comprador: { type: string }
+            nome: { type: string, example: Ana T. }
+            data: { type: string, format: date-time }
+        numeroDeLicitacoes: { type: integer }
+        minimo:
+          type: number
+          description: O valor mínimo da próxima licitação (a primeira pode ser o preço base)
+        iniciaEm: { type: string, format: date-time }
+        terminaEm:
+          type: string
+          format: date-time
+          description: Uma licitação nos últimos 30 segundos prolonga o fim até 30 segundos depois dela
+        estado: { type: string, enum: [agendado, ativo, terminado] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

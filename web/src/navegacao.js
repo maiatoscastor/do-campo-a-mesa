@@ -25,3 +25,11 @@ export function destinosPara(utilizador) {
     ({ esconderPara }) => !esconderPara?.includes(utilizador?.papel),
   );
 }
+
+// O que se acrescenta ao nome "Carrinho" para os leitores de ecrã: ", 2 produtos"
+export function textoDoCarrinho(produtos) {
+  if (produtos === 0) {
+    return '';
+  }
+  return `, ${produtos} ${produtos === 1 ? 'produto' : 'produtos'}`;
+}

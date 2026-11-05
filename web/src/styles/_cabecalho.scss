@@ -46,6 +46,7 @@
 
 // Botão redondo só com ícone, com 44 px: o tamanho mínimo recomendado para tocar com o dedo
 .botao-icone {
+  position: relative;
   display: inline-grid;
   place-items: center;
   width: 2.75rem;

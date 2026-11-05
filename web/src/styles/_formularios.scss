@@ -58,6 +58,53 @@
   }
 }
 
+// Lista de sugestões de um campo de pesquisa (CampoPesquisa.jsx), por cima do que vem a seguir
+.sugestoes {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  inset-inline: 0;
+  z-index: 10;
+  max-height: 14.5rem;
+  padding: 0.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow);
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  // 44 px de altura, para se tocar com o dedo sem falhar
+  li {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--bs-border-radius);
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--bs-secondary-bg);
+    }
+
+    &[aria-selected='true'] {
+      background-color: var(--bs-primary-bg-subtle);
+      color: var(--bs-primary-text-emphasis);
+    }
+  }
+}
+
+.sugestoes-vazio {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
 // Escolha entre opções, com a opção inteira a servir de alvo para tocar com o dedo
 .opcao {
   position: relative;

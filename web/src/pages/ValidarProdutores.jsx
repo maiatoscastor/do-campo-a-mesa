@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import { useSessao } from '../hooks/useSessao.js';
@@ -7,6 +8,8 @@ import { textoDaLocalizacao } from '../localizacao.js';
 // Página do administrador: aprovar ou rejeitar os produtores que se registaram.
 export default function ValidarProdutores() {
   const { pedir } = useSessao();
+  // O contador do separador "Validar produtores" tem de acompanhar as decisões
+  const { recontarPendentes } = useOutletContext() ?? {};
   // null quer dizer que a lista ainda não chegou; uma lista vazia, que não há nenhum à espera
   const [pendentes, setPendentes] = useState(null);
   const [erro, setErro] = useState(null);
@@ -48,6 +51,7 @@ export default function ValidarProdutores() {
         corpo: { aprovado },
       });
       setPendentes((lista) => lista.filter(({ id }) => id !== conta.id));
+      recontarPendentes?.();
       setMensagem(
         `"${nomeExploracao}" foi ${aprovado ? 'aprovado' : 'rejeitado'}.`,
       );
