@@ -3,6 +3,7 @@ import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import CartaoEncomenda from '../components/CartaoEncomenda.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import { estadoSeguinte } from '../encomendas.js';
+import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 
 // As encomendas feitas ao produtor com sessão. Em cada uma, um botão passa-a ao estado seguinte
@@ -13,6 +14,9 @@ export default function EncomendasRecebidas() {
   const [erro, setErro] = useState(null);
   const [aMudar, setAMudar] = useState(null);
 
+  // Muda para voltar a pedir a lista ao servidor
+  const [versao, setVersao] = useState(0);
+
   useEffect(() => {
     let cancelado = false;
     pedir('/orders/recebidas')
@@ -21,7 +25,12 @@ export default function EncomendasRecebidas() {
     return () => {
       cancelado = true;
     };
-  }, [pedir]);
+  }, [pedir, versao]);
+
+  // Uma encomenda nova (da loja ou de um leilão que acabou) aparece sem recarregar a página
+  const recarregar = () => setVersao((n) => n + 1);
+  useEventoSocket('nova-encomenda', recarregar);
+  useEventoSocket('leilao-terminado', recarregar);
 
   async function avancar(encomenda, estado) {
     setErro(null);

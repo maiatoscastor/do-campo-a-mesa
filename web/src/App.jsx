@@ -1,4 +1,5 @@
 import { Outlet, ScrollRestoration } from 'react-router';
+import Avisos from './components/Avisos.jsx';
 import Cabecalho from './components/Cabecalho.jsx';
 import NavegacaoInferior from './components/NavegacaoInferior.jsx';
 import Rodape from './components/Rodape.jsx';
@@ -18,6 +19,7 @@ export default function App() {
         <Outlet />
       </main>
       <Rodape />
+      <Avisos />
       {/* Ao mudar de página volta ao topo; ao recuar, repõe a posição em que se estava */}
       <ScrollRestoration />
     </>

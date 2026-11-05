@@ -583,6 +583,8 @@ describe('fim do leilão', () => {
     assert.equal(encomendas[0].linhas[0].nome, 'Kiwi Hayward (lote: 200 kg)');
     assert.deepEqual(await fim, {
       id: leilao.id,
+      nome: 'Kiwi Hayward',
+      lote: '200 kg',
       vencedor: 'Ana',
       valor: 230,
     });

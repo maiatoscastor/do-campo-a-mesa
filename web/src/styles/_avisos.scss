@@ -1,0 +1,72 @@
+// Avisos em tempo real (Avisos.jsx). No telemóvel, por baixo do cabeçalho, a toda a largura; no
+// computador, no canto superior direito.
+@use 'mixins' as m;
+
+.avisos {
+  position: fixed;
+  top: 4.75rem;
+  inset-inline: 1rem;
+  z-index: 1080;
+  display: grid;
+  gap: 0.5rem;
+  pointer-events: none;
+
+  @include m.a-partir-de(lg) {
+    left: auto;
+    width: 24rem;
+  }
+}
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 0.5rem 0.875rem 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow);
+  font-size: 0.9375rem;
+  pointer-events: auto;
+  animation: aviso-entrar 0.2s ease-out;
+
+  p {
+    flex: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes aviso-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+.aviso-icone {
+  flex: none;
+  margin-top: 0.125rem;
+  color: var(--bs-primary-text-emphasis);
+}
+
+.aviso-fechar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: -0.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--bs-secondary-color);
+
+  &:hover {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+  }
+}

@@ -4,6 +4,7 @@ import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import ImagemProduto from '../components/ImagemProduto.jsx';
 import { useAgora } from '../hooks/useAgora.js';
+import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
 import { formatarPreco } from '../produtos.js';
@@ -32,6 +33,9 @@ export default function MeusLeiloes() {
   const [mensagem, setMensagem] = useState('');
   const agora = useAgora();
 
+  // Muda para voltar a pedir a lista ao servidor
+  const [versao, setVersao] = useState(0);
+
   useEffect(() => {
     let cancelado = false;
     pedir('/auctions/meus')
@@ -40,7 +44,11 @@ export default function MeusLeiloes() {
     return () => {
       cancelado = true;
     };
-  }, [pedir]);
+  }, [pedir, versao]);
+
+  // Quando um leilão acaba, o resultado aparece sem recarregar a página
+  const recarregar = () => setVersao((n) => n + 1);
+  useEventoSocket('leilao-terminado', recarregar);
 
   async function cancelar(leilao) {
     if (!window.confirm(`Cancelar o leilão de "${leilao.nome}"?`)) {

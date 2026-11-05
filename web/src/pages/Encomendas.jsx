@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import CartaoEncomenda from '../components/CartaoEncomenda.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
+import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 
 // As encomendas que quem tem a sessão fez, das mais recentes para as mais antigas, e o estado de cada
@@ -13,6 +14,9 @@ export default function Encomendas() {
   const [encomendas, setEncomendas] = useState(null);
   const [erro, setErro] = useState(null);
 
+  // Muda para voltar a pedir a lista ao servidor
+  const [versao, setVersao] = useState(0);
+
   useEffect(() => {
     let cancelado = false;
     pedir('/orders')
@@ -21,7 +25,12 @@ export default function Encomendas() {
     return () => {
       cancelado = true;
     };
-  }, [pedir]);
+  }, [pedir, versao]);
+
+  // Quando o produtor muda o estado (ou se ganha um leilão), a lista atualiza-se sozinha
+  const recarregar = () => setVersao((n) => n + 1);
+  useEventoSocket('encomenda-atualizada', recarregar);
+  useEventoSocket('leilao-ganho', recarregar);
 
   let confirmacao = '';
   if (state?.feitas === 1) {

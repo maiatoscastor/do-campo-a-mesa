@@ -27,6 +27,8 @@ try {
 // A API e o Socket.io partilham o mesmo servidor HTTP (e a mesma porta)
 const servidor = createServer(app);
 const io = ligarSockets(servidor);
+// As rotas também avisam quem está ligado (por exemplo, quando uma encomenda muda de estado)
+app.set('io', io);
 // Abre os leilões agendados e fecha os que acabaram
 iniciarCicloLeiloes(io);
 

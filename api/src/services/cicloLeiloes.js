@@ -84,6 +84,8 @@ export async function fecharExpirados(io) {
 
     const resultado = {
       id: leilao._id,
+      nome: leilao.nome,
+      lote: leilao.lote,
       vencedor: encomenda ? leilao.licitacaoAtual.nome : null,
       valor: encomenda ? leilao.licitacaoAtual.valor : null,
     };

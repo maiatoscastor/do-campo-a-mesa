@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { auth } from '../middleware/auth.js';
+import { avisar } from '../sockets/avisos.js';
 import { ESTADOS, Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
@@ -172,6 +173,14 @@ router.post('/', auth('comprador', 'produtor'), async (req, res) => {
     );
   });
 
+  // Cada produtor fica logo a saber da sua encomenda
+  for (const encomenda of criadas) {
+    avisar(req, encomenda.produtor, 'nova-encomenda', {
+      id: encomenda._id,
+      total: encomenda.total,
+      comprador: req.user.nome,
+    });
+  }
   res.status(201).json(criadas.map(encomendaPublica));
 });
 
@@ -204,10 +213,18 @@ router.patch('/:id/estado', auth('produtor'), async (req, res) => {
     { _id: encomenda._id, estado: encomenda.estado },
     { estado, $push: { historico: { estado, data: new Date() } } },
     { returnDocument: 'after' },
-  ).populate('comprador', 'nome email');
+  )
+    .populate('comprador', 'nome email')
+    .populate('produtor', 'produtor.nomeExploracao');
   if (!atualizada) {
     throw criarErro(409, 'A encomenda mudou entretanto. Recarregue a página.');
   }
+  // O comprador vê a mudança no momento, em qualquer página em que esteja
+  avisar(req, atualizada.comprador._id, 'encomenda-atualizada', {
+    id: atualizada._id,
+    estado,
+    produtor: atualizada.produtor.produtor.nomeExploracao,
+  });
   res.json(encomendaPublica(atualizada));
 });
 
