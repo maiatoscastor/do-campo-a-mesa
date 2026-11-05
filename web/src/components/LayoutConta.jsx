@@ -21,6 +21,12 @@ const SECCOES = [
     papeis: ['produtor'],
   },
   {
+    caminho: '/conta/encomendas',
+    nome: 'Encomendas recebidas',
+    icone: 'encomendas',
+    papeis: ['produtor'],
+  },
+  {
     caminho: '/conta/produtores',
     nome: 'Validar produtores',
     icone: 'validar',

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { auth, produtorAprovado } from '../middleware/auth.js';
 import { CATEGORIAS, EPOCAS, Product } from '../models/Product.js';
 import { User } from '../models/User.js';
@@ -69,9 +70,10 @@ async function produtoDoProdutor(req) {
 
 // GET /api/products: o catálogo, aberto a todos. Só mostra produtos de produtores aprovados.
 // Filtros: q (nome, descrição ou produtor), categoria, concelho, produtor, epoca, biologico,
-// precoMin e precoMax.
+// precoMin, precoMax e ids (só estes produtos, separados por vírgulas: o carrinho usa-o para ter o
+// preço e o stock atuais).
 router.get('/', async (req, res) => {
-  const { q, categoria, concelho, produtor, epoca, biologico } = req.query;
+  const { q, categoria, concelho, produtor, epoca, biologico, ids } = req.query;
   const precoMin = Number.parseFloat(req.query.precoMin);
   const precoMax = Number.parseFloat(req.query.precoMax);
 
@@ -88,6 +90,10 @@ router.get('/', async (req, res) => {
   const produtores = await User.find(filtroProdutores).distinct('_id');
 
   const condicoes = [{ produtor: { $in: produtores } }];
+  if (typeof ids === 'string') {
+    const lista = ids.split(',').filter(mongoose.isObjectIdOrHexString);
+    condicoes.push({ _id: { $in: lista } });
+  }
   if (typeof categoria === 'string' && CATEGORIAS.includes(categoria)) {
     condicoes.push({ categoria });
   }

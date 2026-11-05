@@ -6,6 +6,7 @@ import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
 import admin from './routes/admin.js';
 import auth from './routes/auth.js';
 import localidades from './routes/localidades.js';
+import orders from './routes/orders.js';
 import producers from './routes/producers.js';
 import products from './routes/products.js';
 import { PASTA_UPLOADS } from './utils/imagens.js';
@@ -35,6 +36,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', auth);
 app.use('/api/admin', admin);
 app.use('/api/localidades', localidades);
+app.use('/api/orders', orders);
 app.use('/api/products', products);
 app.use('/api/producers', producers);
 

@@ -7,6 +7,7 @@ import Carrinho from './pages/Carrinho.jsx';
 import DadosPessoais from './pages/DadosPessoais.jsx';
 import EditarProduto from './pages/EditarProduto.jsx';
 import Encomendas from './pages/Encomendas.jsx';
+import EncomendasRecebidas from './pages/EncomendasRecebidas.jsx';
 import Entrar from './pages/Entrar.jsx';
 import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
                       { path: 'produtos', element: <MeusProdutos /> },
                       { path: 'produtos/novo', element: <EditarProduto /> },
                       { path: 'produtos/:id', element: <EditarProduto /> },
+                      { path: 'encomendas', element: <EncomendasRecebidas /> },
                     ],
                   },
                   {

@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router/dom';
 import '@fontsource-variable/bricolage-grotesque';
 import '@fontsource-variable/plus-jakarta-sans';
 import './styles/main.scss';
+import CarrinhoProvider from './context/CarrinhoProvider.jsx';
 import SessaoProvider from './context/SessaoProvider.jsx';
 import { router } from './rotas.jsx';
 
@@ -12,7 +13,9 @@ import { router } from './rotas.jsx';
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <SessaoProvider>
-      <RouterProvider router={router} />
+      <CarrinhoProvider>
+        <RouterProvider router={router} />
+      </CarrinhoProvider>
     </SessaoProvider>
   </StrictMode>,
 );
