@@ -472,3 +472,53 @@ describe('localidades', () => {
     assert.equal(estado, 404);
   });
 });
+
+describe('dados pessoais', () => {
+  it('altera o nome e o email, e a sessão continua válida', async () => {
+    const { dados: registo } = await registar(COMPRADOR);
+
+    const { estado, dados } = await pedir('PATCH', '/auth/eu', {
+      token: registo.token,
+      corpo: { nome: 'Nome Novo', email: 'NOVO@teste.pt', papel: 'admin' },
+    });
+    const entrar = await pedir('POST', '/auth/login', {
+      corpo: { email: 'novo@teste.pt', password: PASSWORD },
+    });
+
+    assert.equal(estado, 200);
+    assert.equal(dados.nome, 'Nome Novo');
+    assert.equal(dados.email, 'novo@teste.pt');
+    assert.equal(dados.papel, 'comprador');
+    assert.equal(entrar.estado, 200);
+  });
+
+  it('recusa um email de outra conta e dados inválidos', async () => {
+    await registar(PRODUTOR);
+    const { dados: registo } = await registar(COMPRADOR);
+
+    const repetido = await pedir('PATCH', '/auth/eu', {
+      token: registo.token,
+      corpo: { email: PRODUTOR.email },
+    });
+    const invalido = await pedir('PATCH', '/auth/eu', {
+      token: registo.token,
+      corpo: { nome: ' ', email: 'sem-arroba' },
+    });
+
+    assert.equal(repetido.estado, 409);
+    assert.ok(repetido.dados.detalhes.email);
+    assert.equal(invalido.estado, 400);
+    assert.deepEqual(Object.keys(invalido.dados.detalhes).sort(), [
+      'email',
+      'nome',
+    ]);
+  });
+
+  it('exige sessão', async () => {
+    const { estado } = await pedir('PATCH', '/auth/eu', {
+      corpo: { nome: 'X' },
+    });
+
+    assert.equal(estado, 401);
+  });
+});

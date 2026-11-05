@@ -28,6 +28,21 @@ function texto(valor) {
   return typeof valor === 'string' ? valor : undefined;
 }
 
+// Grava o utilizador. O email é único: se já existir, responde 409 com a mensagem no campo certo.
+// Só se validam os campos alterados, para uma conta antiga com dados em falta poder ser editada.
+async function guardar(utilizador) {
+  try {
+    await utilizador.save({ validateModifiedOnly: true });
+  } catch (erro) {
+    if (erro.code === 11000) {
+      throw Object.assign(criarErro(409, 'Este email já tem conta'), {
+        detalhes: { email: 'Já existe uma conta com este email' },
+      });
+    }
+    throw erro;
+  }
+}
+
 // POST /api/auth/registo: cria uma conta de comprador ou de produtor e inicia a sessão.
 // Só se leem os campos permitidos, em vez de copiar o req.body inteiro: de outra forma, alguém
 // podia registar-se como administrador ou como produtor já aprovado.
@@ -70,16 +85,7 @@ router.post('/registo', async (req, res) => {
 
   utilizador.passwordHash = await cifrarPassword(password);
 
-  try {
-    await utilizador.save();
-  } catch (erro) {
-    if (erro.code === 11000) {
-      throw Object.assign(criarErro(409, 'Este email já tem conta'), {
-        detalhes: { email: 'Já existe uma conta com este email' },
-      });
-    }
-    throw erro;
-  }
+  await guardar(utilizador);
 
   res.status(201).json({
     token: emitirToken(utilizador),
@@ -117,6 +123,23 @@ router.get('/eu', auth(), async (req, res) => {
   if (!utilizador) {
     throw criarErro(401, 'Sessão inválida ou expirada');
   }
+  res.json(utilizador.publico());
+});
+
+// PATCH /api/auth/eu: altera os dados pessoais de quem tem a sessão (só o nome e o email; o papel e o
+// resto nunca vêm do pedido)
+router.patch('/eu', auth(), async (req, res) => {
+  const utilizador = await User.findById(req.user.id);
+  if (!utilizador) {
+    throw criarErro(401, 'Sessão inválida ou expirada');
+  }
+  const corpo = req.body ?? {};
+  for (const campo of ['nome', 'email']) {
+    if (campo in corpo) {
+      utilizador[campo] = texto(corpo[campo]);
+    }
+  }
+  await guardar(utilizador);
   res.json(utilizador.publico());
 });
 

@@ -11,3 +11,8 @@ export function iniciais(nome) {
   const letras = [palavras[0], palavras.at(-1)].slice(0, palavras.length);
   return letras.map(([letra]) => letra.toUpperCase()).join('');
 }
+
+// Para cumprimentar ("Ana Maria Costa" dá "Ana")
+export function primeiroNome(nome) {
+  return nome.trim().split(/\s+/)[0];
+}
