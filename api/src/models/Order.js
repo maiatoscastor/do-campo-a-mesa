@@ -74,6 +74,9 @@ const orderSchema = new Schema(
     },
     estado: { type: String, enum: ESTADOS, default: 'pendente' },
     historico: { type: [passoSchema], default: [] },
+    // Uma encomenda feita na loja, ou o lote de um leilão, criado para o vencedor quando o leilão acaba
+    origem: { type: String, enum: ['loja', 'leilao'], default: 'loja' },
+    leilao: { type: Schema.Types.ObjectId, ref: 'Auction' },
   },
   { timestamps: true },
 );

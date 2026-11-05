@@ -7,6 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import { parse } from 'yaml';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
 import admin from './routes/admin.js';
+import auctions from './routes/auctions.js';
 import auth from './routes/auth.js';
 import localidades from './routes/localidades.js';
 import orders from './routes/orders.js';
@@ -44,6 +45,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(especificacao));
 
 app.use('/api/auth', auth);
 app.use('/api/admin', admin);
+app.use('/api/auctions', auctions);
 app.use('/api/localidades', localidades);
 app.use('/api/orders', orders);
 app.use('/api/products', products);

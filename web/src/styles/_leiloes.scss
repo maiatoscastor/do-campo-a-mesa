@@ -1,0 +1,195 @@
+// Leilões: a agenda, os cartões dos leilões a decorrer e a sala em direto (Leiloes.jsx,
+// SalaLeilao.jsx).
+@use 'theme' as bs;
+@use 'variables' as v;
+@use 'mixins' as m;
+
+// O laranja marca o que está em direto
+:root {
+  --direto: #{v.cor(laranja, 9)};
+}
+
+@include bs.color-mode(dark, true) {
+  --direto: #{v.cor(laranja, 9, escuro)};
+}
+
+// "Em direto", com um ponto que pulsa (parado para quem prefere menos movimento)
+.selo-direto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: var(--direto);
+  color: #fff;
+
+  &::before {
+    content: '';
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: 50%;
+    background-color: currentColor;
+    animation: pulsar 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+    }
+  }
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+// Cartão de um leilão a decorrer
+.cartao-leilao {
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    border-color: var(--direto);
+  }
+
+  .imagem-produto {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+.cartao-leilao-topo {
+  position: relative;
+
+  .selo-direto {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+}
+
+// Agenda: um título por dia e uma linha por leilão, com a hora à frente
+.agenda-dia {
+  margin-bottom: 0.5rem;
+  color: var(--bs-secondary-color);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+.agenda-leilao {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.agenda-hora {
+  flex: none;
+  width: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+// Sala do leilão. Mobile First: o lote, o painel para licitar e o histórico, um por baixo do outro;
+// no computador, o painel fica numa coluna à direita, a acompanhar a página.
+.sala-leilao {
+  display: grid;
+  gap: 1.5rem;
+
+  @include m.a-partir-de(lg) {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas:
+      'lote painel'
+      'historico painel';
+    align-items: start;
+    column-gap: 2rem;
+  }
+}
+
+// As áreas só existem no computador: no telemóvel, os blocos seguem a ordem da página
+@include m.a-partir-de(lg) {
+  .sala-leilao-lote {
+    grid-area: lote;
+  }
+
+  .sala-leilao-painel {
+    grid-area: painel;
+    position: sticky;
+    top: 5.5rem;
+  }
+
+  .sala-leilao-historico {
+    grid-area: historico;
+  }
+}
+
+.imagem-leilao {
+  flex: none;
+  width: 5.5rem;
+  border-radius: var(--bs-border-radius-lg);
+
+  @include m.a-partir-de(md) {
+    width: 7.5rem;
+  }
+}
+
+.contagem-leilao {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 750;
+  line-height: 1.1;
+}
+
+.contagem-rotulo {
+  display: block;
+  margin-bottom: 0.125rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+// No último minuto, a contagem fica laranja
+.contagem-final .numeros {
+  color: var(--direto);
+}
+
+.licitacao-atual {
+  margin: 0;
+  font-family: v.$letra-titulos;
+  font-size: 2.75rem;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.atalhos-licitacao {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.historico-licitacoes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  // A mais recente é a licitação atual
+  li:first-child {
+    color: var(--bs-primary-text-emphasis);
+  }
+}

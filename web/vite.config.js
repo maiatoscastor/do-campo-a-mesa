@@ -10,6 +10,8 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3000',
       '/uploads': 'http://localhost:3000',
+      // O Socket.io (leilões em direto), também por WebSocket
+      '/socket.io': { target: 'http://localhost:3000', ws: true },
     },
   },
   css: {

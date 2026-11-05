@@ -38,7 +38,8 @@ export default function CartaoEncomenda({ encomenda, para, children }) {
           </span>
         </div>
         <p className="small text-body-secondary mb-3">
-          Feita a {formatarData(encomenda.createdAt)}
+          {encomenda.origem === 'leilao' ? 'Ganha em leilão a' : 'Feita a'}{' '}
+          {formatarData(encomenda.createdAt)}
           {para === 'produtor' && ` · ${comprador.email}`}
         </p>
 

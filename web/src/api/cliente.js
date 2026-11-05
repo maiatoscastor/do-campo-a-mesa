@@ -1,6 +1,6 @@
 // O endereço da API só é preciso na publicação. Em desenvolvimento fica vazio: os pedidos vão para o
 // próprio site, e o Vite passa-os à API (ver vite.config.js).
-const ENDERECO_API = import.meta.env.VITE_API_URL ?? '';
+export const ENDERECO_API = import.meta.env.VITE_API_URL ?? '';
 
 const SEM_LIGACAO = 'Não foi possível contactar o servidor. Tente novamente.';
 

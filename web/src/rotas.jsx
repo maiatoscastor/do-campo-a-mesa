@@ -11,12 +11,15 @@ import EncomendasRecebidas from './pages/EncomendasRecebidas.jsx';
 import Entrar from './pages/Entrar.jsx';
 import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
+import MeusLeiloes from './pages/MeusLeiloes.jsx';
 import MeusProdutos from './pages/MeusProdutos.jsx';
+import NovoLeilao from './pages/NovoLeilao.jsx';
 import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
 import Produtos from './pages/Produtos.jsx';
 import Quinta from './pages/Quinta.jsx';
 import Registar from './pages/Registar.jsx';
+import SalaLeilao from './pages/SalaLeilao.jsx';
 import ValidarProdutores from './pages/ValidarProdutores.jsx';
 
 // O que um visitante vê nas páginas que exigem conta
@@ -57,6 +60,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Inicio /> },
           { path: 'produtos', element: <Produtos /> },
           { path: 'leiloes', element: <Leiloes /> },
+          { path: 'leiloes/:id', element: <SalaLeilao /> },
           { path: 'carrinho', element: <Carrinho /> },
           {
             element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
@@ -79,6 +83,8 @@ export const router = createBrowserRouter([
                       { path: 'produtos/novo', element: <EditarProduto /> },
                       { path: 'produtos/:id', element: <EditarProduto /> },
                       { path: 'encomendas', element: <EncomendasRecebidas /> },
+                      { path: 'leiloes', element: <MeusLeiloes /> },
+                      { path: 'leiloes/novo', element: <NovoLeilao /> },
                     ],
                   },
                   {

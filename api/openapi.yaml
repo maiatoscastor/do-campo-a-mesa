@@ -23,6 +23,12 @@ tags:
   - name: Produtos
   - name: Produtores
   - name: Encomendas
+  - name: Leilões
+    description: >
+      A agenda e a criação de leilões. As licitações em direto não passam por aqui: usam o
+      Socket.io, no mesmo servidor (eventos entrar, sair, licitar, estado, presenca,
+      nova-licitacao, recusada, aberto e terminado).
+
 paths:
   /health:
     get:
@@ -484,6 +490,95 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
 
+  /auctions:
+    get:
+      tags: [Leilões]
+      summary: A agenda dos leilões
+      description: >
+        Por omissão, os leilões a decorrer e os próximos, pela hora de início. Com
+        estado=terminado, os que já acabaram, dos mais recentes para os mais antigos.
+      parameters:
+        - name: estado
+          in: query
+          schema: { type: string, enum: [terminado] }
+      responses:
+        '200':
+          description: Lista de leilões, com os dados do produtor
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Auction' }
+    post:
+      tags: [Leilões]
+      summary: Pôr em leilão um lote de um dos seus produtos (produtor aprovado)
+      description: A licitação atual começa no preço base.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NovoLeilao' }
+      responses:
+        '201':
+          description: Leilão criado
+          headers:
+            Location:
+              description: Endereço do novo leilão
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Auction' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /auctions/meus:
+    get:
+      tags: [Leilões]
+      summary: Os leilões do produtor com sessão, dos mais recentes para os mais antigos
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de leilões
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Auction' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /auctions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Leilões]
+      summary: Um leilão
+      responses:
+        '200':
+          description: O leilão
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Auction' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    delete:
+      tags: [Leilões]
+      summary: Cancelar um leilão que ainda não começou (só o produtor dele)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Cancelado, sem corpo
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: O leilão já começou
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -732,6 +827,10 @@ components:
         modo: { type: string, enum: [levantamento, entrega] }
         morada: { type: string }
         estado: { $ref: '#/components/schemas/EstadoDaEncomenda' }
+        origem:
+          type: string
+          enum: [loja, leilao]
+          description: As encomendas de leilão são criadas para o vencedor, já confirmadas
         historico:
           type: array
           description: Quando a encomenda passou a cada estado
@@ -740,5 +839,66 @@ components:
             properties:
               estado: { $ref: '#/components/schemas/EstadoDaEncomenda' }
               data: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    NovoLeilao:
+      type: object
+      required: [produto, lote, precoBase, incremento, duracao]
+      properties:
+        produto: { type: string, description: Um dos produtos do produtor }
+        lote: { type: string, maxLength: 150, example: 200 kg }
+        descricao: { type: string, maxLength: 1000 }
+        precoBase: { type: number, minimum: 0.01, example: 200 }
+        incremento:
+          type: number
+          minimum: 0.01
+          description: Quanto cada licitação tem de subir, no mínimo
+          example: 5
+        iniciaEm:
+          type: string
+          format: date-time
+          description: Sem início, o leilão começa já; no máximo daqui a 90 dias
+        duracao:
+          type: integer
+          minimum: 1
+          maximum: 10080
+          description: Em minutos (até 7 dias)
+
+    Auction:
+      type: object
+      properties:
+        id: { type: string }
+        produtor:
+          description: O produtor (só o identificador em /auctions/meus)
+          oneOf:
+            - $ref: '#/components/schemas/Produtor'
+            - type: string
+        produto: { type: string }
+        nome: { type: string, example: Kiwi Hayward }
+        categoria: { $ref: '#/components/schemas/Categoria' }
+        imagemUrl: { type: string }
+        lote: { type: string, example: 200 kg }
+        descricao: { type: string }
+        precoBase: { type: number }
+        incremento: { type: number }
+        licitacaoAtual:
+          type: object
+          description: A maior licitação até agora; começa no preço base, sem comprador
+          properties:
+            valor: { type: number }
+            comprador: { type: string }
+            nome: { type: string, example: Ana T. }
+            data: { type: string, format: date-time }
+        numeroDeLicitacoes: { type: integer }
+        minimo:
+          type: number
+          description: O valor mínimo da próxima licitação (a primeira pode ser o preço base)
+        iniciaEm: { type: string, format: date-time }
+        terminaEm:
+          type: string
+          format: date-time
+          description: Uma licitação nos últimos 30 segundos prolonga o fim até 30 segundos depois dela
+        estado: { type: string, enum: [agendado, ativo, terminado] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
