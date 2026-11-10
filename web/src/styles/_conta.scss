@@ -1,5 +1,6 @@
 // "A minha conta" (LayoutConta.jsx): o perfil e os separadores das secções.
 @use 'mixins' as m;
+@use 'variables' as v;
 
 // No computador, a coluna do perfil acompanha a página, por baixo do cabeçalho fixo
 .conta-lateral {
@@ -109,7 +110,7 @@
   padding: 0 0.375rem;
   border-radius: var(--bs-border-radius-pill);
   background-color: var(--bs-danger);
-  color: #fff;
+  color: v.$branco;
   font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

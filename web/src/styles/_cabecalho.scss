@@ -78,7 +78,7 @@
   background-color: var(--bs-primary-bg-subtle);
 
   .active > & {
-    color: #fff;
+    color: v.$branco;
     background-color: var(--bs-primary);
   }
 }

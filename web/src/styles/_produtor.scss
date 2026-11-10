@@ -1,5 +1,6 @@
 // Página pública do produtor (PaginaProdutor.jsx) e o mapa (MapaQuinta.jsx). Mobile First.
 @use 'mixins' as m;
+@use 'variables' as v;
 
 .produtor-topo {
   display: grid;
@@ -155,7 +156,7 @@
 
 .selo-hoje {
   background-color: var(--bs-primary);
-  color: #fff;
+  color: v.$branco;
 }
 
 .horario-dia.fechado .selo-hoje {
@@ -167,7 +168,7 @@
   display: block;
   width: 28px;
   height: 28px;
-  border: 3px solid #fff;
+  border: 3px solid v.$branco;
   border-radius: 50% 50% 50% 0;
   background-color: var(--bs-primary);
   box-shadow: var(--bs-box-shadow-sm);
@@ -196,7 +197,7 @@
   &[aria-pressed='true'] {
     border-color: var(--bs-primary);
     background-color: var(--bs-primary);
-    color: #fff;
+    color: v.$branco;
   }
 }
 
