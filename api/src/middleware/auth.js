@@ -30,6 +30,23 @@ export function auth(...papeis) {
   };
 }
 
+// Para as rotas abertas a todos que mostram mais a quem tem sessão (por exemplo, nas avaliações, as
+// que a pessoa já denunciou). Com um token válido, fica em req.user; sem token, ou com um token que
+// já não serve, o pedido segue como de um visitante, em vez de dar erro.
+export function authOpcional(req, res, next) {
+  const [tipo, token] = (req.headers.authorization ?? '').split(' ');
+  if (tipo === 'Bearer') {
+    try {
+      req.user = jwt.verify(token, process.env.JWT_SECRET, {
+        algorithms: ['HS256'],
+      });
+    } catch {
+      req.user = undefined;
+    }
+  }
+  next();
+}
+
 // Só deixa passar produtores aprovados pelo administrador. Consulta a base de dados, porque a
 // aprovação pode ter mudado depois de o token ser emitido. Usa-se a seguir ao auth('produtor').
 export async function produtorAprovado(req, res, next) {

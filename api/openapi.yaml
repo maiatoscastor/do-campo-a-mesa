@@ -17,7 +17,10 @@ tags:
   - name: Contas
     description: Registo, início de sessão e dados de quem tem a sessão
   - name: Administração
-    description: Só para administradores
+    description: >
+      Só para administradores: validar produtores e decidir as denúncias de avaliações. Os
+      administradores são avisados (notificações) de cada produtor novo e da primeira denúncia de cada
+      avaliação.
   - name: Localidades
     description: Concelhos e freguesias de Portugal (CAOP 2025, Direção-Geral do Território)
   - name: Produtos
@@ -179,6 +182,94 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Utilizador' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /admin/resumo:
+    get:
+      tags: [Administração]
+      summary: O que está à espera do administrador (os números da navegação e do início)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Os números
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  produtoresPorValidar: { type: integer, example: 2 }
+                  denunciasPorDecidir:
+                    type: integer
+                    description: Avaliações com denúncias por decidir (cada uma conta uma vez)
+                    example: 1
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/denuncias:
+    get:
+      tags: [Administração]
+      summary: As avaliações denunciadas, por decidir ou já decididas
+      description: >
+        Por decidir: primeiro as que esperam há mais tempo, cada uma com as denúncias por decidir.
+        Decididas: das mais recentes para as mais antigas, com todas as denúncias que tiveram.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: estado
+          in: query
+          schema: { type: string, enum: [decidida] }
+        - name: pagina
+          in: query
+          description: De 10 em 10
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Uma página de casos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  porDecidir: { type: integer }
+                  casos:
+                    type: array
+                    items: { $ref: '#/components/schemas/CasoDeDenuncia' }
+                  temMais: { type: boolean }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/avaliacoes/{id}/moderacao:
+    patch:
+      tags: [Administração]
+      summary: Manter ou ocultar uma avaliação (também serve para voltar atrás)
+      description: >
+        Uma avaliação oculta deixa de aparecer e de contar nas médias. As denúncias por decidir ficam
+        decididas e quem as fez recebe a decisão; quem escreveu a avaliação é avisado quando ela é
+        ocultada ou volta a aparecer.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decisao, motivo]
+              properties:
+                decisao: { type: string, enum: [mantida, ocultada] }
+                motivo:
+                  type: string
+                  maxLength: 500
+                  description: Enviado a quem escreveu a avaliação e a quem a denunciou
+      responses:
+        '200':
+          description: O caso, com a decisão
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CasoDeDenuncia' }
         '400': { $ref: '#/components/responses/DadosInvalidos' }
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
@@ -638,6 +729,10 @@ paths:
     get:
       tags: [Avaliações]
       summary: As avaliações visíveis de um produtor, das mais recentes para as mais antigas
+      description: >
+        Aberto a todos. Com sessão (opcional), cada avaliação diz se a pessoa já a denunciou
+        (denunciada).
+      security: [{}, { bearerAuth: [] }]
       parameters:
         - name: produtor
           in: query
@@ -730,6 +825,53 @@ paths:
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409': { $ref: '#/components/responses/AvaliacaoOculta' }
+
+  /reviews/{id}/denuncias:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Avaliações]
+      summary: Denunciar uma avaliação (uma vez; quem a escreveu não pode)
+      description: >
+        A avaliação continua visível até o administrador decidir. Os administradores são avisados da
+        primeira denúncia de cada avaliação.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo: { $ref: '#/components/schemas/MotivoDaDenuncia' }
+                descricao:
+                  type: string
+                  maxLength: 500
+                  description: Obrigatória no motivo outro
+      responses:
+        '201':
+          description: Denúncia registada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  motivo: { $ref: '#/components/schemas/MotivoDaDenuncia' }
+                  descricao: { type: string }
+                  estado: { type: string, enum: [pendente] }
+                  data: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: Já denunciou esta avaliação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
 
   /reviews/{id}/resposta:
     parameters:
@@ -758,6 +900,7 @@ paths:
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409': { $ref: '#/components/responses/AvaliacaoOculta' }
     delete:
       tags: [Avaliações]
       summary: Tirar a resposta (só o produtor avaliado)
@@ -878,6 +1021,11 @@ components:
       schema: { type: string, example: 6720f1c2a1b2c3d4e5f60718 }
 
   responses:
+    AvaliacaoOculta:
+      description: A avaliação foi ocultada pelo administrador
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
     DadosInvalidos:
       description: Dados inválidos (em "detalhes", a mensagem de cada campo)
       content:
@@ -1131,6 +1279,9 @@ components:
           properties:
             id: { type: string }
             classificacao: { type: integer, minimum: 1, maximum: 5 }
+            visivel:
+              type: boolean
+              description: Falso se o administrador a ocultou
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -1216,7 +1367,11 @@ components:
         id: { type: string }
         texto:
           { type: string, example: Quinta do Abel confirmou a sua encomenda. }
-        tipo: { type: string, enum: [encomenda, leilao, conta, avaliacao] }
+        tipo:
+          {
+            type: string,
+            enum: [encomenda, leilao, conta, avaliacao, denuncia],
+          }
         ligacao:
           type: string
           description: A página da aplicação a que se refere
@@ -1365,3 +1520,72 @@ components:
         encomenda: { type: string }
         data: { type: string, format: date-time }
         editadaEm: { type: string, format: date-time }
+        denunciada:
+          type: boolean
+          description: Na lista, com sessão, se a pessoa já a denunciou
+        visivel:
+          type: boolean
+          description: Em /reviews/{id}, para quem a escreveu, o produtor e o administrador
+        moderacao:
+          description: Em /reviews/{id}, para quem a escreveu, o produtor e o administrador
+          allOf: [{ $ref: '#/components/schemas/Moderacao' }]
+
+    MotivoDaDenuncia:
+      type: string
+      enum: [ofensiva, dados-pessoais, falsa, publicidade, outro]
+
+    Moderacao:
+      type: object
+      description: A última decisão do administrador
+      properties:
+        decisao: { type: string, enum: [mantida, ocultada] }
+        motivo: { type: string }
+        data: { type: string, format: date-time }
+
+    CasoDeDenuncia:
+      type: object
+      description: Uma avaliação denunciada, como o administrador a vê
+      properties:
+        avaliacao:
+          type: object
+          properties:
+            id: { type: string }
+            classificacao: { type: integer, minimum: 1, maximum: 5 }
+            comentario: { type: string }
+            resposta:
+              type: object
+              properties:
+                texto: { type: string }
+                data: { type: string, format: date-time }
+            data: { type: string, format: date-time }
+            visivel: { type: boolean }
+            autor:
+              type: object
+              properties:
+                id: { type: string }
+                nome: { type: string, example: Ana Maria Teixeira }
+            produtor:
+              type: object
+              properties:
+                id: { type: string }
+                nomeExploracao: { type: string }
+            moderacao: { $ref: '#/components/schemas/Moderacao' }
+        denuncias:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              motivo: { $ref: '#/components/schemas/MotivoDaDenuncia' }
+              descricao: { type: string }
+              estado: { type: string, enum: [pendente, decidida] }
+              decisao: { type: string, enum: [mantida, ocultada] }
+              data: { type: string, format: date-time }
+              autor:
+                type: object
+                properties:
+                  id: { type: string }
+                  nome: { type: string }
+                  eOProdutor:
+                    type: boolean
+                    description: Se quem denunciou é o produtor avaliado

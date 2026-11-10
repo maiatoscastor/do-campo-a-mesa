@@ -37,6 +37,23 @@ const respostaSchema = new Schema(
   { _id: false },
 );
 
+// A última decisão do administrador sobre uma avaliação denunciada: mantê-la ou ocultá-la, sempre
+// com o motivo, que é enviado a quem a escreveu e a quem a denunciou
+const moderacaoSchema = new Schema(
+  {
+    decisao: { type: String, enum: ['mantida', 'ocultada'], required: true },
+    motivo: {
+      type: String,
+      required: [true, 'Escreva o motivo da decisão'],
+      trim: true,
+      maxlength: [500, 'O motivo é demasiado comprido'],
+    },
+    data: { type: Date, required: true },
+    admin: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { _id: false },
+);
+
 // A avaliação de uma encomenda entregue: as estrelas e o comentário são sobre o produtor (a
 // experiência toda), e as estrelas de cada produto são opcionais. Fica numa coleção à parte, e não
 // dentro do produtor, porque cresce sem limite e é lida e moderada sozinha. Cada encomenda só tem
@@ -61,6 +78,7 @@ const reviewSchema = new Schema(
     resposta: respostaSchema,
     // O administrador pode ocultar uma avaliação denunciada: deixa de aparecer e de contar nas médias
     visivel: { type: Boolean, default: true },
+    moderacao: moderacaoSchema,
     // Quando o autor a mudou pela última vez (a resposta do produtor não conta)
     editadaEm: Date,
   },

@@ -9,7 +9,7 @@ const router = Router();
 router.get('/', auth(), async (req, res) => {
   const [notificacoes, porLer] = await Promise.all([
     Notification.find({ utilizador: req.user.id })
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .limit(30),
     Notification.countDocuments({ utilizador: req.user.id, lida: false }),
   ]);

@@ -44,17 +44,21 @@ function encomendaPublica(encomenda, avaliacao) {
   };
 }
 
-// As encomendas prontas a enviar, cada uma com a sua avaliação (o identificador e as estrelas): o
-// comprador vê se já a avaliou, e o produtor vê a nota que recebeu
+// As encomendas prontas a enviar, cada uma com a sua avaliação (o identificador, as estrelas e se
+// está visível): o comprador vê se já a avaliou, e o produtor vê a nota que recebeu
 async function comAvaliacoes(encomendas) {
   const avaliacoes = await Review.find({
     encomenda: { $in: encomendas.map(({ _id }) => _id) },
-  }).select('encomenda classificacao');
+  }).select('encomenda classificacao visivel');
   return encomendas.map((encomenda) => {
     const avaliacao = avaliacoes.find((a) => a.encomenda.equals(encomenda._id));
     return encomendaPublica(
       encomenda,
-      avaliacao && { id: avaliacao.id, classificacao: avaliacao.classificacao },
+      avaliacao && {
+        id: avaliacao.id,
+        classificacao: avaliacao.classificacao,
+        visivel: avaliacao.visivel,
+      },
     );
   });
 }

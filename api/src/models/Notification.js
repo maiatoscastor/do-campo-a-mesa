@@ -7,7 +7,10 @@ const notificationSchema = new Schema(
     utilizador: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     texto: { type: String, required: true },
     // Para a aplicação mostrar o ícone certo
-    tipo: { type: String, enum: ['encomenda', 'leilao', 'conta', 'avaliacao'] },
+    tipo: {
+      type: String,
+      enum: ['encomenda', 'leilao', 'conta', 'avaliacao', 'denuncia'],
+    },
     // A página da aplicação a que a notificação se refere (por exemplo, /encomendas)
     ligacao: String,
     lida: { type: Boolean, default: false },

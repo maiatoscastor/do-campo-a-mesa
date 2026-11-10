@@ -344,7 +344,7 @@ describe('médias e lista das avaliações', () => {
       token: rui.token,
     });
 
-    const esperada = { id: avaliacao.id, classificacao: 3 };
+    const esperada = { id: avaliacao.id, classificacao: 3, visivel: true };
     assert.deepEqual(daAna.dados[0].avaliacao, esperada);
     assert.deepEqual(recebidas.dados[0].avaliacao, esperada);
     assert.deepEqual(umaDaAna.dados.avaliacao, esperada);

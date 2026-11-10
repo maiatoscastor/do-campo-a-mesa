@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import { auth } from '../middleware/auth.js';
+import { auth, authOpcional } from '../middleware/auth.js';
 import { Order } from '../models/Order.js';
+import { Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
 import { User } from '../models/User.js';
 import { resumoDoProdutor } from '../services/avaliacoes.js';
-import { avisar } from '../sockets/avisos.js';
+import { avisar, avisarAdministradores } from '../sockets/avisos.js';
 import { criarErro } from '../utils/erro.js';
 import { nomeCurto } from '../utils/nomes.js';
 
@@ -19,7 +20,9 @@ function textoDasEstrelas(estrelas) {
 }
 
 // O que se envia ao cliente. Quem avaliou aparece com o nome curto ("Ana T."), como nos leilões.
-function avaliacaoPublica(avaliacao) {
+// Com "comModeracao", vai também a decisão do administrador (para quem escreveu a avaliação e para o
+// produtor avaliado).
+function avaliacaoPublica(avaliacao, { comModeracao = false } = {}) {
   const {
     _id,
     autor,
@@ -31,6 +34,8 @@ function avaliacaoPublica(avaliacao) {
     resposta,
     editadaEm,
     createdAt,
+    visivel,
+    moderacao,
   } = avaliacao.toObject({ versionKey: false });
   return {
     id: _id,
@@ -45,7 +50,22 @@ function avaliacaoPublica(avaliacao) {
     encomenda,
     data: createdAt,
     editadaEm,
+    ...(comModeracao && {
+      visivel,
+      moderacao: moderacao && {
+        decisao: moderacao.decisao,
+        motivo: moderacao.motivo,
+        data: moderacao.data,
+      },
+    }),
   };
+}
+
+// Uma avaliação oculta pelo administrador já não se muda nem se responde
+function exigirVisivel(avaliacao) {
+  if (!avaliacao.visivel) {
+    throw criarErro(409, 'Esta avaliação foi ocultada pelo administrador');
+  }
 }
 
 // As estrelas e o comentário do pedido, e as estrelas dos produtos, que só podem ser de produtos da
@@ -101,8 +121,8 @@ async function avaliacaoDoPedido(req) {
 
 // GET /api/reviews?produtor=…&estrelas=…&pagina=…: as avaliações visíveis de um produtor, das mais
 // recentes para as mais antigas, aberto a todos. Vem também o resumo (média, total e distribuição),
-// que não muda com o filtro das estrelas.
-router.get('/', async (req, res) => {
+// que não muda com o filtro das estrelas. Com sessão, cada avaliação diz se a pessoa já a denunciou.
+router.get('/', authOpcional, async (req, res) => {
   const { produtor } = req.query;
   if (
     typeof produtor !== 'string' ||
@@ -126,9 +146,21 @@ router.get('/', async (req, res) => {
       .populate('autor', 'nome'),
     resumoDoProdutor(produtor),
   ]);
+  const avaliacoes = lista.slice(0, POR_PAGINA);
+  const denunciadas = req.user
+    ? await Report.find({
+        autor: req.user.id,
+        avaliacao: { $in: avaliacoes.map(({ _id }) => _id) },
+      }).distinct('avaliacao')
+    : null;
   res.json({
     resumo,
-    avaliacoes: lista.slice(0, POR_PAGINA).map(avaliacaoPublica),
+    avaliacoes: avaliacoes.map((avaliacao) => ({
+      ...avaliacaoPublica(avaliacao),
+      ...(denunciadas && {
+        denunciada: denunciadas.some((id) => id.equals(avaliacao._id)),
+      }),
+    })),
     temMais: lista.length > POR_PAGINA,
   });
 });
@@ -145,7 +177,7 @@ router.get('/:id', auth(), async (req, res) => {
     throw criarErro(404, 'Avaliação não encontrada');
   }
   await avaliacao.populate('autor', 'nome');
-  res.json(avaliacaoPublica(avaliacao));
+  res.json(avaliacaoPublica(avaliacao, { comModeracao: envolvido }));
 });
 
 // POST /api/reviews: quem fez a encomenda avalia-a, depois de entregue. Corpo: { encomenda,
@@ -206,6 +238,7 @@ router.put('/:id', auth(), async (req, res) => {
   if (!avaliacao.autor.equals(req.user.id)) {
     throw criarErro(403, 'Esta avaliação não é sua');
   }
+  exigirVisivel(avaliacao);
   const encomenda = await Order.findById(avaliacao.encomenda);
   avaliacao.set({
     ...dadosDaAvaliacao(req.body ?? {}, encomenda),
@@ -234,6 +267,7 @@ router.put('/:id/resposta', auth('produtor'), async (req, res) => {
   if (!avaliacao.produtor.equals(req.user.id)) {
     throw criarErro(403, 'Só o produtor avaliado pode responder');
   }
+  exigirVisivel(avaliacao);
   const primeira = !avaliacao.resposta;
   avaliacao.resposta = {
     texto: typeof req.body?.texto === 'string' ? req.body.texto : undefined,
@@ -269,6 +303,64 @@ router.delete('/:id/resposta', auth('produtor'), async (req, res) => {
   avaliacao.resposta = undefined;
   await avaliacao.save();
   res.status(204).end();
+});
+
+// POST /api/reviews/:id/denuncias: quem tem sessão denuncia uma avaliação, uma só vez. Corpo:
+// { motivo, descricao } (a descrição é obrigatória no motivo "outro"). A avaliação continua visível
+// até o administrador decidir. Responde 201, com a denúncia.
+router.post('/:id/denuncias', auth(), async (req, res) => {
+  const avaliacao = await avaliacaoDoPedido(req);
+  // Uma avaliação oculta já não está à vista de quem a podia denunciar
+  if (!avaliacao.visivel) {
+    throw criarErro(404, 'Avaliação não encontrada');
+  }
+  if (avaliacao.autor.equals(req.user.id)) {
+    throw criarErro(403, 'Não pode denunciar a sua própria avaliação');
+  }
+  if (await Report.exists({ avaliacao: avaliacao._id, autor: req.user.id })) {
+    throw criarErro(409, 'Já denunciou esta avaliação');
+  }
+
+  const corpo = req.body ?? {};
+  const denuncia = new Report({
+    tipo: 'avaliacao',
+    avaliacao: avaliacao._id,
+    autor: req.user.id,
+    motivo: typeof corpo.motivo === 'string' ? corpo.motivo : undefined,
+    descricao:
+      typeof corpo.descricao === 'string'
+        ? corpo.descricao.trim() || undefined
+        : undefined,
+  });
+  // Só a primeira denúncia por decidir põe a avaliação na lista do administrador: é a única que lhe
+  // chega como notificação. As outras só atualizam as listas e os números.
+  const jaNaLista = await Report.exists({
+    avaliacao: avaliacao._id,
+    estado: 'pendente',
+  });
+  // Um pedido repetido ao mesmo tempo esbarra no índice único e dá 409 (no tratador de erros)
+  await denuncia.save();
+
+  const produtor = await User.findById(avaliacao.produtor).select(
+    'produtor.nomeExploracao',
+  );
+  await avisarAdministradores(
+    req.app.get('io'),
+    !jaNaLista && {
+      texto: `Nova denúncia de uma avaliação a ${produtor.produtor.nomeExploracao}.`,
+      tipo: 'denuncia',
+      ligacao: '/admin/denuncias',
+    },
+    'denuncias-mudaram',
+    {},
+  );
+  res.status(201).json({
+    id: denuncia._id,
+    motivo: denuncia.motivo,
+    descricao: denuncia.descricao,
+    estado: denuncia.estado,
+    data: denuncia.createdAt,
+  });
 });
 
 export default router;

@@ -1,4 +1,5 @@
 import { Notification } from '../models/Notification.js';
+import { User } from '../models/User.js';
 
 // Avisa um utilizador: guarda a notificação, para a poder ver mais tarde mesmo que não esteja na
 // aplicação, e envia-a já para os dispositivos dele que estejam ligados (a sala pessoal user:<id>).
@@ -26,5 +27,22 @@ export async function avisar(
   } catch (erro) {
     // O que aconteceu (a encomenda, o leilão) já está feito: um aviso que falha não o desfaz
     console.error(`Aviso não enviado: ${erro.message}`);
+  }
+}
+
+// Avisa todos os administradores (por exemplo, de uma denúncia nova). Sem notificação, só envia o
+// aviso técnico, para as listas e os contadores se atualizarem sem encher o sino de mensagens.
+export async function avisarAdministradores(io, notificacao, evento, dados) {
+  try {
+    const administradores = await User.find({ papel: 'admin' }).select('_id');
+    for (const { _id } of administradores) {
+      if (notificacao) {
+        await avisar(io, _id, notificacao, evento, dados);
+      } else {
+        io?.to(`user:${_id}`).emit(evento, dados);
+      }
+    }
+  } catch (erro) {
+    console.error(`Aviso aos administradores não enviado: ${erro.message}`);
   }
 }
