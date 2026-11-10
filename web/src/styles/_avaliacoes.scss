@@ -335,3 +335,96 @@
     color: var(--bs-warning);
   }
 }
+
+// O topo de cada avaliação: o autor e a data à esquerda, o "Denunciar" à direita
+.avaliacao-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+// Denunciar uma avaliação: discreto, ao lado da data, para não competir com a avaliação
+.denunciar,
+.denunciada {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+}
+
+.denunciar {
+  // 44 px de altura, para tocar com o dedo, sem empurrar a avaliação para baixo
+  min-height: 2.75rem;
+  margin-block: -0.625rem;
+  padding: 0 0.25rem;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--bs-danger-text-emphasis);
+  }
+}
+
+.denunciada {
+  color: var(--bs-secondary-color);
+}
+
+.formulario-denuncia {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-tertiary-bg);
+
+  // Sem motivo, todos os círculos ficam a vermelho, mas os textos das opções mantêm a cor normal
+  // (a mensagem por baixo é que diz o que falta)
+  .form-check-input.is-invalid ~ .form-check-label {
+    color: inherit;
+  }
+}
+
+// Os casos das denúncias, na administração: a avaliação recuada, como uma citação, e as denúncias
+// numa lista com uma linha entre cada uma
+.caso-avaliacao {
+  padding: 0.75rem 1rem;
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-tertiary-bg);
+}
+
+.lista-denuncias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding-block: 0.5rem;
+  }
+
+  li + li {
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+.caso-decisao {
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+.selo-por-decidir {
+  background-color: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+}
+
+.selo-mantida {
+  background-color: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+}
+
+.selo-ocultada {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}

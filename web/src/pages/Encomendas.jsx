@@ -31,6 +31,7 @@ export default function Encomendas() {
   const recarregar = () => setVersao((n) => n + 1);
   useEventoSocket('encomenda-atualizada', recarregar);
   useEventoSocket('leilao-ganho', recarregar);
+  useEventoSocket('avaliacao-moderada', recarregar);
 
   let confirmacao = '';
   if (state?.avaliada) {

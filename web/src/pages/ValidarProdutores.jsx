@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
+import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
+import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
 import { textoDaLocalizacao } from '../localizacao.js';
 
 // Página do administrador: aprovar ou rejeitar os produtores que se registaram.
 export default function ValidarProdutores() {
   const { pedir } = useSessao();
-  // O contador do separador "Validar produtores" tem de acompanhar as decisões
-  const { recontarPendentes } = useOutletContext() ?? {};
+  // O número do separador e da navegação tem de acompanhar as decisões
+  const { recontar } = useTarefasAdmin();
   // null quer dizer que a lista ainda não chegou; uma lista vazia, que não há nenhum à espera
   const [pendentes, setPendentes] = useState(null);
   const [erro, setErro] = useState(null);
   const [mensagem, setMensagem] = useState('');
   const [aDecidir, setADecidir] = useState(null);
+  // Muda para voltar a ler a lista (quando se regista um produtor novo, por exemplo)
+  const [versao, setVersao] = useState(0);
+  useEventoSocket('produtores-mudaram', () => setVersao((n) => n + 1));
 
   useEffect(() => {
     // Se a página for fechada antes de a resposta chegar, ignora-se a resposta
@@ -33,7 +37,7 @@ export default function ValidarProdutores() {
     return () => {
       cancelado = true;
     };
-  }, [pedir]);
+  }, [pedir, versao]);
 
   async function decidir(conta, aprovado) {
     const { nomeExploracao } = conta.produtor;
@@ -51,7 +55,7 @@ export default function ValidarProdutores() {
         corpo: { aprovado },
       });
       setPendentes((lista) => lista.filter(({ id }) => id !== conta.id));
-      recontarPendentes?.();
+      recontar();
       setMensagem(
         `"${nomeExploracao}" foi ${aprovado ? 'aprovado' : 'rejeitado'}.`,
       );

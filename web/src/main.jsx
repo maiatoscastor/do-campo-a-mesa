@@ -9,6 +9,7 @@ import CarrinhoProvider from './context/CarrinhoProvider.jsx';
 import NotificacoesProvider from './context/NotificacoesProvider.jsx';
 import SessaoProvider from './context/SessaoProvider.jsx';
 import SocketProvider from './context/SocketProvider.jsx';
+import TarefasAdminProvider from './context/TarefasAdminProvider.jsx';
 import { router } from './rotas.jsx';
 
 // Ponto de entrada da SPA: monta a aplicação React dentro de <div id="root"> do index.html
@@ -17,9 +18,11 @@ createRoot(document.getElementById('root')).render(
     <SessaoProvider>
       <SocketProvider>
         <NotificacoesProvider>
-          <CarrinhoProvider>
-            <RouterProvider router={router} />
-          </CarrinhoProvider>
+          <TarefasAdminProvider>
+            <CarrinhoProvider>
+              <RouterProvider router={router} />
+            </CarrinhoProvider>
+          </TarefasAdminProvider>
         </NotificacoesProvider>
       </SocketProvider>
     </SessaoProvider>

@@ -3,13 +3,25 @@ import Icone from './Icone.jsx';
 import MarcaFechada from './MarcaFechada.jsx';
 import { useCarrinho } from '../hooks/useCarrinho.js';
 import { useSessao } from '../hooks/useSessao.js';
-import { destinosPara, textoDoCarrinho } from '../navegacao.js';
+import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
+import {
+  destinosPara,
+  textoDasTarefas,
+  textoDoCarrinho,
+} from '../navegacao.js';
 
 // Barra de navegação fixa no fundo do ecrã, ao alcance do polegar. Só aparece no telemóvel e no
 // tablet: a partir do computador (lg, 1024 px), a navegação passa para o cabeçalho.
 export default function NavegacaoInferior() {
   const { utilizador } = useSessao();
   const produtosNoCarrinho = useCarrinho().linhas.length;
+  const tarefas = useTarefasAdmin().total;
+  // O número por cima do ícone, e o que os leitores de ecrã ouvem a seguir ao nome
+  const contadores = { '/carrinho': produtosNoCarrinho, '/admin': tarefas };
+  const textos = {
+    '/carrinho': textoDoCarrinho(produtosNoCarrinho),
+    '/admin': textoDasTarefas(tarefas),
+  };
 
   return (
     <nav
@@ -31,20 +43,18 @@ export default function NavegacaoInferior() {
                     {fechado && !utilizador && (
                       <MarcaFechada className="navegacao-inferior-fechado" />
                     )}
-                    {caminho === '/carrinho' && produtosNoCarrinho > 0 && (
+                    {contadores[caminho] > 0 && (
                       <span
                         className="contador contador-icone"
                         aria-hidden="true"
                       >
-                        {produtosNoCarrinho}
+                        {contadores[caminho]}
                       </span>
                     )}
                   </span>
                   {nome}
-                  {caminho === '/carrinho' && (
-                    <span className="visually-hidden">
-                      {textoDoCarrinho(produtosNoCarrinho)}
-                    </span>
+                  {textos[caminho] && (
+                    <span className="visually-hidden">{textos[caminho]}</span>
                   )}
                 </>
               )}

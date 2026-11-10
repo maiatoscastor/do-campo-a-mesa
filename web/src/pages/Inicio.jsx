@@ -1,25 +1,25 @@
 import { Link } from 'react-router';
 import DestaqueLeilao from '../components/DestaqueLeilao.jsx';
 import Icone from '../components/Icone.jsx';
-import { useProdutoresPendentes } from '../hooks/useProdutoresPendentes.js';
 import { useSessao } from '../hooks/useSessao.js';
+import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
 import { primeiroNome } from '../utilizador.js';
 
-function textoDosPendentes(numero) {
+// O texto por baixo de cada atalho do administrador
+function textoDaEspera(numero, umaEspera, variasEsperam) {
   if (numero === null) {
     return 'A contar…';
   }
   if (numero === 0) {
-    return 'Nenhum à espera';
+    return 'Nada à espera';
   }
-  return `${numero} à espera de validação`;
+  return numero === 1 ? umaEspera : `${numero} ${variasEsperam}`;
 }
 
 // Página inicial: é aqui que a aplicação abre, com ou sem sessão. Só diz o que a aplicação é: os
 // destaques (leilão em direto, produtos da época) entram quando houver dados reais para mostrar.
 export default function Inicio() {
   const { utilizador } = useSessao();
-  const [pendentes] = useProdutoresPendentes();
 
   return (
     <>
@@ -54,23 +54,60 @@ export default function Inicio() {
         </div>
         <DestaqueLeilao />
       </div>
-      {/* Atalho do administrador para o que espera por ele, mesmo quando não há nada */}
-      {utilizador?.papel === 'admin' && (
-        <Link className="card cartao-atalho mt-4" to="/conta/produtores">
-          <div className="card-body d-flex align-items-center gap-3">
-            <span className="cartao-atalho-icone">
-              <Icone nome="validar" />
-            </span>
-            <div className="flex-grow-1">
-              <p className="fw-bold mb-0">Produtores por validar</p>
-              <p className="small text-body-secondary mb-0">
-                {textoDosPendentes(pendentes)}
-              </p>
-            </div>
-            {pendentes > 0 && <span className="contador">{pendentes}</span>}
-          </div>
-        </Link>
-      )}
+      {/* Atalhos do administrador para o que espera por ele, mesmo quando não há nada */}
+      {utilizador?.papel === 'admin' && <AtalhosDoAdministrador />}
     </>
+  );
+}
+
+function AtalhosDoAdministrador() {
+  const { produtoresPorValidar, denunciasPorDecidir } = useTarefasAdmin();
+  const atalhos = [
+    {
+      caminho: '/admin/produtores',
+      icone: 'validar',
+      titulo: 'Produtores por validar',
+      numero: produtoresPorValidar,
+      texto: textoDaEspera(
+        produtoresPorValidar,
+        '1 à espera de validação',
+        'à espera de validação',
+      ),
+    },
+    {
+      caminho: '/admin/denuncias',
+      icone: 'denuncia',
+      titulo: 'Denúncias por decidir',
+      numero: denunciasPorDecidir,
+      texto: textoDaEspera(
+        denunciasPorDecidir,
+        '1 avaliação denunciada',
+        'avaliações denunciadas',
+      ),
+    },
+  ];
+  return (
+    <div className="row row-cols-1 row-cols-md-2 g-3 mt-2">
+      {atalhos.map(({ caminho, icone, titulo, numero, texto }) => (
+        <div className="col" key={caminho}>
+          <Link className="card cartao-atalho h-100" to={caminho}>
+            <div className="card-body d-flex align-items-center gap-3">
+              <span className="cartao-atalho-icone">
+                <Icone nome={icone} />
+              </span>
+              <div className="flex-grow-1">
+                <p className="fw-bold mb-0">{titulo}</p>
+                <p className="small text-body-secondary mb-0">{texto}</p>
+              </div>
+              {numero > 0 && (
+                <span className="contador" aria-hidden="true">
+                  {numero}
+                </span>
+              )}
+            </div>
+          </Link>
+        </div>
+      ))}
+    </div>
   );
 }

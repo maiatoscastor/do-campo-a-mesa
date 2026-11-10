@@ -1,0 +1,381 @@
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
+import AlertaDeErro from '../components/AlertaDeErro.jsx';
+import Campo from '../components/Campo.jsx';
+import EstadoVazio from '../components/EstadoVazio.jsx';
+import Estrelas from '../components/Estrelas.jsx';
+import { useEventoSocket } from '../hooks/useEventoSocket.js';
+import { useFormulario } from '../hooks/useFormulario.js';
+import { useSessao } from '../hooks/useSessao.js';
+import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
+import { formatarDia } from '../avaliacoes.js';
+import {
+  fraseDoMotivo,
+  nomeDoMotivo,
+  textoDasDenuncias,
+} from '../denuncias.js';
+
+// Página do administrador (/admin/denuncias): as avaliações denunciadas, cada uma uma só vez, com
+// as denúncias que teve. Por decidir (primeiro as que esperam há mais tempo) ou já decididas, para
+// se poder voltar atrás. A vista fica no endereço (?ver=decididas).
+export default function Denuncias() {
+  const { pedir } = useSessao();
+  const { denunciasPorDecidir, recontar } = useTarefasAdmin();
+  const [procura, setProcura] = useSearchParams();
+  const decididas = procura.get('ver') === 'decididas';
+  // null quer dizer que a lista ainda não chegou
+  const [casos, setCasos] = useState(null);
+  const [pagina, setPagina] = useState(1);
+  const [temMais, setTemMais] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [mensagem, setMensagem] = useState('');
+  // Muda para voltar a ler a lista (uma denúncia nova, ou a decisão de outro administrador)
+  const [versao, setVersao] = useState(0);
+  useEventoSocket('denuncias-mudaram', () => setVersao((n) => n + 1));
+
+  useEffect(() => {
+    let cancelado = false;
+    pedir(`/admin/denuncias${decididas ? '?estado=decidida' : ''}`)
+      .then((dados) => {
+        if (!cancelado) {
+          setCasos(dados.casos);
+          setTemMais(dados.temMais);
+          setPagina(1);
+        }
+      })
+      .catch((problema) => !cancelado && setErro(problema));
+    return () => {
+      cancelado = true;
+    };
+  }, [pedir, decididas, versao]);
+
+  function verVista(paraDecididas) {
+    if (paraDecididas !== decididas) {
+      setCasos(null);
+      setMensagem('');
+      setProcura(paraDecididas ? { ver: 'decididas' } : {}, { replace: true });
+    }
+  }
+
+  async function carregarMais() {
+    try {
+      const dados = await pedir(
+        `/admin/denuncias?${decididas ? 'estado=decidida&' : ''}pagina=${pagina + 1}`,
+      );
+      setCasos((atuais) => [...atuais, ...dados.casos]);
+      setTemMais(dados.temMais);
+      setPagina((n) => n + 1);
+    } catch (problema) {
+      setErro(problema);
+    }
+  }
+
+  // Depois de uma decisão: por decidir, o caso sai da lista; nas decididas, fica com a decisão nova.
+  // A mensagem diz quem recebeu a decisão: quem denunciou só a recebe da primeira vez.
+  function decidido(caso, eraPorDecidir) {
+    const { id } = caso.avaliacao;
+    setCasos((atuais) =>
+      decididas
+        ? atuais.map((c) => (c.avaliacao.id === id ? caso : c))
+        : atuais.filter((c) => c.avaliacao.id !== id),
+    );
+    const { visivel } = caso.avaliacao;
+    let texto;
+    if (eraPorDecidir) {
+      texto = visivel
+        ? 'A avaliação fica visível. Quem a denunciou recebeu a decisão.'
+        : 'A avaliação foi ocultada. Quem a escreveu e quem a denunciou receberam a decisão.';
+    } else {
+      texto = visivel
+        ? 'A avaliação voltou a aparecer. Quem a escreveu foi avisado.'
+        : 'A avaliação foi ocultada. Quem a escreveu foi avisado.';
+    }
+    setMensagem(texto);
+    recontar();
+  }
+
+  return (
+    <>
+      <title>Denúncias · Do Campo à Mesa</title>
+      <h1 className="mb-3">Denúncias</h1>
+
+      <ul className="nav nav-pills gap-2 mb-3">
+        <li className="nav-item">
+          <button
+            className={`nav-link ${decididas ? '' : 'active'}`}
+            type="button"
+            aria-pressed={!decididas}
+            onClick={() => verVista(false)}
+          >
+            Por decidir
+            {denunciasPorDecidir > 0 && (
+              <span className="contador ms-2">{denunciasPorDecidir}</span>
+            )}
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${decididas ? 'active' : ''}`}
+            type="button"
+            aria-pressed={decididas}
+            onClick={() => verVista(true)}
+          >
+            Decididas
+          </button>
+        </li>
+      </ul>
+
+      <AlertaDeErro erro={erro} />
+      {/* O role="status" faz os leitores de ecrã anunciarem o resultado de cada decisão */}
+      <p className="text-body-secondary" role="status">
+        {mensagem || (casos === null && !erro && 'A carregar…')}
+      </p>
+
+      {casos?.length === 0 &&
+        (decididas ? (
+          <EstadoVazio
+            icone="denuncia"
+            titulo="Ainda não há decisões"
+            texto="As avaliações já decididas ficam aqui, para poder voltar atrás."
+          />
+        ) : (
+          <EstadoVazio
+            icone="denuncia"
+            titulo="Não há denúncias por decidir"
+            texto="Quando alguém denunciar uma avaliação, ela aparece aqui para decidir se fica ou sai."
+          />
+        ))}
+
+      {casos?.length > 0 && (
+        <div className="d-grid gap-3">
+          {casos.map((caso) => (
+            <CasoDeDenuncia
+              key={caso.avaliacao.id}
+              caso={caso}
+              aoDecidir={decidido}
+            />
+          ))}
+        </div>
+      )}
+      {temMais && (
+        <button
+          className="btn btn-suave w-100 mt-3"
+          type="button"
+          onClick={carregarMais}
+        >
+          Carregar mais
+        </button>
+      )}
+    </>
+  );
+}
+
+const SELOS = {
+  porDecidir: { classe: 'selo-por-decidir', nome: 'Por decidir' },
+  mantida: { classe: 'selo-mantida', nome: 'Mantida' },
+  ocultada: { classe: 'selo-ocultada', nome: 'Ocultada' },
+};
+
+// O motivo que mais vezes aparece nas denúncias, para sugerir o texto de quando se oculta (o
+// administrador pode mudá-lo antes de confirmar)
+function sugestaoParaOcultar(denuncias) {
+  const contagem = {};
+  for (const { motivo } of denuncias) {
+    contagem[motivo] = (contagem[motivo] ?? 0) + 1;
+  }
+  const [maisComum] = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
+  return maisComum ? fraseDoMotivo(maisComum[0]) : '';
+}
+
+// Uma avaliação denunciada: a avaliação toda, as denúncias (com quem as fez) e a decisão
+function CasoDeDenuncia({ caso, aoDecidir }) {
+  const { avaliacao, denuncias } = caso;
+  const { autor, produtor, moderacao, resposta } = avaliacao;
+  const porDecidir = denuncias.some(({ estado }) => estado === 'pendente');
+  const selo = porDecidir ? SELOS.porDecidir : SELOS[moderacao?.decisao];
+  // A decisão que se está a tomar ('mantida' ou 'ocultada'), com o formulário do motivo aberto
+  const [aDecidir, setADecidir] = useState(null);
+
+  // Por decidir: manter ou ocultar. Já decidida: só a decisão contrária, para voltar atrás.
+  const acoes = porDecidir
+    ? ['mantida', 'ocultada']
+    : [avaliacao.visivel ? 'ocultada' : 'mantida'];
+
+  return (
+    <article className="card caso-denuncia">
+      <div className="card-body">
+        <div className="d-flex flex-wrap align-items-baseline gap-2 mb-2">
+          <h2 className="h6 mb-0 me-auto">
+            Avaliação a{' '}
+            <Link to={`/produtores/${produtor.id}/avaliacoes`}>
+              {produtor.nomeExploracao}
+            </Link>
+          </h2>
+          {selo && <span className={`selo ${selo.classe}`}>{selo.nome}</span>}
+        </div>
+
+        <div className="caso-avaliacao">
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <Estrelas valor={avaliacao.classificacao} tamanho={16} />
+            <span className="fw-bold">{autor.nome}</span>
+            <span className="small text-body-secondary">
+              {formatarDia(avaliacao.data)}
+              {avaliacao.editadaEm && ' · editada'}
+            </span>
+          </div>
+          {avaliacao.comentario ? (
+            <p className="avaliacao-comentario mb-0">{avaliacao.comentario}</p>
+          ) : (
+            <p className="small text-body-secondary mb-0">Sem comentário.</p>
+          )}
+          {resposta && (
+            <div className="resposta-produtor">
+              <p className="small fw-bold mb-1">
+                Resposta de {produtor.nomeExploracao}
+              </p>
+              <p className="resposta-produtor-texto mb-0">{resposta.texto}</p>
+            </div>
+          )}
+        </div>
+
+        <h3 className="h6 mt-3 mb-2">{textoDasDenuncias(denuncias.length)}</h3>
+        <ul className="lista-denuncias">
+          {denuncias.map((denuncia) => (
+            <li key={denuncia.id}>
+              <p className="fw-semibold mb-0">
+                {nomeDoMotivo(denuncia.motivo)}
+              </p>
+              {denuncia.descricao && (
+                <p className="mb-0 text-break">{denuncia.descricao}</p>
+              )}
+              <p className="small text-body-secondary mb-0">
+                {denuncia.autor.nome}
+                {denuncia.autor.eOProdutor && ' (o produtor avaliado)'} ·{' '}
+                {formatarDia(denuncia.data)}
+              </p>
+            </li>
+          ))}
+        </ul>
+
+        {moderacao && (
+          <p className="caso-decisao">
+            <strong>
+              {porDecidir ? 'Decisão anterior' : 'Decisão'}:{' '}
+              {moderacao.decisao === 'ocultada' ? 'ocultada' : 'mantida'}
+            </strong>{' '}
+            a {formatarDia(moderacao.data)}. {moderacao.motivo}
+          </p>
+        )}
+
+        {aDecidir ? (
+          <FormularioDaDecisao
+            caso={caso}
+            decisao={aDecidir}
+            textoInicial={
+              aDecidir === 'ocultada'
+                ? sugestaoParaOcultar(denuncias)
+                : porDecidir
+                  ? 'Não infringe as regras: é a opinião de quem fez a encomenda.'
+                  : ''
+            }
+            aoDecidir={(decidido) => aoDecidir(decidido, porDecidir)}
+            aoCancelar={() => setADecidir(null)}
+          />
+        ) : (
+          <div className="d-flex flex-wrap gap-2 mt-3">
+            {acoes.map((decisao) => (
+              <button
+                key={decisao}
+                className={`btn btn-sm ${decisao === 'ocultada' ? 'btn-suave-perigo' : 'btn-suave'}`}
+                type="button"
+                onClick={() => setADecidir(decisao)}
+              >
+                {nomeDaAcao(decisao, porDecidir)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function nomeDaAcao(decisao, porDecidir) {
+  if (decisao === 'ocultada') {
+    return 'Ocultar';
+  }
+  return porDecidir ? 'Manter' : 'Voltar a mostrar';
+}
+
+// A quem chega o motivo: quem denunciou só recebe a primeira decisão, e quem escreveu a avaliação só
+// é avisado quando ela é ocultada ou volta a aparecer
+function textoDaAjuda(decisao, porDecidir) {
+  if (!porDecidir) {
+    return 'É enviado a quem escreveu a avaliação.';
+  }
+  return decisao === 'ocultada'
+    ? 'É enviado a quem escreveu a avaliação e a quem a denunciou.'
+    : 'É enviado a quem denunciou.';
+}
+
+// O motivo da decisão, que segue na notificação
+function FormularioDaDecisao({
+  caso,
+  decisao,
+  textoInicial,
+  aoDecidir,
+  aoCancelar,
+}) {
+  const { pedir } = useSessao();
+  const porDecidir = caso.denuncias.some(({ estado }) => estado === 'pendente');
+  const { valores, mudar, erro, aEnviar, enviar, formulario } = useFormulario({
+    motivo: textoInicial,
+  });
+
+  function submeter(evento) {
+    evento.preventDefault();
+    enviar(async () => {
+      const decidido = await pedir(
+        `/admin/avaliacoes/${caso.avaliacao.id}/moderacao`,
+        { metodo: 'PATCH', corpo: { decisao, motivo: valores.motivo } },
+      );
+      aoDecidir(decidido);
+    });
+  }
+
+  return (
+    <form className="mt-3" ref={formulario} onSubmit={submeter} noValidate>
+      <Campo
+        rotulo="Motivo da decisão"
+        nome="motivo"
+        tipo="textarea"
+        rows={2}
+        maxLength={500}
+        autoFocus
+        ajuda={textoDaAjuda(decisao, porDecidir)}
+        value={valores.motivo}
+        onChange={mudar}
+        erro={erro?.detalhes?.motivo}
+      />
+      {!erro?.detalhes?.motivo && <AlertaDeErro erro={erro} />}
+      <div className="d-flex flex-wrap gap-2">
+        <button
+          className={`btn btn-sm ${decisao === 'ocultada' ? 'btn-danger' : 'btn-primary'}`}
+          type="submit"
+          disabled={aEnviar}
+        >
+          {aEnviar
+            ? 'A guardar…'
+            : `${nomeDaAcao(decisao, porDecidir)} a avaliação`}
+        </button>
+        <button
+          className="btn btn-suave btn-sm"
+          type="button"
+          onClick={aoCancelar}
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}

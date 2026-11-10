@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import App from './App.jsx';
 import ACarregar from './components/ACarregar.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
@@ -139,16 +139,29 @@ export const router = createBrowserRouter([
                       },
                     ],
                   },
+                ],
+              },
+            ],
+          },
+          {
+            // A administração: à parte da conta, só para administradores
+            element: <RotaProtegida papeis={['admin']} />,
+            children: [
+              {
+                path: 'admin',
+                ...aPedido(() => import('./components/LayoutAdmin.jsx')),
+                children: [
                   {
-                    element: <RotaProtegida papeis={['admin']} />,
-                    children: [
-                      {
-                        path: 'produtores',
-                        ...aPedido(
-                          () => import('./pages/ValidarProdutores.jsx'),
-                        ),
-                      },
-                    ],
+                    index: true,
+                    element: <Navigate to="produtores" replace />,
+                  },
+                  {
+                    path: 'produtores',
+                    ...aPedido(() => import('./pages/ValidarProdutores.jsx')),
+                  },
+                  {
+                    path: 'denuncias',
+                    ...aPedido(() => import('./pages/Denuncias.jsx')),
                   },
                 ],
               },

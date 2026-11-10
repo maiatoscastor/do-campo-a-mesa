@@ -6,6 +6,7 @@ export const ICONES_DAS_NOTIFICACOES = {
   leilao: 'leiloes',
   conta: 'validar',
   avaliacao: 'estrela',
+  denuncia: 'denuncia',
 };
 
 const RELATIVO = new Intl.RelativeTimeFormat('pt-PT', { numeric: 'auto' });

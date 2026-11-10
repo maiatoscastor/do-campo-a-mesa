@@ -4,6 +4,7 @@ import { api } from '../api/cliente.js';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import Estrelas from '../components/Estrelas.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
+import FormularioDaDenuncia from '../components/FormularioDaDenuncia.jsx';
 import Icone from '../components/Icone.jsx';
 import RespostaDoProdutor from '../components/RespostaDoProdutor.jsx';
 import ResumoDasAvaliacoes from '../components/ResumoDasAvaliacoes.jsx';
@@ -13,7 +14,8 @@ import { formatarDia, textoDasEstrelas } from '../avaliacoes.js';
 
 // As avaliações de um produtor (/produtores/:id/avaliacoes): o resumo com a distribuição das
 // estrelas (tocar numa barra mostra só essas) e a lista, das mais recentes para as mais antigas, com
-// as respostas. O produtor responde aqui; quem avaliou tem a ligação para mudar a avaliação.
+// as respostas. O produtor responde aqui; quem avaliou tem a ligação para mudar a avaliação; e quem
+// tem sessão pode denunciar uma avaliação.
 export default function AvaliacoesProdutor() {
   const { id } = useParams();
   const { utilizador, pedir } = useSessao();
@@ -41,9 +43,10 @@ export default function AvaliacoesProdutor() {
   }, [id, souEu, pedir]);
 
   // A primeira página, sempre que muda o filtro
+  // A lista pede-se com a sessão (quando há), para cada avaliação dizer se a pessoa já a denunciou
   useEffect(() => {
     let cancelado = false;
-    api(`/reviews?produtor=${id}${estrelas ? `&estrelas=${estrelas}` : ''}`)
+    pedir(`/reviews?produtor=${id}${estrelas ? `&estrelas=${estrelas}` : ''}`)
       .then((dados) => {
         if (!cancelado) {
           setResumo(dados.resumo);
@@ -56,16 +59,18 @@ export default function AvaliacoesProdutor() {
     return () => {
       cancelado = true;
     };
-  }, [id, estrelas, versao]);
+  }, [id, estrelas, versao, pedir]);
 
   const recarregar = () => setVersao((n) => n + 1);
   // O produtor vê as avaliações novas a chegar; quem avaliou, a resposta
   useEventoSocket('nova-avaliacao', recarregar);
   useEventoSocket('resposta-avaliacao', recarregar);
+  // Quem escreveu uma avaliação que o administrador ocultou vê-a sair da lista
+  useEventoSocket('avaliacao-moderada', recarregar);
 
   async function carregarMais() {
     try {
-      const dados = await api(
+      const dados = await pedir(
         `/reviews?produtor=${id}${estrelas ? `&estrelas=${estrelas}` : ''}&pagina=${pagina + 1}`,
       );
       setAvaliacoes((atuais) => [...atuais, ...dados.avaliacoes]);
@@ -164,6 +169,12 @@ export default function AvaliacoesProdutor() {
                     produtor={produtor}
                     souOProdutor={souEu}
                     souOAutor={avaliacao.autor.id === utilizador?.id}
+                    // Quem tem sessão denuncia as dos outros; o administrador decide, não denuncia
+                    podeDenunciar={
+                      utilizador &&
+                      utilizador.papel !== 'admin' &&
+                      avaliacao.autor.id !== utilizador.id
+                    }
                     aoMudar={trocar}
                   />
                 </li>
@@ -186,19 +197,49 @@ export default function AvaliacoesProdutor() {
 }
 
 // Uma avaliação: as estrelas, quem a escreveu e quando, o comentário, as estrelas dos produtos e a
-// resposta do produtor
-function Avaliacao({ avaliacao, produtor, souOProdutor, souOAutor, aoMudar }) {
+// resposta do produtor. Ao lado da data, discreto, o "Denunciar" (ou "Denunciada", depois).
+function Avaliacao({
+  avaliacao,
+  produtor,
+  souOProdutor,
+  souOAutor,
+  podeDenunciar,
+  aoMudar,
+}) {
   const { classificacao, comentario, produtos, autor, data, editadaEm } =
     avaliacao;
+  const [aDenunciar, setADenunciar] = useState(false);
+  const [acabouDeDenunciar, setAcabouDeDenunciar] = useState(false);
+
   return (
     <article className="avaliacao">
-      <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
-        <Estrelas valor={classificacao} tamanho={18} />
-        <span className="fw-bold">{autor.nome}</span>
-        <span className="small text-body-secondary">
-          {formatarDia(data)}
-          {editadaEm && ' · editada'}
-        </span>
+      {/* À esquerda, as estrelas, o nome e a data (que passam para baixo quando não cabem); à
+          direita, sempre na primeira linha, o "Denunciar" */}
+      <div className="avaliacao-topo">
+        <div className="d-flex flex-wrap align-items-center column-gap-2">
+          <Estrelas valor={classificacao} tamanho={18} />
+          <span className="fw-bold">{autor.nome}</span>
+          <span className="small text-body-secondary">
+            {formatarDia(data)}
+            {editadaEm && ' · editada'}
+          </span>
+        </div>
+        {podeDenunciar && avaliacao.denunciada && (
+          <span className="denunciada">
+            <Icone nome="denuncia" tamanho={16} />
+            Denunciada
+          </span>
+        )}
+        {podeDenunciar && !avaliacao.denunciada && !aDenunciar && (
+          <button
+            className="btn btn-link btn-sm denunciar"
+            type="button"
+            onClick={() => setADenunciar(true)}
+          >
+            <Icone nome="denuncia" tamanho={16} />
+            Denunciar
+          </button>
+        )}
       </div>
       {comentario && <p className="avaliacao-comentario">{comentario}</p>}
       {produtos.length > 0 && (
@@ -231,6 +272,21 @@ function Avaliacao({ avaliacao, produtor, souOProdutor, souOAutor, aoMudar }) {
         podeResponder={souOProdutor}
         aoMudar={aoMudar}
       />
+      {aDenunciar && (
+        <FormularioDaDenuncia
+          avaliacao={avaliacao}
+          aoEnviar={() => {
+            setADenunciar(false);
+            setAcabouDeDenunciar(true);
+            aoMudar({ ...avaliacao, denunciada: true });
+          }}
+          aoCancelar={() => setADenunciar(false)}
+        />
+      )}
+      <p className="small text-body-secondary mb-0" role="status">
+        {acabouDeDenunciar &&
+          'Obrigado. O administrador vai analisar a denúncia.'}
+      </p>
     </article>
   );
 }

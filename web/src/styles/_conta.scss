@@ -1,4 +1,5 @@
-// "A minha conta" (LayoutConta.jsx): o perfil e os separadores das secções.
+// "A minha conta" (LayoutConta.jsx) e a administração (LayoutAdmin.jsx): o perfil e os separadores
+// das secções (MenuSeccoes.jsx).
 @use 'mixins' as m;
 @use 'variables' as v;
 
@@ -35,6 +36,17 @@
   width: 3rem;
   height: 3rem;
   font-size: 1rem;
+}
+
+// O título da administração, por cima dos separadores (só no computador)
+.admin-titulo {
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 1rem 0;
+  font-family: v.$letra-titulos;
+  font-size: 1.125rem;
+  font-weight: 750;
 }
 
 // Mobile First: no telemóvel, os separadores ficam numa faixa que desliza na horizontal. No
@@ -135,7 +147,6 @@
 
 // Cartão que leva a uma secção (no início do administrador)
 .cartao-atalho {
-  max-width: 28rem;
   color: inherit;
   text-decoration: none;
 

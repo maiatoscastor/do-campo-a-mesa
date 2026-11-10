@@ -4,7 +4,12 @@ import MarcaFechada from './MarcaFechada.jsx';
 import SinoNotificacoes from './SinoNotificacoes.jsx';
 import { useCarrinho } from '../hooks/useCarrinho.js';
 import { useSessao } from '../hooks/useSessao.js';
-import { destinosPara, textoDoCarrinho } from '../navegacao.js';
+import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
+import {
+  destinosPara,
+  textoDasTarefas,
+  textoDoCarrinho,
+} from '../navegacao.js';
 import { iniciais } from '../utilizador.js';
 
 // Cabeçalho fixo no topo. No telemóvel mostra a marca e a conta, porque a navegação está na barra
@@ -12,6 +17,7 @@ import { iniciais } from '../utilizador.js';
 export default function Cabecalho() {
   const { utilizador } = useSessao();
   const produtosNoCarrinho = useCarrinho().linhas.length;
+  const tarefas = useTarefasAdmin().total;
 
   // O carrinho fica à direita, só com o ícone, como nas lojas online
   const destinos = destinosPara(utilizador);
@@ -40,6 +46,14 @@ export default function Cabecalho() {
                   {nome}
                   {fechado && !utilizador && (
                     <MarcaFechada className="cabecalho-fechado" />
+                  )}
+                  {caminho === '/admin' && tarefas > 0 && (
+                    <span className="contador ms-2">
+                      <span aria-hidden="true">{tarefas}</span>
+                      <span className="visually-hidden">
+                        {textoDasTarefas(tarefas)}
+                      </span>
+                    </span>
                   )}
                 </NavLink>
               </li>

@@ -48,9 +48,20 @@ export default function AvaliarEncomenda() {
   const { encomenda, avaliacao } = dados;
   let impedimento = null;
   if (encomenda.comprador.id !== utilizador.id) {
-    impedimento = 'Só quem fez a encomenda a pode avaliar.';
+    impedimento = {
+      titulo: 'Ainda não pode avaliar',
+      texto: 'Só quem fez a encomenda a pode avaliar.',
+    };
   } else if (encomenda.estado !== 'entregue') {
-    impedimento = 'Pode avaliar a encomenda depois de ela ser entregue.';
+    impedimento = {
+      titulo: 'Ainda não pode avaliar',
+      texto: 'Pode avaliar a encomenda depois de ela ser entregue.',
+    };
+  } else if (avaliacao?.visivel === false) {
+    impedimento = {
+      titulo: 'A sua avaliação foi ocultada',
+      texto: `O administrador ocultou-a e já não pode ser mudada. Motivo: ${avaliacao.moderacao?.motivo ?? 'não indicado.'}`,
+    };
   }
   if (impedimento) {
     return (
@@ -58,8 +69,8 @@ export default function AvaliarEncomenda() {
         <title>Avaliar a encomenda · Do Campo à Mesa</title>
         <EstadoVazio
           icone="estrela"
-          titulo="Ainda não pode avaliar"
-          texto={impedimento}
+          titulo={impedimento.titulo}
+          texto={impedimento.texto}
         >
           <Link className="btn btn-primary" to="/encomendas">
             Ver as encomendas

@@ -110,7 +110,13 @@ function AvaliacaoDaEncomenda({ encomenda, para }) {
         <p className="avaliacao-da-encomenda">
           <span>Avaliação do comprador</span>
           <Estrelas valor={avaliacao.classificacao} tamanho={16} />
-          <Link to={`/produtores/${produtor}/avaliacoes`}>Ver</Link>
+          {avaliacao.visivel === false ? (
+            <span className="text-body-secondary">
+              ocultada pelo administrador
+            </span>
+          ) : (
+            <Link to={`/produtores/${produtor}/avaliacoes`}>Ver</Link>
+          )}
         </p>
       )
     );
@@ -130,7 +136,10 @@ function AvaliacaoDaEncomenda({ encomenda, para }) {
     <p className="avaliacao-da-encomenda">
       <span>A sua avaliação</span>
       <Estrelas valor={avaliacao.classificacao} tamanho={16} />
-      <Link to={`/encomendas/${id}/avaliar`}>Mudar</Link>
+      {/* Uma avaliação oculta já não se muda; a página dela diz porquê */}
+      <Link to={`/encomendas/${id}/avaliar`}>
+        {avaliacao.visivel === false ? 'Ocultada: ver porquê' : 'Mudar'}
+      </Link>
     </p>
   );
 }
