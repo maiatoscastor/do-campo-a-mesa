@@ -1,39 +1,38 @@
 import { Link } from 'react-router';
 import DestaqueLeilao from '../components/DestaqueLeilao.jsx';
-import Icone from '../components/Icone.jsx';
+import EncomendasEmCurso from '../components/EncomendasEmCurso.jsx';
+import InicioAdministrador from '../components/InicioAdministrador.jsx';
+import InicioProdutor from '../components/InicioProdutor.jsx';
 import { useSessao } from '../hooks/useSessao.js';
-import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
 import { primeiroNome } from '../utilizador.js';
 
-// O texto por baixo de cada atalho do administrador
-function textoDaEspera(numero, umaEspera, variasEsperam) {
-  if (numero === null) {
-    return 'A contar…';
-  }
-  if (numero === 0) {
-    return 'Nada à espera';
-  }
-  return numero === 1 ? umaEspera : `${numero} ${variasEsperam}`;
-}
-
-// Página inicial: é aqui que a aplicação abre, com ou sem sessão. Só diz o que a aplicação é: os
-// destaques (leilão em direto, produtos da época) entram quando houver dados reais para mostrar.
+// Página inicial: é aqui que a aplicação abre, com ou sem sessão, e cada perfil vê o mínimo que lhe
+// interessa. O visitante e o comprador veem o que a aplicação é e o leilão em destaque (o comprador
+// também as encomendas em curso); o produtor e o administrador, o que precisa da atenção deles.
 export default function Inicio() {
   const { utilizador } = useSessao();
+  const papel = utilizador?.papel;
+
+  if (papel === 'produtor' || papel === 'admin') {
+    return (
+      <>
+        <title>Do Campo à Mesa</title>
+        <h1 className="mb-1">Olá, {primeiroNome(utilizador.nome)}</h1>
+        <p className="text-body-secondary mb-4">
+          {papel === 'produtor'
+            ? `${utilizador.produtor?.nomeExploracao ?? 'A sua quinta'}: o que precisa da sua atenção.`
+            : 'O que espera por si na administração.'}
+        </p>
+        {papel === 'produtor' ? <InicioProdutor /> : <InicioAdministrador />}
+      </>
+    );
+  }
 
   return (
     <>
       <title>Do Campo à Mesa</title>
       {utilizador && (
         <p className="h4 mb-3">Olá, {primeiroNome(utilizador.nome)}</p>
-      )}
-      {utilizador?.produtor?.validacao === 'pendente' && (
-        <div className="alert alert-warning" role="status">
-          A sua conta de produtor está à espera de validação.{' '}
-          <Link className="alert-link" to="/conta/quinta">
-            Ver a conta
-          </Link>
-        </div>
       )}
       {/* No computador, o leilão em destaque fica ao lado da apresentação; no telemóvel, por baixo */}
       <div className="inicio-topo">
@@ -51,63 +50,10 @@ export default function Inicio() {
               Ver leilões
             </Link>
           </div>
+          {papel === 'comprador' && <EncomendasEmCurso />}
         </div>
         <DestaqueLeilao />
       </div>
-      {/* Atalhos do administrador para o que espera por ele, mesmo quando não há nada */}
-      {utilizador?.papel === 'admin' && <AtalhosDoAdministrador />}
     </>
-  );
-}
-
-function AtalhosDoAdministrador() {
-  const { produtoresPorValidar, denunciasPorDecidir } = useTarefasAdmin();
-  const atalhos = [
-    {
-      caminho: '/admin/produtores',
-      icone: 'validar',
-      titulo: 'Produtores por validar',
-      numero: produtoresPorValidar,
-      texto: textoDaEspera(
-        produtoresPorValidar,
-        '1 à espera de validação',
-        'à espera de validação',
-      ),
-    },
-    {
-      caminho: '/admin/denuncias',
-      icone: 'denuncia',
-      titulo: 'Denúncias por decidir',
-      numero: denunciasPorDecidir,
-      texto: textoDaEspera(
-        denunciasPorDecidir,
-        '1 avaliação denunciada',
-        'avaliações denunciadas',
-      ),
-    },
-  ];
-  return (
-    <div className="row row-cols-1 row-cols-md-2 g-3 mt-2">
-      {atalhos.map(({ caminho, icone, titulo, numero, texto }) => (
-        <div className="col" key={caminho}>
-          <Link className="card cartao-atalho h-100" to={caminho}>
-            <div className="card-body d-flex align-items-center gap-3">
-              <span className="cartao-atalho-icone">
-                <Icone nome={icone} />
-              </span>
-              <div className="flex-grow-1">
-                <p className="fw-bold mb-0">{titulo}</p>
-                <p className="small text-body-secondary mb-0">{texto}</p>
-              </div>
-              {numero > 0 && (
-                <span className="contador" aria-hidden="true">
-                  {numero}
-                </span>
-              )}
-            </div>
-          </Link>
-        </div>
-      ))}
-    </div>
   );
 }
