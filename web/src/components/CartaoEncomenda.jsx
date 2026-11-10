@@ -1,4 +1,6 @@
 import { Link } from 'react-router';
+import Estrelas from './Estrelas.jsx';
+import Icone from './Icone.jsx';
 import {
   ESTADOS,
   formatarData,
@@ -88,8 +90,47 @@ export default function CartaoEncomenda({ encomenda, para, children }) {
           <strong className="numeros">{formatarPreco(total)}</strong>
         </p>
         <p className="small text-body-secondary mb-0">{entrega}</p>
+        <AvaliacaoDaEncomenda encomenda={encomenda} para={para} />
         {children}
       </div>
     </article>
+  );
+}
+
+// Depois de entregue: o comprador avalia (ou vê a nota que deu e pode mudá-la), e o produtor vê a
+// nota que recebeu, com a ligação para as suas avaliações
+function AvaliacaoDaEncomenda({ encomenda, para }) {
+  const { id, estado, avaliacao, produtor } = encomenda;
+  if (estado !== 'entregue') {
+    return null;
+  }
+  if (para === 'produtor') {
+    return (
+      avaliacao && (
+        <p className="avaliacao-da-encomenda">
+          <span>Avaliação do comprador</span>
+          <Estrelas valor={avaliacao.classificacao} tamanho={16} />
+          <Link to={`/produtores/${produtor}/avaliacoes`}>Ver</Link>
+        </p>
+      )
+    );
+  }
+  if (!avaliacao) {
+    return (
+      <Link
+        className="btn btn-suave btn-sm mt-3 d-inline-flex align-items-center gap-1"
+        to={`/encomendas/${id}/avaliar`}
+      >
+        <Icone nome="estrela" tamanho={18} />
+        Avaliar a encomenda
+      </Link>
+    );
+  }
+  return (
+    <p className="avaliacao-da-encomenda">
+      <span>A sua avaliação</span>
+      <Estrelas valor={avaliacao.classificacao} tamanho={16} />
+      <Link to={`/encomendas/${id}/avaliar`}>Mudar</Link>
+    </p>
   );
 }

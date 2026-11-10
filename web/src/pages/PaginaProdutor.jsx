@@ -6,6 +6,7 @@ import EstadoVazio from '../components/EstadoVazio.jsx';
 import HorarioLevantamento from '../components/HorarioLevantamento.jsx';
 import Icone from '../components/Icone.jsx';
 import MapaQuinta from '../components/MapaQuinta.jsx';
+import ResumoDasAvaliacoes from '../components/ResumoDasAvaliacoes.jsx';
 import { useAgora } from '../hooks/useAgora.js';
 import { useSessao } from '../hooks/useSessao.js';
 import {
@@ -15,6 +16,7 @@ import {
   formatarTempo,
 } from '../leiloes.js';
 import { textoDaLocalizacao } from '../localizacao.js';
+import { formatarMedia, textoDasAvaliacoes } from '../avaliacoes.js';
 import {
   enderecoNoMaps,
   formatarMesEAno,
@@ -93,6 +95,7 @@ export default function PaginaProdutor() {
     exemplo,
     desde,
     validacao,
+    avaliacao,
   } = pagina;
   const ligacoes = ligacoesDosContactos(contactos);
   const comLateral = levantamento || ponto || ligacoes.length > 0;
@@ -137,6 +140,16 @@ export default function PaginaProdutor() {
                 No Do Campo à Mesa desde {formatarMesEAno(desde)}
               </p>
             )}
+            {avaliacao?.total > 0 && (
+              <Link
+                className="nota-produtor"
+                to={`/produtores/${id}/avaliacoes`}
+              >
+                <Icone nome="estrela" cheio tamanho={18} />
+                <strong>{formatarMedia(avaliacao.media)}</strong>
+                <span>· {textoDasAvaliacoes(avaliacao.total)}</span>
+              </Link>
+            )}
           </div>
         </div>
         {souEu && (
@@ -175,6 +188,8 @@ export default function PaginaProdutor() {
               </div>
             )}
           </section>
+
+          <NotaGeral avaliacao={avaliacao} produtorId={id} />
         </div>
 
         {comLateral && (
@@ -288,6 +303,29 @@ function LeiloesDoProdutor({ leiloes }) {
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+// O resumo das avaliações (a média e as barras), com o botão para as ler. As avaliações em si só
+// aparecem na página delas.
+function NotaGeral({ avaliacao, produtorId }) {
+  const total = avaliacao?.total ?? 0;
+  const ligacao = `/produtores/${produtorId}/avaliacoes`;
+  return (
+    <section className="mt-4" aria-labelledby="avaliacoes-do-produtor">
+      <h2 className="h5" id="avaliacoes-do-produtor">
+        Avaliações
+      </h2>
+      {total === 0 ? (
+        <p className="text-body-secondary">Ainda não há avaliações.</p>
+      ) : (
+        <ResumoDasAvaliacoes resumo={avaliacao} ligacao={ligacao}>
+          <Link className="btn btn-suave" to={ligacao}>
+            {total === 1 ? 'Ler a avaliação' : `Ler as ${total} avaliações`}
+          </Link>
+        </ResumoDasAvaliacoes>
+      )}
     </section>
   );
 }

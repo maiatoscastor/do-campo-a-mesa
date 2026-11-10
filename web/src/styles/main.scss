@@ -2,6 +2,7 @@
 // A ordem conta: primeiro o Bootstrap com o nosso tema, depois os estilos próprios.
 @use 'theme';
 @use 'base';
+@use 'avaliacoes';
 @use 'avisos';
 @use 'botoes';
 @use 'cabecalho';

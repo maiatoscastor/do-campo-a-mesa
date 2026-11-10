@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { auth } from '../middleware/auth.js';
 import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
+import { resumoDoProdutor } from '../services/avaliacoes.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 import {
   apagarImagem,
@@ -129,7 +130,10 @@ function paginaPropria(utilizador) {
 // e pré-visualizar)
 router.get('/eu', auth('produtor'), async (req, res) => {
   const utilizador = await produtorDaSessao(req);
-  res.json(paginaPropria(utilizador));
+  res.json({
+    ...paginaPropria(utilizador),
+    avaliacao: await resumoDoProdutor(utilizador._id),
+  });
 });
 
 // PATCH /api/producers/eu: o produtor muda a sua página. Só os campos enviados mudam; um campo
@@ -211,7 +215,10 @@ router.get('/:id', async (req, res) => {
   if (!utilizador) {
     throw criarErro(404, 'Produtor não encontrado');
   }
-  res.json(paginaDoProdutor(utilizador));
+  res.json({
+    ...paginaDoProdutor(utilizador),
+    avaliacao: await resumoDoProdutor(utilizador._id),
+  });
 });
 
 export default router;

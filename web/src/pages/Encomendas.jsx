@@ -33,7 +33,9 @@ export default function Encomendas() {
   useEventoSocket('leilao-ganho', recarregar);
 
   let confirmacao = '';
-  if (state?.feitas === 1) {
+  if (state?.avaliada) {
+    confirmacao = 'Obrigado pela avaliação.';
+  } else if (state?.feitas === 1) {
     confirmacao = 'Encomenda feita. O produtor vai confirmá-la.';
   } else if (state?.feitas > 1) {
     confirmacao = `Foram feitas ${state.feitas} encomendas, uma por produtor.`;

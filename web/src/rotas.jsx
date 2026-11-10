@@ -3,6 +3,8 @@ import App from './App.jsx';
 import LayoutConta from './components/LayoutConta.jsx';
 import LayoutEntrada from './components/LayoutEntrada.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
+import AvaliacoesProdutor from './pages/AvaliacoesProdutor.jsx';
+import AvaliarEncomenda from './pages/AvaliarEncomenda.jsx';
 import Carrinho from './pages/Carrinho.jsx';
 import DadosPessoais from './pages/DadosPessoais.jsx';
 import EditarProduto from './pages/EditarProduto.jsx';
@@ -64,10 +66,17 @@ export const router = createBrowserRouter([
           { path: 'leiloes', element: <Leiloes /> },
           { path: 'leiloes/:id', element: <SalaLeilao /> },
           { path: 'produtores/:id', element: <PaginaProdutor /> },
+          {
+            path: 'produtores/:id/avaliacoes',
+            element: <AvaliacoesProdutor />,
+          },
           { path: 'carrinho', element: <Carrinho /> },
           {
             element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
-            children: [{ path: 'encomendas', element: <Encomendas /> }],
+            children: [
+              { path: 'encomendas', element: <Encomendas /> },
+              { path: 'encomendas/:id/avaliar', element: <AvaliarEncomenda /> },
+            ],
           },
           {
             element: <RotaProtegida />,

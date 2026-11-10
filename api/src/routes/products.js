@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { auth, produtorAprovado } from '../middleware/auth.js';
 import { CATEGORIAS, EPOCAS, Product } from '../models/Product.js';
 import { User } from '../models/User.js';
+import { mediasDosProdutos } from '../services/avaliacoes.js';
 import { criarErro } from '../utils/erro.js';
 import {
   apagarImagem,
@@ -30,6 +31,16 @@ function produtoPublico(produto) {
         }
       : produtor,
   };
+}
+
+// Os produtos prontos a enviar, cada um com a média das estrelas que recebeu nas avaliações das
+// encomendas ({ media, total }), quando já tem alguma
+async function comAvaliacoes(produtos) {
+  const medias = await mediasDosProdutos(produtos.map(({ _id }) => _id));
+  return produtos.map((produto) => ({
+    ...produtoPublico(produto),
+    avaliacao: medias.get(produto.id),
+  }));
 }
 
 // Aceita só os campos que o produtor pode mudar, cada um com o tipo certo. O produtor, a imagem e o
@@ -129,7 +140,7 @@ router.get('/', async (req, res) => {
     .sort({ nome: 1 })
     .limit(200)
     .populate('produtor', CAMPOS_DO_PRODUTOR);
-  res.json(produtos.map(produtoPublico));
+  res.json(await comAvaliacoes(produtos));
 });
 
 // GET /api/products/meus: os produtos do produtor com sessão, mesmo antes de ser aprovado
@@ -137,7 +148,7 @@ router.get('/meus', auth('produtor'), async (req, res) => {
   const produtos = await Product.find({ produtor: req.user.id }).sort({
     nome: 1,
   });
-  res.json(produtos.map(produtoPublico));
+  res.json(await comAvaliacoes(produtos));
 });
 
 // GET /api/products/:id: um produto, se o produtor estiver aprovado
@@ -149,7 +160,8 @@ router.get('/:id', async (req, res) => {
   if (produto?.produtor?.produtor?.validacao !== 'aprovado') {
     throw criarErro(404, 'Produto não encontrado');
   }
-  res.json(produtoPublico(produto));
+  const [publico] = await comAvaliacoes([produto]);
+  res.json(publico);
 });
 
 // POST /api/products: um produtor aprovado cria um produto. Responde 201, com o endereço do novo
