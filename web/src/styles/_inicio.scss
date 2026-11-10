@@ -178,6 +178,15 @@
   pointer-events: none;
 }
 
+// O topo dos inícios do produtor e do administrador: o cumprimento e, ao lado, os atalhos
+.inicio-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 // Cada secção, com o título e a ligação "Ver tudo" na mesma linha
 .seccao-inicio {
   margin-top: 2.5rem;
@@ -189,6 +198,24 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.75rem;
+}
+
+// Duas listas lado a lado no computador (por exemplo, as últimas encomendas e as últimas
+// avaliações); no telemóvel, uma por baixo da outra, com o mesmo espaço que entre as secções
+.colunas-inicio {
+  // No telemóvel, o espaço por cima de cada coluna (o da grelha) separa-as como as secções; a
+  // margem da linha, que o Bootstrap põe negativa para o anular, fica a zero
+  --bs-gutter-y: 2.5rem;
+  margin-top: 0;
+
+  .seccao-inicio {
+    margin-top: 0;
+  }
+
+  @include m.a-partir-de(lg) {
+    --bs-gutter-y: 0;
+    margin-top: 2.5rem;
+  }
 }
 
 // Duas secções do início lado a lado no computador (por exemplo, as encomendas e os próximos
@@ -300,6 +327,68 @@
 
 a.linha-inicio:hover {
   background-color: var(--bs-secondary-bg);
+}
+
+// Um comentário cortado em duas linhas
+.texto-cortado {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+// Os números (Indicador.jsx): o valor grande, com os dígitos alinhados, e a comparação por baixo
+.indicador {
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+
+  p {
+    margin: 0;
+  }
+}
+
+.indicador-rotulo {
+  color: var(--bs-secondary-color);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.indicador-valor {
+  margin-block: 0.25rem;
+  font-family: v.$letra-titulos;
+  font-size: 1.625rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.indicador-detalhe,
+.indicador-comparacao {
+  font-size: 0.8125rem;
+}
+
+.indicador-detalhe {
+  color: var(--bs-secondary-color);
+}
+
+.indicador-comparacao {
+  font-weight: 650;
+}
+
+.indicador-sobe {
+  color: var(--bs-success-text-emphasis);
+}
+
+.indicador-desce {
+  color: var(--bs-danger-text-emphasis);
+}
+
+.indicador-igual {
+  color: var(--bs-secondary-color);
 }
 
 // O logótipo pequeno, nos cartões dos produtores (ou as iniciais, sem logótipo)
