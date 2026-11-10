@@ -52,10 +52,10 @@ html {
   padding: 3rem 1rem;
   color: var(--bs-secondary-color);
   text-align: center;
-  animation: aparecer 0.2s 0.5s both;
+  animation: surgir 0.2s 0.5s both;
 }
 
-@keyframes aparecer {
+@keyframes surgir {
   from {
     opacity: 0;
   }
