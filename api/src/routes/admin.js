@@ -1,15 +1,21 @@
 import { Router } from 'express';
 import { auth } from '../middleware/auth.js';
+import { Auction } from '../models/Auction.js';
+import { Order } from '../models/Order.js';
+import { Product } from '../models/Product.js';
 import { Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
 import { User } from '../models/User.js';
 import { avisar, avisarAdministradores } from '../sockets/avisos.js';
+import { arredondar } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
 
 const router = Router();
 
 // Quantas avaliações denunciadas vêm de cada vez ("Carregar mais" pede as seguintes)
 const POR_PAGINA = 10;
+
+const DIA = 24 * 60 * 60 * 1000;
 
 // Todas as rotas deste ficheiro são só para administradores
 router.use(auth('admin'));
@@ -38,6 +44,98 @@ router.get('/produtores/pendentes', async (req, res) => {
     'produtor.validacao': 'pendente',
   }).sort({ createdAt: 1 });
   res.json(pendentes.map((produtor) => produtor.publico()));
+});
+
+// O número e o valor das encomendas feitas num intervalo de tempo
+async function encomendasEntre(desde, ate) {
+  const [grupo] = await Order.aggregate([
+    { $match: { createdAt: { $gte: desde, $lt: ate } } },
+    { $group: { _id: null, quantas: { $sum: 1 }, valor: { $sum: '$total' } } },
+  ]);
+  return { quantas: grupo?.quantas ?? 0, valor: arredondar(grupo?.valor ?? 0) };
+}
+
+// GET /api/admin/painel: a aplicação em números, para o início do administrador. Os utilizadores por
+// papel, os produtos à venda (de produtores aprovados), as encomendas dos últimos 30 dias e dos 30
+// anteriores (para comparar), os leilões a decorrer e marcados, as últimas encomendas e os últimos
+// registos. Tudo contado na base de dados no momento do pedido.
+router.get('/painel', async (req, res) => {
+  const agora = new Date();
+  const ha30Dias = new Date(agora.getTime() - 30 * DIA);
+  const ha60Dias = new Date(agora.getTime() - 60 * DIA);
+  const aprovados = await User.distinct('_id', {
+    papel: 'produtor',
+    'produtor.validacao': 'aprovado',
+  });
+  const [
+    porPapel,
+    novos,
+    produtos,
+    ultimos30,
+    anteriores30,
+    leiloes,
+    ultimasEncomendas,
+    ultimosRegistos,
+  ] = await Promise.all([
+    User.aggregate([{ $group: { _id: '$papel', quantos: { $sum: 1 } } }]),
+    User.countDocuments({ createdAt: { $gte: ha30Dias } }),
+    Product.countDocuments({ produtor: { $in: aprovados } }),
+    encomendasEntre(ha30Dias, agora),
+    encomendasEntre(ha60Dias, ha30Dias),
+    Auction.aggregate([
+      { $match: { estado: { $in: ['agendado', 'ativo'] } } },
+      { $group: { _id: '$estado', quantos: { $sum: 1 } } },
+    ]),
+    Order.find()
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(5)
+      .populate('comprador', 'nome')
+      .populate('produtor', 'produtor.nomeExploracao'),
+    User.find()
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(5)
+      .select(
+        'nome papel produtor.nomeExploracao produtor.validacao exemplo createdAt',
+      ),
+  ]);
+  const contagem = (lista, chave) =>
+    lista.find(({ _id }) => _id === chave)?.quantos ?? 0;
+
+  res.json({
+    utilizadores: {
+      compradores: contagem(porPapel, 'comprador'),
+      produtores: contagem(porPapel, 'produtor'),
+      administradores: contagem(porPapel, 'admin'),
+      novos,
+    },
+    produtos,
+    encomendas: { ultimos30, anteriores30 },
+    leiloes: {
+      aDecorrer: contagem(leiloes, 'ativo'),
+      marcados: contagem(leiloes, 'agendado'),
+    },
+    ultimasEncomendas: ultimasEncomendas.map((encomenda) => ({
+      id: encomenda._id,
+      total: encomenda.total,
+      estado: encomenda.estado,
+      origem: encomenda.origem,
+      data: encomenda.createdAt,
+      comprador: encomenda.comprador?.nome,
+      produtor: encomenda.produtor && {
+        id: encomenda.produtor._id,
+        nomeExploracao: encomenda.produtor.produtor?.nomeExploracao,
+      },
+    })),
+    ultimosRegistos: ultimosRegistos.map((utilizador) => ({
+      id: utilizador._id,
+      nome: utilizador.nome,
+      papel: utilizador.papel,
+      nomeExploracao: utilizador.produtor?.nomeExploracao,
+      validacao: utilizador.produtor?.validacao,
+      exemplo: utilizador.exemplo,
+      data: utilizador.createdAt,
+    })),
+  });
 });
 
 // PATCH /api/admin/produtores/:id/validacao: aprova ou rejeita um produtor ({ "aprovado": true })

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { auth } from '../middleware/auth.js';
 import { User } from '../models/User.js';
-import { avisarAdministradores } from '../sockets/avisos.js';
+import { avisarAdministradores, avisarPainel } from '../sockets/avisos.js';
 import { criarErro, problemasDeUtilizador } from '../utils/erro.js';
 import {
   cifrarPassword,
@@ -101,6 +101,7 @@ router.post('/registo', async (req, res) => {
       {},
     );
   }
+  await avisarPainel(req.app.get('io'));
 
   res.status(201).json({
     token: emitirToken(utilizador),

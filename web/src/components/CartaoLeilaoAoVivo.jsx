@@ -14,7 +14,10 @@ export default function CartaoLeilaoAoVivo({ leilao, agora }) {
     >
       <div className="cartao-leilao-topo">
         <ImagemProduto produto={leilao} />
-        <span className="selo selo-direto">Em direto</span>
+        <div className="cartao-produto-selos">
+          <span className="selo selo-direto">Em direto</span>
+          {leilao.exemplo && <span className="selo selo-exemplo">Exemplo</span>}
+        </div>
       </div>
       <div className="card-body">
         <h3 className="cartao-produto-nome">

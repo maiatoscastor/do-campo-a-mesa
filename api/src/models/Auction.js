@@ -94,6 +94,8 @@ const auctionSchema = new Schema(
     },
     // A encomenda criada para o vencedor quando o leilão acaba
     encomenda: { type: Schema.Types.ObjectId, ref: 'Order' },
+    // Leilões inventados para testar (npm run exemplo), identificados como tal na aplicação
+    exemplo: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

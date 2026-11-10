@@ -60,16 +60,16 @@ Para confirmar que está a funcionar, abrir <http://localhost:3000/api/health>. 
 
 O registo público só cria compradores e produtores. A conta de administrador cria-se no terminal, com `npm run criar-admin`.
 
-| Comando                | O que faz                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------ |
-| `npm run dev`          | Arranca a API com o `.env` e reinicia-a sempre que um ficheiro é guardado                  |
-| `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env` |
-| `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim          |
-| `npm run criar-admin`  | Cria uma conta de administrador, pedindo os dados no terminal                              |
-| `npm run exemplo`      | Junta produtores e produtos de exemplo, com o selo "Exemplo" (`-- --apagar` tira-os)       |
-| `npm run lint`         | Verifica o código com o ESLint                                                             |
-| `npm run format`       | Formata o código com o Prettier                                                            |
-| `npm run format:check` | Confirma que o código está formatado, sem o alterar                                        |
+| Comando                | O que faz                                                                                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`          | Arranca a API com o `.env` e reinicia-a sempre que um ficheiro é guardado                                                                                                    |
+| `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env`                                                                                   |
+| `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim                                                                                            |
+| `npm run criar-admin`  | Cria uma conta de administrador, pedindo os dados no terminal                                                                                                                |
+| `npm run exemplo`      | Junta produtores, produtos e leilões de exemplo, com o selo "Exemplo". Os que já existem ficam; os leilões voltam a ser marcados a partir de agora (`-- --apagar` tira tudo) |
+| `npm run lint`         | Verifica o código com o ESLint                                                                                                                                               |
+| `npm run format`       | Formata o código com o Prettier                                                                                                                                              |
+| `npm run format:check` | Confirma que o código está formatado, sem o alterar                                                                                                                          |
 
 ### Frontend (SPA)
 

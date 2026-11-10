@@ -46,8 +46,8 @@ export function formatarHora(data) {
   return HORAS.format(new Date(data));
 }
 
-// "Hoje", "Amanhã" ou "sexta-feira, 7 de novembro", para agrupar a agenda por dia
-export function formatarDia(data) {
+// "Hoje", "Amanhã" ou null, para os outros dias
+function hojeOuAmanha(data) {
   const dia = new Date(data);
   const hoje = new Date();
   const amanha = new Date(hoje);
@@ -58,7 +58,23 @@ export function formatarDia(data) {
   if (dia.toDateString() === amanha.toDateString()) {
     return 'Amanhã';
   }
-  return DIAS.format(dia);
+  return null;
+}
+
+// "Hoje", "Amanhã" ou "sexta-feira, 7 de novembro", para agrupar a agenda por dia
+export function formatarDia(data) {
+  return hojeOuAmanha(data) ?? DIAS.format(new Date(data));
+}
+
+const DIAS_CURTOS = new Intl.DateTimeFormat('pt-PT', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'numeric',
+});
+
+// "Hoje", "Amanhã" ou "sexta, 7/11", onde há pouco espaço
+export function formatarDiaCurto(data) {
+  return hojeOuAmanha(data) ?? DIAS_CURTOS.format(new Date(data));
 }
 
 // As durações que o produtor pode escolher, em minutos

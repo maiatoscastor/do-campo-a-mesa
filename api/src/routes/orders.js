@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { auth } from '../middleware/auth.js';
-import { avisar } from '../sockets/avisos.js';
+import { avisar, avisarPainel } from '../sockets/avisos.js';
 import { ESTADOS, Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { Review } from '../models/Review.js';
@@ -235,6 +235,7 @@ router.post('/', auth('comprador', 'produtor'), async (req, res) => {
       { id: encomenda._id },
     );
   }
+  await avisarPainel(req.app.get('io'));
   res.status(201).json(criadas.map((encomenda) => encomendaPublica(encomenda)));
 });
 
@@ -289,6 +290,7 @@ router.patch('/:id/estado', auth('produtor'), async (req, res) => {
     'encomenda-atualizada',
     { id: atualizada._id, estado },
   );
+  await avisarPainel(req.app.get('io'));
   const [publica] = await comAvaliacoes([atualizada]);
   res.json(publica);
 });

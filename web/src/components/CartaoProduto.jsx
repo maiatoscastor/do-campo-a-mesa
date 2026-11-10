@@ -8,8 +8,10 @@ import { formatarPreco } from '../produtos.js';
 import { formatarMedia, textoDasAvaliacoes } from '../avaliacoes.js';
 
 // Cartão de um produto no catálogo. Os dados inventados levam o selo "Exemplo". Em baixo, o botão
-// para pôr no carrinho, que passa a escolha da quantidade quando o produto já lá está.
-export default function CartaoProduto({ produto }) {
+// para pôr no carrinho, que passa a escolha da quantidade quando o produto já lá está. O nome é um
+// h2 no catálogo; dentro de uma secção com título (no início, na página do produtor), um h3.
+export default function CartaoProduto({ produto, nivel = 'h2' }) {
+  const Titulo = nivel;
   const {
     nome,
     preco,
@@ -38,7 +40,7 @@ export default function CartaoProduto({ produto }) {
         </div>
       </div>
       <div className="card-body d-flex flex-column">
-        <h2 className="cartao-produto-nome">{nome}</h2>
+        <Titulo className="cartao-produto-nome">{nome}</Titulo>
         <p className="cartao-produto-produtor">
           <Link to={`/produtores/${produtor.id}`}>
             {produtor.nomeExploracao}

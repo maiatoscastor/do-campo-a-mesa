@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { Auction } from '../models/Auction.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
-import { avisar } from '../sockets/avisos.js';
+import { avisar, avisarPainel } from '../sockets/avisos.js';
 import { sala } from '../sockets/leiloes.js';
 import { formatarEuros } from '../utils/dinheiro.js';
 
@@ -24,6 +24,7 @@ export async function abrirAgendados(io) {
     );
     if (aberto) {
       io.to(sala(_id)).emit('aberto', { id: _id });
+      await avisarPainel(io);
     }
   }
 }
@@ -105,6 +106,7 @@ export async function fecharExpirados(io) {
       valor: encomenda ? leilao.licitacaoAtual.valor : null,
     };
     io.to(sala(_id)).emit('terminado', resultado);
+    await avisarPainel(io);
     // O produtor e o vencedor ficam com a notificação, mesmo que não estejam a ver o leilão
     const lote = `${leilao.nome} (${leilao.lote})`;
     await avisar(

@@ -79,7 +79,14 @@ export default function SalaLeilao() {
           <div className="d-flex gap-3 align-items-center mb-3">
             <ImagemProduto produto={leilao} className="imagem-leilao" />
             <div className="lista-produtos-texto">
-              <h1 className="h3 mb-1">{nome}</h1>
+              <h1 className="h3 mb-1">
+                {nome}
+                {leilao.exemplo && (
+                  <span className="selo selo-exemplo align-middle ms-2">
+                    Exemplo
+                  </span>
+                )}
+              </h1>
               <p className="mb-1 fw-semibold">Lote: {lote}</p>
               <p className="small text-body-secondary mb-0">
                 <Link to={`/produtores/${produtor.id}`}>

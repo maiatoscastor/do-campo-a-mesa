@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { auth, produtorAprovado } from '../middleware/auth.js';
 import { Auction, descreverLote } from '../models/Auction.js';
 import { Product } from '../models/Product.js';
+import { avisarPainel } from '../sockets/avisos.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 
 const router = Router();
@@ -162,6 +163,7 @@ router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
   } else {
     await leilao.save();
   }
+  await avisarPainel(req.app.get('io'));
   res.status(201).location(`/api/auctions/${leilao.id}`).json(leilao.publico());
 });
 
@@ -197,6 +199,7 @@ router.delete('/:id', auth('produtor'), async (req, res) => {
     }
     throw criarErro(409, 'Só se pode cancelar um leilão que ainda não começou');
   }
+  await avisarPainel(req.app.get('io'));
   res.status(204).end();
 });
 

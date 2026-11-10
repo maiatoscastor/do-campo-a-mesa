@@ -2,7 +2,10 @@ import { Router } from 'express';
 import { auth } from '../middleware/auth.js';
 import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
-import { resumoDoProdutor } from '../services/avaliacoes.js';
+import {
+  mediasDosProdutores,
+  resumoDoProdutor,
+} from '../services/avaliacoes.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 import {
   apagarImagem,
@@ -87,22 +90,35 @@ function pontoDoPedido(valor) {
   return { lat: numero(valor.lat), lng: numero(valor.lng) };
 }
 
-// GET /api/producers: os produtores aprovados, abertos a todos. Com ?comProdutos=true, só os que
-// têm produtos: é o que usam os filtros do catálogo, para nenhum filtro dar zero resultados.
+// GET /api/producers: os produtores aprovados, abertos a todos, com o logótipo, quantos produtos têm
+// e a média das avaliações (para os cartões). Com ?comProdutos=true, só os que têm produtos: é o que
+// usam os filtros do catálogo, para nenhum filtro dar zero resultados.
 router.get('/', async (req, res) => {
-  const filtro = { papel: 'produtor', 'produtor.validacao': 'aprovado' };
-  if (req.query.comProdutos === 'true') {
-    filtro._id = { $in: await Product.distinct('produtor') };
-  }
-  const produtores = await User.find(filtro)
-    .select('produtor.nomeExploracao produtor.localizacao exemplo')
-    .sort({ 'produtor.nomeExploracao': 1 });
+  const [produtos, produtores] = await Promise.all([
+    Product.aggregate([{ $group: { _id: '$produtor', quantos: { $sum: 1 } } }]),
+    User.find({ papel: 'produtor', 'produtor.validacao': 'aprovado' })
+      .select(
+        'produtor.nomeExploracao produtor.localizacao produtor.logotipoUrl exemplo',
+      )
+      .sort({ 'produtor.nomeExploracao': 1 }),
+  ]);
+  const quantos = new Map(
+    produtos.map(({ _id, quantos: n }) => [String(_id), n]),
+  );
+  const lista =
+    req.query.comProdutos === 'true'
+      ? produtores.filter(({ id }) => quantos.has(id))
+      : produtores;
+  const medias = await mediasDosProdutores(lista.map(({ _id }) => _id));
 
   res.json(
-    produtores.map(({ id, produtor, exemplo }) => ({
+    lista.map(({ id, produtor, exemplo }) => ({
       id,
       nomeExploracao: produtor.nomeExploracao,
       localizacao: produtor.localizacao,
+      logotipoUrl: produtor.logotipoUrl,
+      produtos: quantos.get(id) ?? 0,
+      avaliacao: medias.get(id),
       exemplo,
     })),
   );

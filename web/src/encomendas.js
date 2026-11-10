@@ -7,9 +7,37 @@ export const ESTADOS = [
   { estado: 'entregue', nome: 'Entregue', acao: 'Marcar como entregue' },
 ];
 
+// Os produtos que o comprador já encomendou e que continuam à venda e com stock, dos mais recentes
+// para os mais antigos (as encomendas já vêm por essa ordem), sem repetidos
+export function produtosParaComprarOutraVez(encomendas, produtos) {
+  const vistos = new Set();
+  const lista = [];
+  for (const { linhas } of encomendas) {
+    for (const { produto: id } of linhas) {
+      const produto = produtos.find((p) => p.id === id);
+      if (produto && produto.stock > 0 && !vistos.has(id)) {
+        vistos.add(id);
+        lista.push(produto);
+      }
+    }
+  }
+  return lista;
+}
+
 // O estado a seguir a este, ou undefined se a encomenda já foi entregue
 export function estadoSeguinte(estado) {
   return ESTADOS[ESTADOS.findIndex((e) => e.estado === estado) + 1];
+}
+
+// As encomendas que o comprador ainda acompanha no início: primeiro as que estão em curso, depois
+// as entregues que ainda não avaliou
+export function encomendasPorAcompanhar(encomendas) {
+  return [
+    ...encomendas.filter(({ estado }) => estado !== 'entregue'),
+    ...encomendas.filter(
+      ({ estado, avaliacao }) => estado === 'entregue' && !avaliacao,
+    ),
+  ];
 }
 
 const DATAS = new Intl.DateTimeFormat('pt-PT', {

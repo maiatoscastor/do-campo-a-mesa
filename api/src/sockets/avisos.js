@@ -46,3 +46,9 @@ export async function avisarAdministradores(io, notificacao, evento, dados) {
     console.error(`Aviso aos administradores não enviado: ${erro.message}`);
   }
 }
+
+// O início do administrador mostra a aplicação em números (encomendas, utilizadores, leilões): este
+// aviso, sem notificação, fá-lo voltar a ler os números quando alguma coisa muda
+export function avisarPainel(io) {
+  return avisarAdministradores(io, null, 'painel-mudou', {});
+}
