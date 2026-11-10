@@ -122,6 +122,7 @@ export default function MeusLeiloes() {
                             : 'licitações'
                         })`
                       : `base ${formatarPreco(leilao.precoBase)}`}
+                    {leilao.doStock && ' · tirado do stock'}
                   </p>
                   <span className={`selo ${SELOS_DAS_FASES[fase]}`}>
                     {NOMES_DAS_FASES[fase]}

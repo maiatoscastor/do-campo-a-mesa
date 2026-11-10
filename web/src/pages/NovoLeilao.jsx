@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import Campo from '../components/Campo.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
@@ -12,6 +12,9 @@ function numero(texto) {
   const valor = Number(texto.trim().replace(',', '.'));
   return texto.trim() && Number.isFinite(valor) ? valor : undefined;
 }
+
+// O formulário de produto volta aqui depois de guardar, com o produto novo já escolhido
+const CRIAR_E_VOLTAR = { voltarPara: '/conta/leiloes/novo' };
 
 // Pôr em leilão um lote de um dos seus produtos (/conta/leiloes/novo)
 export default function NovoLeilao() {
@@ -43,7 +46,11 @@ export default function NovoLeilao() {
           titulo="Ainda não tem produtos"
           texto="O lote de um leilão é sempre de um dos seus produtos."
         >
-          <Link className="btn btn-primary" to="/conta/produtos/novo">
+          <Link
+            className="btn btn-primary"
+            to="/conta/produtos/novo"
+            state={CRIAR_E_VOLTAR}
+          >
             Novo produto
           </Link>
         </EstadoVazio>
@@ -56,17 +63,37 @@ export default function NovoLeilao() {
 function FormularioLeilao({ produtos }) {
   const { pedir } = useSessao();
   const navegar = useNavigate();
-  const { valores, mudar, erro, aEnviar, enviar, formulario } = useFormulario({
-    produto: produtos[0].id,
-    lote: '',
-    descricao: '',
-    precoBase: '',
-    incremento: '',
-    quando: 'agora',
-    iniciaEm: '',
-    duracao: '10',
-  });
+  // Ao voltar do formulário de produto, o produto novo fica escolhido
+  const acabadoDeCriar = useLocation().state?.produto;
+  const { valores, mudar, definir, erro, aEnviar, enviar, formulario } =
+    useFormulario({
+      produto: produtos.some(({ id }) => id === acabadoDeCriar)
+        ? acabadoDeCriar
+        : produtos[0].id,
+      quantidade: '',
+      doStock: false,
+      descricao: '',
+      precoBase: '',
+      incremento: '',
+      quando: 'agora',
+      iniciaEm: '',
+      duracao: '10',
+    });
   const detalhes = erro?.detalhes ?? {};
+
+  // Tirar do stock só é possível se a quantidade couber no stock do produto
+  const escolhido = produtos.find(({ id }) => id === valores.produto);
+  const quantidade = numero(valores.quantidade);
+  const quantidadeValida = Number.isInteger(quantidade) && quantidade >= 1;
+  const chega = quantidadeValida && quantidade <= escolhido.stock;
+  let textoDoStock = `Tem ${escolhido.stock} em stock.`;
+  if (escolhido.stock === 0) {
+    textoDoStock = 'Este produto não tem stock.';
+  } else if (quantidadeValida && !chega) {
+    textoDoStock = `Não chega: tem ${escolhido.stock} em stock.`;
+  } else if (chega) {
+    textoDoStock = `Tem ${escolhido.stock} em stock. Se o leilão for cancelado ou acabar sem licitações, volta ao stock.`;
+  }
 
   function submeter(evento) {
     evento.preventDefault();
@@ -80,7 +107,8 @@ function FormularioLeilao({ produtos }) {
         metodo: 'POST',
         corpo: {
           produto: valores.produto,
-          lote: valores.lote,
+          quantidade,
+          doStock: valores.doStock && chega,
           descricao: valores.descricao,
           precoBase: numero(valores.precoBase),
           incremento: numero(valores.incremento),
@@ -104,6 +132,11 @@ function FormularioLeilao({ produtos }) {
             value={valores.produto}
             onChange={mudar}
             erro={detalhes.produto}
+            ajuda={
+              <Link to="/conta/produtos/novo" state={CRIAR_E_VOLTAR}>
+                Criar produto novo
+              </Link>
+            }
           >
             {produtos.map(({ id, nome }) => (
               <option key={id} value={id}>
@@ -112,13 +145,31 @@ function FormularioLeilao({ produtos }) {
             ))}
           </Campo>
           <Campo
-            rotulo="Lote"
-            nome="lote"
-            ajuda="O que vai a leilão. Por exemplo: 200 kg, calibre médio."
-            value={valores.lote}
+            rotulo={`Quantidade do lote (${escolhido.unidade})`}
+            nome="quantidade"
+            inputMode="numeric"
+            placeholder="200"
+            value={valores.quantidade}
             onChange={mudar}
-            erro={detalhes.lote}
+            erro={detalhes.quantidade}
           />
+          <div className="form-check mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="do-stock"
+              checked={valores.doStock && chega}
+              disabled={!chega}
+              onChange={(evento) => definir('doStock', evento.target.checked)}
+              aria-describedby="ajuda-do-stock"
+            />
+            <label className="form-check-label" htmlFor="do-stock">
+              Tirar do stock do produto
+            </label>
+            <div id="ajuda-do-stock" className="form-text">
+              {textoDoStock}
+            </div>
+          </div>
           <Campo
             rotulo="Descrição (opcional)"
             nome="descricao"

@@ -877,10 +877,20 @@ components:
 
     NovoLeilao:
       type: object
-      required: [produto, lote, precoBase, incremento, duracao]
+      required: [produto, quantidade, precoBase, incremento, duracao]
       properties:
         produto: { type: string, description: Um dos produtos do produtor }
-        lote: { type: string, maxLength: 150, example: 200 kg }
+        quantidade:
+          type: integer
+          minimum: 1
+          description: Quanto tem o lote, na unidade do produto
+          example: 200
+        doStock:
+          type: boolean
+          default: false
+          description: >
+            Tirar a quantidade do stock do produto (só se chegar). Volta ao stock se o leilão for
+            cancelado ou acabar sem licitações.
         descricao: { type: string, maxLength: 1000 }
         precoBase: { type: number, minimum: 0.01, example: 200 }
         incremento:
@@ -912,6 +922,11 @@ components:
         categoria: { $ref: '#/components/schemas/Categoria' }
         imagemUrl: { type: string }
         lote: { type: string, example: 200 kg }
+        quantidade: { type: integer, example: 200 }
+        unidade: { type: string, example: kg }
+        doStock:
+          type: boolean
+          description: Se o lote saiu do stock do produto
         descricao: { type: string }
         precoBase: { type: number }
         incremento: { type: number }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import Campo from '../components/Campo.jsx';
 import ImagemProduto from '../components/ImagemProduto.jsx';
@@ -62,6 +62,8 @@ export default function EditarProduto() {
 function FormularioProduto({ produto }) {
   const { pedir } = useSessao();
   const navegar = useNavigate();
+  // Quem veio de outro formulário (por exemplo, o de um leilão) volta para lá com o produto escolhido
+  const voltarPara = useLocation().state?.voltarPara;
   const { valores, mudar, definir, erro, aEnviar, enviar, formulario } =
     useFormulario({
       nome: produto?.nome ?? '',
@@ -138,7 +140,11 @@ function FormularioProduto({ produto }) {
       } else if (tirarFotografia && produto?.imagemUrl) {
         await pedir(caminhoDaImagem, { metodo: 'DELETE' });
       }
-      navegar('/conta/produtos');
+      if (voltarPara) {
+        navegar(voltarPara, { state: { produto: guardado.id } });
+      } else {
+        navegar('/conta/produtos');
+      }
     });
   }
 
@@ -296,7 +302,7 @@ function FormularioProduto({ produto }) {
           <button className="btn btn-primary" type="submit" disabled={aEnviar}>
             {aEnviar ? 'A guardar…' : 'Guardar'}
           </button>
-          <Link className="btn btn-suave" to="/conta/produtos">
+          <Link className="btn btn-suave" to={voltarPara ?? '/conta/produtos'}>
             Cancelar
           </Link>
         </div>

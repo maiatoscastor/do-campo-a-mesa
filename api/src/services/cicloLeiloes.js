@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Auction } from '../models/Auction.js';
 import { Order } from '../models/Order.js';
+import { Product } from '../models/Product.js';
 import { avisar } from '../sockets/avisos.js';
 import { sala } from '../sockets/leiloes.js';
 import { formatarEuros } from '../utils/dinheiro.js';
@@ -29,8 +30,9 @@ export async function abrirAgendados(io) {
 
 // Fecha os leilões cujo tempo acabou. Cada fecho só acontece se o leilão ainda não estiver terminado,
 // por isso, mesmo com várias instâncias da API, só uma fecha cada leilão. Se houve licitações, o
-// vencedor recebe uma encomenda com o lote, já confirmada, criada na mesma transação: ou fica tudo
-// gravado, ou nada (e o leilão volta a ser fechado na volta seguinte).
+// vencedor recebe uma encomenda com o lote, já confirmada; sem licitações, o lote que tinha saído do
+// stock volta ao produto. Tudo na mesma transação: ou fica tudo gravado, ou nada (e o leilão volta a
+// ser fechado na volta seguinte).
 export async function fecharExpirados(io) {
   const agora = new Date();
   const lista = await Auction.find({
@@ -49,7 +51,18 @@ export async function fecharExpirados(io) {
         { estado: 'terminado' },
         { session, returnDocument: 'after' },
       );
-      if (!leilao || leilao.numeroDeLicitacoes === 0) {
+      if (!leilao) {
+        return;
+      }
+      if (leilao.numeroDeLicitacoes === 0) {
+        // Sem licitações, o lote que saiu do stock volta ao produto
+        if (leilao.doStock) {
+          await Product.updateOne(
+            { _id: leilao.produto },
+            { $inc: { stock: leilao.quantidade } },
+            { session },
+          );
+        }
         return;
       }
       const { comprador, valor } = leilao.licitacaoAtual;
