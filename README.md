@@ -56,7 +56,7 @@ No ficheiro `.env`, preencher `MONGODB_URI` com o endereço de ligação à base
 npm run dev            # API em http://localhost:3000
 ```
 
-Para confirmar que está a funcionar, abrir <http://localhost:3000/api/health>.
+Para confirmar que está a funcionar, abrir <http://localhost:3000/api/health>. A documentação da API (Swagger UI), onde se podem experimentar os pedidos, fica em <http://localhost:3000/api-docs>.
 
 O registo público só cria compradores e produtores. A conta de administrador cria-se no terminal, com `npm run criar-admin`.
 
@@ -66,6 +66,7 @@ O registo público só cria compradores e produtores. A conta de administrador c
 | `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env` |
 | `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim          |
 | `npm run criar-admin`  | Cria uma conta de administrador, pedindo os dados no terminal                              |
+| `npm run exemplo`      | Junta produtores e produtos de exemplo, com o selo "Exemplo" (`-- --apagar` tira-os)       |
 | `npm run lint`         | Verifica o código com o ESLint                                                             |
 | `npm run format`       | Formata o código com o Prettier                                                            |
 | `npm run format:check` | Confirma que o código está formatado, sem o alterar                                        |
@@ -96,3 +97,4 @@ As alterações aos ficheiros aparecem no browser assim que são guardadas. Para
 - **Ícones:** desenhos do [Material Symbols](https://fonts.google.com/icons), da Google, com licença [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0). Estão em `web/src/components/Icone.jsx`.
 - **Letra:** [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) e [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans), com licença [SIL Open Font License 1.1](https://openfontlicense.org), instaladas através do [Fontsource](https://fontsource.org).
 - **Concelhos e freguesias:** [Carta Administrativa Oficial de Portugal (CAOP 2025)](https://dados.gov.pt/datasets/carta-administrativa-oficial-de-portugal-caop2025-continente), da Direção-Geral do Território, com licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Só os códigos e os nomes, em `api/src/dados/territorio.json`.
+- **Mapa:** [Leaflet](https://leafletjs.com), com licença [BSD-2-Clause](https://github.com/Leaflet/Leaflet/blob/main/LICENSE), e os mosaicos e os dados do [OpenStreetMap](https://www.openstreetmap.org/copyright), com licença [ODbL](https://opendatacommons.org/licenses/odbl/). A atribuição aparece no próprio mapa.
