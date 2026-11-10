@@ -208,6 +208,83 @@ paths:
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
 
+  /admin/painel:
+    get:
+      tags: [Administração]
+      summary: A aplicação em números, para o início do administrador
+      description: >
+        Contado no momento do pedido: utilizadores por papel (e os registados nos últimos 30 dias),
+        produtos de produtores aprovados, encomendas dos últimos 30 dias e dos 30 anteriores, leilões
+        a decorrer e marcados, as últimas 5 encomendas e os últimos 5 registos. Os administradores
+        recebem o evento painel-mudou (Socket.io) quando estes números mudam.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Os números
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  utilizadores:
+                    type: object
+                    properties:
+                      compradores: { type: integer }
+                      produtores: { type: integer }
+                      administradores: { type: integer }
+                      novos:
+                        type: integer
+                        description: Registados nos últimos 30 dias
+                  produtos: { type: integer }
+                  encomendas:
+                    type: object
+                    properties:
+                      ultimos30:
+                        { $ref: '#/components/schemas/EncomendasNoPeriodo' }
+                      anteriores30:
+                        { $ref: '#/components/schemas/EncomendasNoPeriodo' }
+                  leiloes:
+                    type: object
+                    properties:
+                      aDecorrer: { type: integer }
+                      marcados: { type: integer }
+                  ultimasEncomendas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        total: { type: number }
+                        estado:
+                          { $ref: '#/components/schemas/EstadoDaEncomenda' }
+                        origem: { type: string, enum: [loja, leilao] }
+                        data: { type: string, format: date-time }
+                        comprador: { type: string }
+                        produtor:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            nomeExploracao: { type: string }
+                  ultimosRegistos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        nome: { type: string }
+                        papel:
+                          { type: string, enum: [comprador, produtor, admin] }
+                        nomeExploracao: { type: string }
+                        validacao:
+                          {
+                            type: string,
+                            enum: [pendente, aprovado, rejeitado],
+                          }
+                        exemplo: { type: boolean }
+                        data: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
   /admin/denuncias:
     get:
       tags: [Administração]
@@ -1534,6 +1611,12 @@ components:
         moderacao:
           description: Em /reviews/{id}, para quem a escreveu, o produtor e o administrador
           allOf: [{ $ref: '#/components/schemas/Moderacao' }]
+
+    EncomendasNoPeriodo:
+      type: object
+      properties:
+        quantas: { type: integer }
+        valor: { type: number, description: A soma dos totais, em euros }
 
     MotivoDaDenuncia:
       type: string

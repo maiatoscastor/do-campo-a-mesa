@@ -9,8 +9,10 @@ import { Order } from '../src/models/Order.js';
 import { Product } from '../src/models/Product.js';
 import { Review } from '../src/models/Review.js';
 import { User } from '../src/models/User.js';
+import { cifrarPassword } from '../src/utils/password.js';
 
 const PASSWORD = 'uma-password-de-teste';
+const DIA = 24 * 60 * 60 * 1000;
 
 let servidor;
 let base;
@@ -83,6 +85,19 @@ async function criarConta(nome, { papel = 'comprador', aprovado = true } = {}) {
   return { id: dados.utilizador.id, token: dados.token };
 }
 
+async function criarAdmin() {
+  await User.create({
+    nome: 'Administrador de Teste',
+    email: 'admin@teste.pt',
+    passwordHash: await cifrarPassword(PASSWORD),
+    papel: 'admin',
+  });
+  const { dados } = await pedir('POST', '/auth/login', {
+    corpo: { email: 'admin@teste.pt', password: PASSWORD },
+  });
+  return dados.token;
+}
+
 async function criarProduto(token, nome, preco = 2) {
   const { dados } = await pedir('POST', '/products', {
     token,
@@ -141,5 +156,98 @@ describe('lista dos produtores', () => {
       [abel.id],
     );
     assert.equal(rosa.id, todos.dados[0].id);
+  });
+});
+
+describe('painel do administrador', () => {
+  it('é só para administradores', async () => {
+    const ana = await criarConta('Ana Teixeira');
+
+    const semSessao = await pedir('GET', '/admin/painel');
+    const comprador = await pedir('GET', '/admin/painel', { token: ana.token });
+
+    assert.equal(semSessao.estado, 401);
+    assert.equal(comprador.estado, 403);
+  });
+
+  it('conta os utilizadores, os produtos, as encomendas dos últimos 30 dias e os leilões', async () => {
+    const admin = await criarAdmin();
+    const abel = await criarConta('Quinta do Abel', { papel: 'produtor' });
+    await criarConta('Quinta Por Validar', {
+      papel: 'produtor',
+      aprovado: false,
+    });
+    const ana = await criarConta('Ana Teixeira');
+    const rui = await criarConta('Rui Costa');
+    const kiwi = await criarProduto(abel.token, 'Kiwi', 2.5);
+    await criarProduto(abel.token, 'Mel', 8);
+    await encomendar(ana, kiwi, 2); // 5 €
+    await encomendar(rui, kiwi, 1); // 2,50 €
+    // Uma encomenda de há 40 dias, que conta para os 30 dias anteriores
+    const antiga = await encomendar(rui, kiwi, 4); // 10 €
+    // (o createdAt do Mongoose não se muda: escreve-se diretamente na coleção)
+    await Order.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(String(antiga)) },
+      { $set: { createdAt: new Date(Date.now() - 40 * DIA) } },
+    );
+    await pedir('POST', '/auctions', {
+      token: abel.token,
+      corpo: {
+        produto: kiwi,
+        quantidade: 10,
+        precoBase: 20,
+        incremento: 1,
+        duracao: 10,
+      },
+    });
+    await pedir('POST', '/auctions', {
+      token: abel.token,
+      corpo: {
+        produto: kiwi,
+        quantidade: 5,
+        precoBase: 10,
+        incremento: 1,
+        duracao: 10,
+        iniciaEm: new Date(Date.now() + DIA).toISOString(),
+      },
+    });
+    // O ciclo dos leilões não corre nos testes: o primeiro passa a ativo à mão
+    await Auction.updateOne({ quantidade: 10 }, { estado: 'ativo' });
+
+    const { estado, dados } = await pedir('GET', '/admin/painel', {
+      token: admin,
+    });
+
+    assert.equal(estado, 200);
+    assert.deepEqual(dados.utilizadores, {
+      compradores: 2,
+      produtores: 2,
+      administradores: 1,
+      novos: 5,
+    });
+    assert.equal(dados.produtos, 2);
+    assert.deepEqual(dados.encomendas, {
+      ultimos30: { quantas: 2, valor: 7.5 },
+      anteriores30: { quantas: 1, valor: 10 },
+    });
+    assert.deepEqual(dados.leiloes, { aDecorrer: 1, marcados: 1 });
+    // As mais recentes primeiro, com o comprador e o produtor
+    assert.equal(dados.ultimasEncomendas.length, 3);
+    assert.equal(dados.ultimasEncomendas[0].comprador, 'Rui Costa');
+    assert.equal(
+      dados.ultimasEncomendas[0].produtor.nomeExploracao,
+      'Quinta do Abel',
+    );
+    assert.deepEqual(
+      dados.ultimosRegistos.map(({ nome, papel }) => [nome, papel]),
+      [
+        ['Rui Costa', 'comprador'],
+        ['Ana Teixeira', 'comprador'],
+        ['Quinta Por Validar', 'produtor'],
+        ['Quinta do Abel', 'produtor'],
+        ['Administrador de Teste', 'admin'],
+      ],
+    );
+    assert.equal(dados.ultimosRegistos[2].validacao, 'pendente');
   });
 });
