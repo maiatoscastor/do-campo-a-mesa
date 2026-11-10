@@ -1,30 +1,21 @@
 import { createBrowserRouter } from 'react-router';
 import App from './App.jsx';
-import LayoutConta from './components/LayoutConta.jsx';
-import LayoutEntrada from './components/LayoutEntrada.jsx';
+import ACarregar from './components/ACarregar.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
-import AvaliacoesProdutor from './pages/AvaliacoesProdutor.jsx';
-import AvaliarEncomenda from './pages/AvaliarEncomenda.jsx';
 import Carrinho from './pages/Carrinho.jsx';
-import DadosPessoais from './pages/DadosPessoais.jsx';
-import EditarProduto from './pages/EditarProduto.jsx';
-import Encomendas from './pages/Encomendas.jsx';
-import EncomendasRecebidas from './pages/EncomendasRecebidas.jsx';
-import Entrar from './pages/Entrar.jsx';
 import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
-import MeusLeiloes from './pages/MeusLeiloes.jsx';
-import MinhaPagina from './pages/MinhaPagina.jsx';
-import MeusProdutos from './pages/MeusProdutos.jsx';
-import Notificacoes from './pages/Notificacoes.jsx';
-import NovoLeilao from './pages/NovoLeilao.jsx';
 import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
-import PaginaProdutor from './pages/PaginaProdutor.jsx';
 import Produtos from './pages/Produtos.jsx';
-import Registar from './pages/Registar.jsx';
-import SalaLeilao from './pages/SalaLeilao.jsx';
-import ValidarProdutores from './pages/ValidarProdutores.jsx';
+
+// Uma página que só se descarrega quando é aberta pela primeira vez: o código dela fica num ficheiro
+// à parte, e quem nunca a abre (um visitante não abre a conta do produtor, por exemplo) não o
+// descarrega. O React Router espera pelo ficheiro antes de mostrar a página. Ficam no ficheiro
+// principal só as páginas por onde se entra na aplicação.
+function aPedido(carregar) {
+  return { lazy: async () => ({ Component: (await carregar()).default }) };
+}
 
 // O que um visitante vê nas páginas que exigem conta
 const ENCOMENDAS_FECHADAS = {
@@ -45,17 +36,19 @@ const CONTA_FECHADA = {
 export const router = createBrowserRouter([
   {
     // Entrar e criar conta têm uma estrutura própria, sem a navegação da aplicação
-    element: <LayoutEntrada />,
+    ...aPedido(() => import('./components/LayoutEntrada.jsx')),
     errorElement: <PaginaDeErro />,
+    hydrateFallbackElement: <ACarregar />,
     children: [
-      { path: 'entrar', element: <Entrar /> },
-      { path: 'registar', element: <Registar /> },
+      { path: 'entrar', ...aPedido(() => import('./pages/Entrar.jsx')) },
+      { path: 'registar', ...aPedido(() => import('./pages/Registar.jsx')) },
     ],
   },
   {
     path: '/',
     element: <App />,
     errorElement: <PaginaDeErro />,
+    hydrateFallbackElement: <ACarregar />,
     children: [
       {
         // Um erro numa página aparece dentro da estrutura, com a navegação à mão
@@ -64,23 +57,40 @@ export const router = createBrowserRouter([
           { index: true, element: <Inicio /> },
           { path: 'produtos', element: <Produtos /> },
           { path: 'leiloes', element: <Leiloes /> },
-          { path: 'leiloes/:id', element: <SalaLeilao /> },
-          { path: 'produtores/:id', element: <PaginaProdutor /> },
+          {
+            path: 'leiloes/:id',
+            ...aPedido(() => import('./pages/SalaLeilao.jsx')),
+          },
+          {
+            path: 'produtores/:id',
+            ...aPedido(() => import('./pages/PaginaProdutor.jsx')),
+          },
           {
             path: 'produtores/:id/avaliacoes',
-            element: <AvaliacoesProdutor />,
+            ...aPedido(() => import('./pages/AvaliacoesProdutor.jsx')),
           },
           { path: 'carrinho', element: <Carrinho /> },
           {
             element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
             children: [
-              { path: 'encomendas', element: <Encomendas /> },
-              { path: 'encomendas/:id/avaliar', element: <AvaliarEncomenda /> },
+              {
+                path: 'encomendas',
+                ...aPedido(() => import('./pages/Encomendas.jsx')),
+              },
+              {
+                path: 'encomendas/:id/avaliar',
+                ...aPedido(() => import('./pages/AvaliarEncomenda.jsx')),
+              },
             ],
           },
           {
             element: <RotaProtegida />,
-            children: [{ path: 'notificacoes', element: <Notificacoes /> }],
+            children: [
+              {
+                path: 'notificacoes',
+                ...aPedido(() => import('./pages/Notificacoes.jsx')),
+              },
+            ],
           },
           {
             // A minha conta: uma secção por separador, e cada papel só vê as suas
@@ -88,25 +98,56 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: 'conta',
-                element: <LayoutConta />,
+                ...aPedido(() => import('./components/LayoutConta.jsx')),
                 children: [
-                  { index: true, element: <DadosPessoais /> },
+                  {
+                    index: true,
+                    ...aPedido(() => import('./pages/DadosPessoais.jsx')),
+                  },
                   {
                     element: <RotaProtegida papeis={['produtor']} />,
                     children: [
-                      { path: 'quinta', element: <MinhaPagina /> },
-                      { path: 'produtos', element: <MeusProdutos /> },
-                      { path: 'produtos/novo', element: <EditarProduto /> },
-                      { path: 'produtos/:id', element: <EditarProduto /> },
-                      { path: 'encomendas', element: <EncomendasRecebidas /> },
-                      { path: 'leiloes', element: <MeusLeiloes /> },
-                      { path: 'leiloes/novo', element: <NovoLeilao /> },
+                      {
+                        path: 'quinta',
+                        ...aPedido(() => import('./pages/MinhaPagina.jsx')),
+                      },
+                      {
+                        path: 'produtos',
+                        ...aPedido(() => import('./pages/MeusProdutos.jsx')),
+                      },
+                      {
+                        path: 'produtos/novo',
+                        ...aPedido(() => import('./pages/EditarProduto.jsx')),
+                      },
+                      {
+                        path: 'produtos/:id',
+                        ...aPedido(() => import('./pages/EditarProduto.jsx')),
+                      },
+                      {
+                        path: 'encomendas',
+                        ...aPedido(
+                          () => import('./pages/EncomendasRecebidas.jsx'),
+                        ),
+                      },
+                      {
+                        path: 'leiloes',
+                        ...aPedido(() => import('./pages/MeusLeiloes.jsx')),
+                      },
+                      {
+                        path: 'leiloes/novo',
+                        ...aPedido(() => import('./pages/NovoLeilao.jsx')),
+                      },
                     ],
                   },
                   {
                     element: <RotaProtegida papeis={['admin']} />,
                     children: [
-                      { path: 'produtores', element: <ValidarProdutores /> },
+                      {
+                        path: 'produtores',
+                        ...aPedido(
+                          () => import('./pages/ValidarProdutores.jsx'),
+                        ),
+                      },
                     ],
                   },
                 ],
