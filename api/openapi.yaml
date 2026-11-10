@@ -402,6 +402,95 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Produtor' }
 
+  /producers/{id}:
+    get:
+      tags: [Produtores]
+      summary: A página pública de um produtor aprovado
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: A página
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /producers/eu:
+    get:
+      tags: [Produtores]
+      summary: A página do produtor com sessão, mesmo antes de ser aprovado, com o estado da validação
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A página
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+    patch:
+      tags: [Produtores]
+      summary: Mudar a página (só os campos enviados; vazio ou null tira o que lá estava)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaginaDoProdutorInput' }
+      responses:
+        '200':
+          description: A página atualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /producers/eu/{imagem}:
+    parameters:
+      - name: imagem
+        in: path
+        required: true
+        description: A capa (mínimo 1200 × 300 px, recomendado 1600 × 500) ou o logótipo (mínimo 200 × 200)
+        schema: { type: string, enum: [capa, logotipo] }
+    put:
+      tags: [Produtores]
+      summary: Pôr ou trocar a capa ou o logótipo da página
+      description: JPEG, PNG ou WebP, até 5 MB. O tipo e as dimensões são lidos do conteúdo do ficheiro.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagem]
+              properties:
+                imagem: { type: string, format: binary }
+      responses:
+        '200':
+          description: A página com a imagem nova
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+    delete:
+      tags: [Produtores]
+      summary: Tirar a capa ou o logótipo
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A página sem a imagem
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
   /orders:
     get:
       tags: [Encomendas]
@@ -534,6 +623,10 @@ paths:
         - name: estado
           in: query
           schema: { type: string, enum: [terminado] }
+        - name: produtor
+          in: query
+          description: Só os leilões deste produtor
+          schema: { type: string }
       responses:
         '200':
           description: Lista de leilões, com os dados do produtor
@@ -964,3 +1057,67 @@ components:
           example: /encomendas
         lida: { type: boolean }
         data: { type: string, format: date-time }
+
+    Levantamento:
+      type: object
+      description: Quando se pode levantar na quinta
+      properties:
+        dias:
+          type: array
+          description: Dias da semana, de 1 (segunda) a 7 (domingo)
+          items: { type: integer, minimum: 1, maximum: 7 }
+          example: [6, 7]
+        abre: { type: string, example: '09:00' }
+        fecha: { type: string, example: '13:00' }
+        nota: { type: string, maxLength: 200 }
+
+    Contactos:
+      type: object
+      properties:
+        telefone: { type: string, example: 912 345 678 }
+        site: { type: string, example: 'https://quintadoabel.pt' }
+        instagram:
+          {
+            type: string,
+            description: Só o nome de utilizador,
+            example: quinta.do.abel,
+          }
+        facebook:
+          { type: string, example: 'https://www.facebook.com/quintadoabel' }
+
+    Ponto:
+      type: object
+      description: O ponto da quinta no mapa (em Portugal)
+      properties:
+        lat: { type: number, example: 41.77 }
+        lng: { type: number, example: -8.58 }
+
+    PaginaDoProdutorInput:
+      type: object
+      properties:
+        nomeExploracao: { type: string }
+        concelho: { type: string }
+        freguesia: { type: string }
+        descricao: { type: string, maxLength: 2000 }
+        levantamento: { $ref: '#/components/schemas/Levantamento' }
+        contactos: { $ref: '#/components/schemas/Contactos' }
+        ponto: { $ref: '#/components/schemas/Ponto' }
+
+    PaginaDoProdutor:
+      type: object
+      properties:
+        id: { type: string }
+        nomeExploracao: { type: string }
+        localizacao: { $ref: '#/components/schemas/Localizacao' }
+        descricao: { type: string }
+        capaUrl: { type: string }
+        logotipoUrl: { type: string }
+        levantamento: { $ref: '#/components/schemas/Levantamento' }
+        contactos: { $ref: '#/components/schemas/Contactos' }
+        ponto: { $ref: '#/components/schemas/Ponto' }
+        exemplo: { type: boolean }
+        desde: { type: string, format: date-time }
+        validacao:
+          type: string
+          enum: [pendente, aprovado, rejeitado]
+          description: Só nas respostas de /producers/eu e /producers/eu/{imagem}

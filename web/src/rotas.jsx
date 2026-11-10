@@ -12,13 +12,14 @@ import Entrar from './pages/Entrar.jsx';
 import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
 import MeusLeiloes from './pages/MeusLeiloes.jsx';
+import MinhaPagina from './pages/MinhaPagina.jsx';
 import MeusProdutos from './pages/MeusProdutos.jsx';
 import Notificacoes from './pages/Notificacoes.jsx';
 import NovoLeilao from './pages/NovoLeilao.jsx';
 import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
+import PaginaProdutor from './pages/PaginaProdutor.jsx';
 import Produtos from './pages/Produtos.jsx';
-import Quinta from './pages/Quinta.jsx';
 import Registar from './pages/Registar.jsx';
 import SalaLeilao from './pages/SalaLeilao.jsx';
 import ValidarProdutores from './pages/ValidarProdutores.jsx';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
           { path: 'produtos', element: <Produtos /> },
           { path: 'leiloes', element: <Leiloes /> },
           { path: 'leiloes/:id', element: <SalaLeilao /> },
+          { path: 'produtores/:id', element: <PaginaProdutor /> },
           { path: 'carrinho', element: <Carrinho /> },
           {
             element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
@@ -83,7 +85,7 @@ export const router = createBrowserRouter([
                   {
                     element: <RotaProtegida papeis={['produtor']} />,
                     children: [
-                      { path: 'quinta', element: <Quinta /> },
+                      { path: 'quinta', element: <MinhaPagina /> },
                       { path: 'produtos', element: <MeusProdutos /> },
                       { path: 'produtos/novo', element: <EditarProduto /> },
                       { path: 'produtos/:id', element: <EditarProduto /> },

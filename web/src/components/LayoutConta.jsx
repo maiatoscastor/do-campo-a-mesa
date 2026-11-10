@@ -10,7 +10,7 @@ const SECCOES = [
   { caminho: '/conta', nome: 'Dados pessoais', icone: 'pessoa' },
   {
     caminho: '/conta/quinta',
-    nome: 'Quinta ou negócio',
+    nome: 'A minha página',
     icone: 'quinta',
     papeis: ['produtor'],
   },

@@ -17,12 +17,18 @@ export default function CamposLocalizacao({
   freguesia,
   definir,
   detalhes,
+  textoInicial = {},
 }) {
   const [regioes, setRegioes] = useState(null);
   const [freguesias, setFreguesias] = useState({ concelho: null, lista: [] });
   const [falhou, setFalhou] = useState(false);
-  const [textoConcelho, setTextoConcelho] = useState('');
-  const [textoFreguesia, setTextoFreguesia] = useState('');
+  // Ao editar uma localização que já existe, os campos começam com os nomes dela
+  const [textoConcelho, setTextoConcelho] = useState(
+    textoInicial.concelho ?? '',
+  );
+  const [textoFreguesia, setTextoFreguesia] = useState(
+    textoInicial.freguesia ?? '',
+  );
 
   useEffect(() => {
     let cancelado = false;

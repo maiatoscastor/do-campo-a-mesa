@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import Icone from './Icone.jsx';
 import ImagemProduto from './ImagemProduto.jsx';
 import Quantidade from './Quantidade.jsx';
@@ -29,7 +30,9 @@ export default function CartaoProduto({ produto }) {
       <div className="card-body d-flex flex-column">
         <h2 className="cartao-produto-nome">{nome}</h2>
         <p className="cartao-produto-produtor">
-          {produtor.nomeExploracao}
+          <Link to={`/produtores/${produtor.id}`}>
+            {produtor.nomeExploracao}
+          </Link>
           {produtor.localizacao?.nomeConcelho &&
             ` · ${produtor.localizacao.nomeConcelho}`}
         </p>

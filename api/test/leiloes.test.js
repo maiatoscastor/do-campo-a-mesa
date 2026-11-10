@@ -283,6 +283,41 @@ describe('criar leilões', () => {
     assert.equal(meus.dados.length, 2);
   });
 
+  it('a agenda filtra pelo produtor, para a página dele', async () => {
+    const { leilao } = await umLeilao();
+    const outro = await criarConta('Quinta Alheia', { papel: 'produtor' });
+    const { dados: produto } = await pedir('POST', '/products', {
+      token: outro.token,
+      corpo: {
+        nome: 'Mel',
+        categoria: 'Mel',
+        preco: 8,
+        unidade: 'kg',
+        stock: 5,
+      },
+    });
+    await pedir('POST', '/auctions', {
+      token: outro.token,
+      corpo: {
+        produto: produto.id,
+        quantidade: 2,
+        precoBase: 10,
+        incremento: 1,
+        duracao: 10,
+      },
+    });
+
+    const { dados } = await pedir(
+      'GET',
+      `/auctions?produtor=${leilao.produtor}`,
+    );
+
+    assert.deepEqual(
+      dados.map(({ id }) => id),
+      [leilao.id],
+    );
+  });
+
   it('o produtor só cancela um leilão que ainda não começou', async () => {
     const daqui = new Date(Date.now() + 60 * MINUTO).toISOString();
     const {

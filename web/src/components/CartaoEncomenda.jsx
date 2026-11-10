@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import {
   ESTADOS,
   formatarData,
@@ -31,7 +32,13 @@ export default function CartaoEncomenda({ encomenda, para, children }) {
       <div className="card-body">
         <div className="d-flex flex-wrap align-items-baseline gap-2 mb-1">
           <h2 className="h6 mb-0 me-auto">
-            {para === 'comprador' ? produtor.nomeExploracao : comprador.nome}
+            {para === 'comprador' ? (
+              <Link to={`/produtores/${produtor.id}`}>
+                {produtor.nomeExploracao}
+              </Link>
+            ) : (
+              comprador.nome
+            )}
           </h2>
           <span className={`selo selo-${encomenda.estado}`}>
             {ESTADOS[atual].nome}

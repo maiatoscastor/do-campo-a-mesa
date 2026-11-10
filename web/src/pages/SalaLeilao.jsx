@@ -82,7 +82,9 @@ export default function SalaLeilao() {
               <h1 className="h3 mb-1">{nome}</h1>
               <p className="mb-1 fw-semibold">Lote: {lote}</p>
               <p className="small text-body-secondary mb-0">
-                {produtor.nomeExploracao}
+                <Link to={`/produtores/${produtor.id}`}>
+                  {produtor.nomeExploracao}
+                </Link>
                 {produtor.localizacao &&
                   ` · ${textoDaLocalizacao(produtor.localizacao)}`}
               </p>

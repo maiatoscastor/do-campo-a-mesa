@@ -27,13 +27,17 @@ function inicioDoPedido(valor) {
 
 // GET /api/auctions: a agenda, aberta a todos. Por omissão, os leilões a decorrer e os próximos, pela
 // hora de início; com ?estado=terminado, os que já acabaram, dos mais recentes para os mais antigos.
+// Com ?produtor=<id>, só os desse produtor.
 router.get('/', async (req, res) => {
   const terminados = req.query.estado === 'terminado';
-  const leiloes = await Auction.find(
-    terminados
-      ? { estado: 'terminado' }
-      : { estado: { $in: ['agendado', 'ativo'] } },
-  )
+  const filtro = terminados
+    ? { estado: 'terminado' }
+    : { estado: { $in: ['agendado', 'ativo'] } };
+  // Só os de um produtor (na página dele)
+  if (mongoose.isObjectIdOrHexString(req.query.produtor)) {
+    filtro.produtor = req.query.produtor;
+  }
+  const leiloes = await Auction.find(filtro)
     .sort(terminados ? { terminaEm: -1 } : { iniciaEm: 1 })
     .limit(100)
     .populate('produtor', CAMPOS_DO_PRODUTOR);

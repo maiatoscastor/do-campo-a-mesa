@@ -45,6 +45,102 @@ localizacaoSchema.pre('validate', function preencherNomes() {
       : undefined;
 });
 
+// Horas no formato 24 h ("09:00")
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Quando se pode levantar na quinta: os dias da semana (1 = segunda … 7 = domingo) e um horário
+const levantamentoSchema = new Schema(
+  {
+    dias: {
+      type: [Number],
+      validate: {
+        validator: (dias) =>
+          dias.length > 0 &&
+          new Set(dias).size === dias.length &&
+          dias.every((dia) => Number.isInteger(dia) && dia >= 1 && dia <= 7),
+        message: 'Escolha pelo menos um dia',
+      },
+    },
+    abre: {
+      type: String,
+      required: [true, 'Indique a hora de abertura'],
+      match: [HORA, 'Indique a hora de abertura'],
+    },
+    fecha: {
+      type: String,
+      required: [true, 'Indique a hora de fecho'],
+      match: [HORA, 'Indique a hora de fecho'],
+      validate: {
+        validator(fecha) {
+          return !this.abre || fecha > this.abre;
+        },
+        message: 'A hora de fecho tem de ser depois da de abertura',
+      },
+    },
+    nota: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'A nota é demasiado comprida'],
+    },
+  },
+  { _id: false },
+);
+
+// Contactos que o produtor quer mostrar na sua página, todos opcionais
+const contactosSchema = new Schema(
+  {
+    telefone: {
+      type: String,
+      trim: true,
+      match: [/^\+?[\d ]{9,16}$/, 'O telefone não é válido'],
+    },
+    site: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'O endereço é demasiado comprido'],
+      match: [
+        /^https?:\/\/[^\s/]+\.[^\s]+$/i,
+        'Escreva o endereço completo, a começar por https://',
+      ],
+    },
+    // Só o nome de utilizador (sem @)
+    instagram: {
+      type: String,
+      trim: true,
+      match: [/^[\w.]{1,30}$/, 'Escreva só o nome de utilizador do Instagram'],
+    },
+    facebook: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'O endereço é demasiado comprido'],
+      match: [
+        /^https?:\/\/(www\.|m\.)?(facebook|fb)\.com\/\S+$/i,
+        'Escreva o endereço da página de Facebook',
+      ],
+    },
+  },
+  { _id: false },
+);
+
+// O ponto da quinta no mapa. Os limites apanham o continente, os Açores e a Madeira.
+const pontoSchema = new Schema(
+  {
+    lat: {
+      type: Number,
+      required: [true, 'Marque o ponto no mapa'],
+      min: [29.5, 'O ponto tem de ser em Portugal'],
+      max: [42.3, 'O ponto tem de ser em Portugal'],
+    },
+    lng: {
+      type: Number,
+      required: [true, 'Marque o ponto no mapa'],
+      min: [-31.6, 'O ponto tem de ser em Portugal'],
+      max: [-6.1, 'O ponto tem de ser em Portugal'],
+    },
+  },
+  { _id: false },
+);
+
 // Dados que só os produtores têm. É um subdocumento (embebido), porque pertencem ao utilizador e
 // são sempre lidos com ele; e o _id é desligado, porque nunca se procura um destes sozinho.
 const produtorSchema = new Schema(
@@ -56,11 +152,18 @@ const produtorSchema = new Schema(
       maxlength: [100, 'O nome é demasiado comprido'],
     },
     localizacao: { type: localizacaoSchema, required: true },
+    // A história da quinta, que aparece na página pública
     descricao: {
       type: String,
       trim: true,
-      maxlength: [1000, 'A descrição é demasiado comprida'],
+      maxlength: [2000, 'O texto é demasiado comprido'],
     },
+    // A página pública: capa, logótipo, levantamento, contactos e ponto no mapa (tudo opcional)
+    capaUrl: String,
+    logotipoUrl: String,
+    levantamento: { type: levantamentoSchema, default: undefined },
+    contactos: { type: contactosSchema, default: undefined },
+    ponto: { type: pontoSchema, default: undefined },
     // Só um produtor aprovado pelo administrador pode publicar produtos
     validacao: {
       type: String,

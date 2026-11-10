@@ -146,7 +146,11 @@ export default function Carrinho() {
           {grupos.map(({ produtor, linhas: doProdutor }) => (
             <section className="card mb-3" key={produtor.id}>
               <div className="card-body">
-                <h2 className="h6 mb-0">{produtor.nomeExploracao}</h2>
+                <h2 className="h6 mb-0">
+                  <Link to={`/produtores/${produtor.id}`}>
+                    {produtor.nomeExploracao}
+                  </Link>
+                </h2>
                 <p className="small text-body-secondary mb-0">
                   {textoDaLocalizacao(produtor.localizacao)}
                 </p>
