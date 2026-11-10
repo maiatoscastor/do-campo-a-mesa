@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import DestaqueLeilao from '../components/DestaqueLeilao.jsx';
 import Icone from '../components/Icone.jsx';
 import { useProdutoresPendentes } from '../hooks/useProdutoresPendentes.js';
 import { useSessao } from '../hooks/useSessao.js';
@@ -34,18 +35,24 @@ export default function Inicio() {
           </Link>
         </div>
       )}
-      <h1>Produtos do Alto Minho, diretamente de quem os produz</h1>
-      <p className="text-body-secondary">
-        Encomende a produtores locais, levante na quinta ou receba em casa, e
-        licite em leilões em direto.
-      </p>
-      <div className="d-flex flex-wrap gap-2">
-        <Link className="btn btn-primary" to="/produtos">
-          Ver produtos
-        </Link>
-        <Link className="btn btn-suave" to="/leiloes">
-          Ver leilões
-        </Link>
+      {/* No computador, o leilão em destaque fica ao lado da apresentação; no telemóvel, por baixo */}
+      <div className="inicio-topo">
+        <div>
+          <h1>Produtos do Alto Minho, diretamente de quem os produz</h1>
+          <p className="text-body-secondary">
+            Encomende a produtores locais, levante na quinta ou receba em casa,
+            e licite em leilões em direto.
+          </p>
+          <div className="d-flex flex-wrap gap-2">
+            <Link className="btn btn-primary" to="/produtos">
+              Ver produtos
+            </Link>
+            <Link className="btn btn-suave" to="/leiloes">
+              Ver leilões
+            </Link>
+          </div>
+        </div>
+        <DestaqueLeilao />
       </div>
       {/* Atalho do administrador para o que espera por ele, mesmo quando não há nada */}
       {utilizador?.papel === 'admin' && (
