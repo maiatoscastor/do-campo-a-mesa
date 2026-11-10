@@ -11,6 +11,22 @@ export const CATEGORIAS = [
 
 export const EPOCAS = ['Primavera', 'Verão', 'Outono', 'Inverno'];
 
+// A época do ano numa data, pelas estações meteorológicas (meses inteiros): primavera de março a
+// maio, verão de junho a agosto, outono de setembro a novembro e inverno de dezembro a fevereiro
+export function epocaDe(data = new Date()) {
+  const mes = data.getMonth(); // 0 = janeiro
+  if (mes >= 2 && mes <= 4) {
+    return 'Primavera';
+  }
+  if (mes >= 5 && mes <= 7) {
+    return 'Verão';
+  }
+  if (mes >= 8 && mes <= 10) {
+    return 'Outono';
+  }
+  return 'Inverno';
+}
+
 // Sem fotografia, o produto aparece com a ilustração da categoria
 export const ILUSTRACAO_DA_CATEGORIA = {
   Hortícolas: 'couve',

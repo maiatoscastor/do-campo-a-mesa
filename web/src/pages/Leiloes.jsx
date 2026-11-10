@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { api } from '../api/cliente.js';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import CartaoLeilaoAoVivo from '../components/CartaoLeilaoAoVivo.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
-import ImagemProduto from '../components/ImagemProduto.jsx';
+import LinhaDaAgenda from '../components/LinhaDaAgenda.jsx';
 import { useAgora } from '../hooks/useAgora.js';
-import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
-import { formatarPreco } from '../produtos.js';
+import { faseDoLeilao, formatarDia } from '../leiloes.js';
 
 // Os próximos leilões agrupados por dia, pela ordem em que começam
 function agruparPorDia(leiloes) {
@@ -89,27 +87,7 @@ export default function Leiloes() {
               <ul className="list-group">
                 {doDia.map((leilao) => (
                   <li className="list-group-item" key={leilao.id}>
-                    <Link
-                      className="agenda-leilao"
-                      to={`/leiloes/${leilao.id}`}
-                    >
-                      <time className="agenda-hora" dateTime={leilao.iniciaEm}>
-                        {formatarHora(leilao.iniciaEm)}
-                      </time>
-                      <ImagemProduto
-                        produto={leilao}
-                        className="imagem-produto-mini"
-                      />
-                      <span className="lista-produtos-texto">
-                        <span className="d-block fw-bold text-truncate">
-                          {leilao.nome} · {leilao.lote}
-                        </span>
-                        <span className="d-block small text-body-secondary text-truncate">
-                          {leilao.produtor.nomeExploracao} · base{' '}
-                          {formatarPreco(leilao.precoBase)}
-                        </span>
-                      </span>
-                    </Link>
+                    <LinhaDaAgenda leilao={leilao} />
                   </li>
                 ))}
               </ul>

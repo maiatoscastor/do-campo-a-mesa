@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from 'react-router';
+import { Navigate, useLocation, useSearchParams } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
 import Campo from '../components/Campo.jsx';
 import CampoPassword from '../components/CampoPassword.jsx';
@@ -26,9 +26,11 @@ const TIPOS_DE_CONTA = [
 export default function Registar() {
   const { utilizador, registar } = useSessao();
   const { state } = useLocation();
+  // /registar?papel=produtor (por exemplo, a partir do "Vender aqui" do início) já abre em "Quero vender"
+  const [procura] = useSearchParams();
   const { valores, mudar, definir, erro, aEnviar, enviar, formulario } =
     useFormulario({
-      papel: 'comprador',
+      papel: procura.get('papel') === 'produtor' ? 'produtor' : 'comprador',
       nome: '',
       email: '',
       password: '',

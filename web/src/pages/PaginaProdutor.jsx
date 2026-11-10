@@ -182,7 +182,7 @@ export default function PaginaProdutor() {
               <div className="row row-cols-2 row-cols-md-3 g-3">
                 {produtos.map((produto) => (
                   <div className="col" key={produto.id}>
-                    <CartaoProduto produto={produto} />
+                    <CartaoProduto produto={produto} nivel="h3" />
                   </div>
                 ))}
               </div>
@@ -286,8 +286,15 @@ function LeiloesDoProdutor({ leiloes }) {
             <li className="list-group-item" key={leilao.id}>
               <Link className="agenda-leilao" to={`/leiloes/${leilao.id}`}>
                 <span className="lista-produtos-texto">
-                  <span className="d-block fw-bold text-truncate">
-                    {leilao.nome} · {leilao.lote}
+                  <span className="d-flex align-items-center gap-2">
+                    <span className="fw-bold text-truncate">
+                      {leilao.nome} · {leilao.lote}
+                    </span>
+                    {leilao.exemplo && (
+                      <span className="selo selo-exemplo flex-shrink-0">
+                        Exemplo
+                      </span>
+                    )}
                   </span>
                   <span className="d-block small text-body-secondary">
                     {fase === 'ativo'
