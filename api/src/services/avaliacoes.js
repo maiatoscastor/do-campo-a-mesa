@@ -64,3 +64,34 @@ export async function mediasDosProdutos(ids) {
     ]),
   );
 }
+
+// A média e o total das avaliações de cada produtor (por exemplo, para os cartões dos produtores),
+// num Map do identificador do produtor para { media, total }. Os que não têm avaliações não aparecem.
+export async function mediasDosProdutores(ids) {
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const grupos = await Review.aggregate([
+    {
+      $match: {
+        visivel: true,
+        produtor: {
+          $in: ids.map((id) => new mongoose.Types.ObjectId(String(id))),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: '$produtor',
+        media: { $avg: '$classificacao' },
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  return new Map(
+    grupos.map(({ _id, media, total }) => [
+      _id.toString(),
+      { media: umaCasaDecimal(media), total },
+    ]),
+  );
+}

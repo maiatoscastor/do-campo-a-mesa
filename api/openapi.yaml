@@ -1154,11 +1154,16 @@ components:
 
     Produtor:
       type: object
-      description: Um produtor aprovado, como aparece no catálogo
+      description: Um produtor aprovado, como aparece no catálogo e nos cartões dos produtores
       properties:
         id: { type: string }
         nomeExploracao: { type: string }
         localizacao: { $ref: '#/components/schemas/Localizacao' }
+        logotipoUrl: { type: string }
+        produtos: { type: integer, description: Quantos produtos tem }
+        avaliacao:
+          description: A média das avaliações (só quando já tem alguma)
+          allOf: [{ $ref: '#/components/schemas/MediaDasAvaliacoes' }]
         exemplo: { type: boolean }
 
     ProductInput:
