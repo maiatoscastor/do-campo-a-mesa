@@ -45,6 +45,11 @@ $escalas: (
   escuro: $escalas-escuras,
 );
 
+// O branco e o preto, iguais nos dois modos: o texto por cima das cores sólidas (botões, selos), os
+// contornos claros e as sombras, que levam transparência (por exemplo, rgba($preto, 0.15))
+$branco: #fff;
+$preto: #000;
+
 // Devolve um passo de uma escala, no modo claro (por omissão) ou no escuro.
 // Exemplos: cor(verde, 9) é o verde da marca; cor(neutro, 1, escuro) é o fundo do modo escuro.
 @function cor($escala, $passo, $modo: claro) {

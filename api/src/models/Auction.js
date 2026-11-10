@@ -4,6 +4,16 @@ import { arredondar, temAteDoisDecimais } from '../utils/dinheiro.js';
 
 export const ESTADOS_DO_LEILAO = ['agendado', 'ativo', 'terminado'];
 
+// Unidades de medida: com elas, o número junta-se à unidade ("200 kg"); com as outras (frasco,
+// molho, dúzia…), usa-se o sinal de vezes ("20 × frasco 500 g")
+const MEDIDAS = ['kg', 'g', 'l', 'cl', 'ml', 't'];
+
+export function descreverLote(quantidade, unidade) {
+  return MEDIDAS.includes(unidade.trim().toLowerCase())
+    ? `${quantidade} ${unidade}`
+    : `${quantidade} × ${unidade}`;
+}
+
 // Um valor em euros, maior do que zero e com até dois decimais
 function dinheiro(nome, maximo) {
   return {
@@ -50,12 +60,21 @@ const auctionSchema = new Schema(
     nome: { type: String, required: true },
     categoria: { type: String, enum: CATEGORIAS, required: true },
     imagemUrl: String,
-    lote: {
-      type: String,
-      required: [true, 'Diga o que tem o lote (por exemplo, 200 kg)'],
-      trim: true,
-      maxlength: [150, 'A descrição do lote é demasiado comprida'],
+    // O lote em texto ("200 kg"), feito a partir da quantidade e da unidade do produto
+    lote: { type: String, required: true, trim: true },
+    // Quanto tem o lote, na unidade do produto, e se essa quantidade saiu do stock do produto ao criar
+    // o leilão. Se saiu, volta ao stock quando o leilão é cancelado ou acaba sem licitações.
+    quantidade: {
+      type: Number,
+      min: [1, 'A quantidade tem de ser pelo menos 1'],
+      max: [1000000, 'A quantidade é demasiado grande'],
+      validate: {
+        validator: Number.isInteger,
+        message: 'A quantidade tem de ser um número inteiro',
+      },
     },
+    unidade: String,
+    doStock: { type: Boolean, default: false },
     descricao: {
       type: String,
       trim: true,

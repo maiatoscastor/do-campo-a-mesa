@@ -117,7 +117,7 @@ async function umLeilao(dados = {}) {
     token: produtor.token,
     corpo: {
       produto: produto.dados.id,
-      lote: '200 kg',
+      quantidade: 200,
       precoBase: 200,
       incremento: 5,
       duracao: 10,
@@ -202,7 +202,7 @@ describe('criar leilões', () => {
         token,
         corpo: {
           produto: produto.id,
-          lote: '200 kg',
+          quantidade: 200,
           precoBase: 200,
           incremento: 5,
           duracao: 10,
@@ -214,7 +214,7 @@ describe('criar leilões', () => {
     const invalido = await criar({
       precoBase: 0,
       incremento: 0.001,
-      lote: '',
+      quantidade: 0,
       duracao: 0,
       iniciaEm: '2020-01-01T10:00:00Z',
     });
@@ -228,8 +228,8 @@ describe('criar leilões', () => {
       'duracao',
       'incremento',
       'iniciaEm',
-      'lote',
       'precoBase',
+      'quantidade',
     ]);
   });
 
@@ -262,7 +262,7 @@ describe('criar leilões', () => {
       token: produtor.token,
       corpo: {
         produto: produto.id,
-        lote: '50 kg',
+        quantidade: 50,
         precoBase: 40,
         incremento: 2,
         duracao: 5,
@@ -283,6 +283,41 @@ describe('criar leilões', () => {
     assert.equal(meus.dados.length, 2);
   });
 
+  it('a agenda filtra pelo produtor, para a página dele', async () => {
+    const { leilao } = await umLeilao();
+    const outro = await criarConta('Quinta Alheia', { papel: 'produtor' });
+    const { dados: produto } = await pedir('POST', '/products', {
+      token: outro.token,
+      corpo: {
+        nome: 'Mel',
+        categoria: 'Mel',
+        preco: 8,
+        unidade: 'kg',
+        stock: 5,
+      },
+    });
+    await pedir('POST', '/auctions', {
+      token: outro.token,
+      corpo: {
+        produto: produto.id,
+        quantidade: 2,
+        precoBase: 10,
+        incremento: 1,
+        duracao: 10,
+      },
+    });
+
+    const { dados } = await pedir(
+      'GET',
+      `/auctions?produtor=${leilao.produtor}`,
+    );
+
+    assert.deepEqual(
+      dados.map(({ id }) => id),
+      [leilao.id],
+    );
+  });
+
   it('o produtor só cancela um leilão que ainda não começou', async () => {
     const daqui = new Date(Date.now() + 60 * MINUTO).toISOString();
     const {
@@ -295,7 +330,7 @@ describe('criar leilões', () => {
       token: produtor.token,
       corpo: {
         produto: produto.id,
-        lote: '10 kg',
+        quantidade: 10,
         precoBase: 10,
         incremento: 1,
         duracao: 5,
@@ -316,6 +351,85 @@ describe('criar leilões', () => {
     assert.equal(aDecorrer.estado, 409);
     assert.equal(cancelado.estado, 204);
     assert.equal(await Auction.countDocuments(), 1);
+  });
+});
+
+describe('lote tirado do stock', () => {
+  it('tira a quantidade do stock do produto, só se chegar', async () => {
+    const { produtor, produto } = await umLeilao();
+    const criar = (dados) =>
+      pedir('POST', '/auctions', {
+        token: produtor.token,
+        corpo: {
+          produto: produto.id,
+          precoBase: 20,
+          incremento: 1,
+          duracao: 10,
+          ...dados,
+        },
+      });
+
+    const reservado = await criar({ quantidade: 4, doStock: true });
+    const demais = await criar({ quantidade: 7, doStock: true });
+    const semStock = await criar({ quantidade: 7 });
+
+    assert.equal(reservado.estado, 201);
+    assert.equal(reservado.dados.doStock, true);
+    assert.equal(reservado.dados.lote, '4 kg');
+    assert.equal(demais.estado, 400);
+    assert.equal(demais.dados.detalhes.quantidade, 'Só há 6 em stock');
+    // Sem tirar do stock, o lote é à parte e pode ser maior do que o stock
+    assert.equal(semStock.estado, 201);
+    assert.equal((await Product.findById(produto.id)).stock, 6);
+  });
+
+  it('o stock volta ao produto quando o leilão é cancelado', async () => {
+    const daqui = new Date(Date.now() + 60 * MINUTO).toISOString();
+    const { produtor, produto, leilao } = await umLeilao({
+      iniciaEm: daqui,
+      quantidade: 3,
+      doStock: true,
+    });
+    assert.equal((await Product.findById(produto.id)).stock, 7);
+
+    await pedir('DELETE', `/auctions/${leilao.id}`, { token: produtor.token });
+
+    assert.equal((await Product.findById(produto.id)).stock, 10);
+  });
+
+  it('sem licitações o stock volta ao produto; vendido, fica com o vencedor', async () => {
+    const {
+      produtor,
+      produto,
+      leilao: semLicitacoes,
+    } = await umLeilao({
+      quantidade: 2,
+      doStock: true,
+    });
+    const { dados: vendido } = await pedir('POST', '/auctions', {
+      token: produtor.token,
+      corpo: {
+        produto: produto.id,
+        quantidade: 3,
+        doStock: true,
+        precoBase: 20,
+        incremento: 1,
+        duracao: 10,
+      },
+    });
+    const ana = await cliente((await criarConta('Ana')).token);
+    await licitar(ana, vendido.id, 20);
+    await Auction.updateMany({}, { terminaEm: new Date(Date.now() - 1000) });
+    assert.equal((await Product.findById(produto.id)).stock, 5);
+
+    await fecharExpirados(io);
+
+    assert.equal((await Product.findById(produto.id)).stock, 7);
+    assert.equal((await Order.findOne()).leilao.toString(), vendido.id);
+    assert.equal(
+      (await Auction.findById(semLicitacoes.id)).estado,
+      'terminado',
+    );
   });
 });
 

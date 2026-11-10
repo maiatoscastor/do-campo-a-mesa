@@ -17,12 +17,24 @@ tags:
   - name: Contas
     description: Registo, início de sessão e dados de quem tem a sessão
   - name: Administração
-    description: Só para administradores
+    description: >
+      Só para administradores: validar produtores e decidir as denúncias de avaliações. Os
+      administradores são avisados (notificações) de cada produtor novo e da primeira denúncia de cada
+      avaliação.
   - name: Localidades
     description: Concelhos e freguesias de Portugal (CAOP 2025, Direção-Geral do Território)
   - name: Produtos
   - name: Produtores
   - name: Encomendas
+  - name: Avaliações
+    description: >
+      Uma avaliação por encomenda entregue: estrelas e comentário sobre o produtor, e estrelas
+      opcionais para cada produto. O produtor pode responder. As médias calculam-se a partir das
+      avaliações visíveis.
+  - name: Notificações
+    description: >
+      Os avisos de cada utilizador (encomendas, leilões, validação da conta). Chegam também em tempo
+      real pelo Socket.io, no evento notificacao, e ficam guardados para se verem mais tarde.
   - name: Leilões
     description: >
       A agenda e a criação de leilões. As licitações em direto não passam por aqui: usam o
@@ -170,6 +182,94 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Utilizador' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /admin/resumo:
+    get:
+      tags: [Administração]
+      summary: O que está à espera do administrador (os números da navegação e do início)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Os números
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  produtoresPorValidar: { type: integer, example: 2 }
+                  denunciasPorDecidir:
+                    type: integer
+                    description: Avaliações com denúncias por decidir (cada uma conta uma vez)
+                    example: 1
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/denuncias:
+    get:
+      tags: [Administração]
+      summary: As avaliações denunciadas, por decidir ou já decididas
+      description: >
+        Por decidir: primeiro as que esperam há mais tempo, cada uma com as denúncias por decidir.
+        Decididas: das mais recentes para as mais antigas, com todas as denúncias que tiveram.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: estado
+          in: query
+          schema: { type: string, enum: [decidida] }
+        - name: pagina
+          in: query
+          description: De 10 em 10
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Uma página de casos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  porDecidir: { type: integer }
+                  casos:
+                    type: array
+                    items: { $ref: '#/components/schemas/CasoDeDenuncia' }
+                  temMais: { type: boolean }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/avaliacoes/{id}/moderacao:
+    patch:
+      tags: [Administração]
+      summary: Manter ou ocultar uma avaliação (também serve para voltar atrás)
+      description: >
+        Uma avaliação oculta deixa de aparecer e de contar nas médias. As denúncias por decidir ficam
+        decididas e quem as fez recebe a decisão; quem escreveu a avaliação é avisado quando ela é
+        ocultada ou volta a aparecer.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decisao, motivo]
+              properties:
+                decisao: { type: string, enum: [mantida, ocultada] }
+                motivo:
+                  type: string
+                  maxLength: 500
+                  description: Enviado a quem escreveu a avaliação e a quem a denunciou
+      responses:
+        '200':
+          description: O caso, com a decisão
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CasoDeDenuncia' }
         '400': { $ref: '#/components/responses/DadosInvalidos' }
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
@@ -398,6 +498,95 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Produtor' }
 
+  /producers/{id}:
+    get:
+      tags: [Produtores]
+      summary: A página pública de um produtor aprovado
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: A página
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /producers/eu:
+    get:
+      tags: [Produtores]
+      summary: A página do produtor com sessão, mesmo antes de ser aprovado, com o estado da validação
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A página
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+    patch:
+      tags: [Produtores]
+      summary: Mudar a página (só os campos enviados; vazio ou null tira o que lá estava)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaginaDoProdutorInput' }
+      responses:
+        '200':
+          description: A página atualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /producers/eu/{imagem}:
+    parameters:
+      - name: imagem
+        in: path
+        required: true
+        description: A capa (mínimo 1200 × 300 px, recomendado 1600 × 500) ou o logótipo (mínimo 200 × 200)
+        schema: { type: string, enum: [capa, logotipo] }
+    put:
+      tags: [Produtores]
+      summary: Pôr ou trocar a capa ou o logótipo da página
+      description: JPEG, PNG ou WebP, até 5 MB. O tipo e as dimensões são lidos do conteúdo do ficheiro.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagem]
+              properties:
+                imagem: { type: string, format: binary }
+      responses:
+        '200':
+          description: A página com a imagem nova
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+    delete:
+      tags: [Produtores]
+      summary: Tirar a capa ou o logótipo
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A página sem a imagem
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
   /orders:
     get:
       tags: [Encomendas]
@@ -457,6 +646,23 @@ paths:
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
 
+  /orders/{id}:
+    get:
+      tags: [Encomendas]
+      summary: Uma encomenda (só quem a fez ou o produtor a quem foi feita)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: A encomenda, com a avaliação se já tiver uma
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
   /orders/{id}/estado:
     patch:
       tags: [Encomendas]
@@ -490,6 +696,222 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
 
+  /notifications:
+    get:
+      tags: [Notificações]
+      summary: As últimas 30 notificações de quem tem a sessão, e quantas estão por ler
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: As notificações, das mais recentes para as mais antigas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  porLer: { type: integer }
+                  notificacoes:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notificacao' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+
+  /notifications/lidas:
+    patch:
+      tags: [Notificações]
+      summary: Marcar todas como lidas
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Marcadas, sem corpo
+        '401': { $ref: '#/components/responses/SemSessao' }
+
+  /reviews:
+    get:
+      tags: [Avaliações]
+      summary: As avaliações visíveis de um produtor, das mais recentes para as mais antigas
+      description: >
+        Aberto a todos. Com sessão (opcional), cada avaliação diz se a pessoa já a denunciou
+        (denunciada).
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - name: produtor
+          in: query
+          required: true
+          schema: { type: string }
+        - name: estrelas
+          in: query
+          description: Só as avaliações com este número de estrelas
+          schema: { type: integer, minimum: 1, maximum: 5 }
+        - name: pagina
+          in: query
+          description: De 10 em 10
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: O resumo (que não muda com o filtro das estrelas) e uma página de avaliações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resumo: { $ref: '#/components/schemas/ResumoDasAvaliacoes' }
+                  avaliacoes:
+                    type: array
+                    items: { $ref: '#/components/schemas/Avaliacao' }
+                  temMais: { type: boolean }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+    post:
+      tags: [Avaliações]
+      summary: Avaliar uma encomenda entregue (só quem a fez, uma vez)
+      description: O produtor é avisado (notificação do tipo avaliacao).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NovaAvaliacao' }
+      responses:
+        '201':
+          description: Avaliação criada
+          headers:
+            Location:
+              description: O endereço da nova avaliação
+              schema:
+                { type: string, example: /api/reviews/6720f1c2a1b2c3d4e5f60718 }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Avaliacao' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: A encomenda ainda não foi entregue, ou já foi avaliada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /reviews/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Avaliações]
+      summary: Uma avaliação (uma oculta, só para quem a escreveu, o produtor e o administrador)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A avaliação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Avaliacao' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    put:
+      tags: [Avaliações]
+      summary: Mudar a avaliação (só quem a escreveu)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AvaliacaoInput' }
+      responses:
+        '200':
+          description: A avaliação mudada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Avaliacao' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409': { $ref: '#/components/responses/AvaliacaoOculta' }
+
+  /reviews/{id}/denuncias:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Avaliações]
+      summary: Denunciar uma avaliação (uma vez; quem a escreveu não pode)
+      description: >
+        A avaliação continua visível até o administrador decidir. Os administradores são avisados da
+        primeira denúncia de cada avaliação.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo: { $ref: '#/components/schemas/MotivoDaDenuncia' }
+                descricao:
+                  type: string
+                  maxLength: 500
+                  description: Obrigatória no motivo outro
+      responses:
+        '201':
+          description: Denúncia registada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  motivo: { $ref: '#/components/schemas/MotivoDaDenuncia' }
+                  descricao: { type: string }
+                  estado: { type: string, enum: [pendente] }
+                  data: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: Já denunciou esta avaliação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+
+  /reviews/{id}/resposta:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    put:
+      tags: [Avaliações]
+      summary: Responder, ou mudar a resposta (só o produtor avaliado)
+      description: Quem avaliou é avisado da primeira resposta.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [texto]
+              properties:
+                texto: { type: string, maxLength: 1000 }
+      responses:
+        '200':
+          description: A avaliação com a resposta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Avaliacao' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409': { $ref: '#/components/responses/AvaliacaoOculta' }
+    delete:
+      tags: [Avaliações]
+      summary: Tirar a resposta (só o produtor avaliado)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Resposta tirada, sem corpo
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+
   /auctions:
     get:
       tags: [Leilões]
@@ -501,6 +923,10 @@ paths:
         - name: estado
           in: query
           schema: { type: string, enum: [terminado] }
+        - name: produtor
+          in: query
+          description: Só os leilões deste produtor
+          schema: { type: string }
       responses:
         '200':
           description: Lista de leilões, com os dados do produtor
@@ -595,6 +1021,11 @@ components:
       schema: { type: string, example: 6720f1c2a1b2c3d4e5f60718 }
 
   responses:
+    AvaliacaoOculta:
+      description: A avaliação foi ocultada pelo administrador
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
     DadosInvalidos:
       description: Dados inválidos (em "detalhes", a mensagem de cada campo)
       content:
@@ -765,6 +1196,9 @@ components:
             imagemUrl: { type: string, example: /uploads/3f2a9c1e.webp }
             exemplo:
               { type: boolean, description: Dados inventados para testar }
+            avaliacao:
+              description: A média das estrelas dadas ao produto (só quando já tem alguma)
+              allOf: [{ $ref: '#/components/schemas/MediaDasAvaliacoes' }]
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
 
@@ -839,15 +1273,34 @@ components:
             properties:
               estado: { $ref: '#/components/schemas/EstadoDaEncomenda' }
               data: { type: string, format: date-time }
+        avaliacao:
+          type: object
+          description: A avaliação da encomenda, quando já existe
+          properties:
+            id: { type: string }
+            classificacao: { type: integer, minimum: 1, maximum: 5 }
+            visivel:
+              type: boolean
+              description: Falso se o administrador a ocultou
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
     NovoLeilao:
       type: object
-      required: [produto, lote, precoBase, incremento, duracao]
+      required: [produto, quantidade, precoBase, incremento, duracao]
       properties:
         produto: { type: string, description: Um dos produtos do produtor }
-        lote: { type: string, maxLength: 150, example: 200 kg }
+        quantidade:
+          type: integer
+          minimum: 1
+          description: Quanto tem o lote, na unidade do produto
+          example: 200
+        doStock:
+          type: boolean
+          default: false
+          description: >
+            Tirar a quantidade do stock do produto (só se chegar). Volta ao stock se o leilão for
+            cancelado ou acabar sem licitações.
         descricao: { type: string, maxLength: 1000 }
         precoBase: { type: number, minimum: 0.01, example: 200 }
         incremento:
@@ -879,6 +1332,11 @@ components:
         categoria: { $ref: '#/components/schemas/Categoria' }
         imagemUrl: { type: string }
         lote: { type: string, example: 200 kg }
+        quantidade: { type: integer, example: 200 }
+        unidade: { type: string, example: kg }
+        doStock:
+          type: boolean
+          description: Se o lote saiu do stock do produto
         descricao: { type: string }
         precoBase: { type: number }
         incremento: { type: number }
@@ -902,3 +1360,232 @@ components:
         estado: { type: string, enum: [agendado, ativo, terminado] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    Notificacao:
+      type: object
+      properties:
+        id: { type: string }
+        texto:
+          { type: string, example: Quinta do Abel confirmou a sua encomenda. }
+        tipo:
+          {
+            type: string,
+            enum: [encomenda, leilao, conta, avaliacao, denuncia],
+          }
+        ligacao:
+          type: string
+          description: A página da aplicação a que se refere
+          example: /encomendas
+        lida: { type: boolean }
+        data: { type: string, format: date-time }
+
+    Levantamento:
+      type: object
+      description: Quando se pode levantar na quinta
+      properties:
+        dias:
+          type: array
+          description: Dias da semana, de 1 (segunda) a 7 (domingo)
+          items: { type: integer, minimum: 1, maximum: 7 }
+          example: [6, 7]
+        abre: { type: string, example: '09:00' }
+        fecha: { type: string, example: '13:00' }
+        nota: { type: string, maxLength: 200 }
+
+    Contactos:
+      type: object
+      properties:
+        telefone: { type: string, example: 912 345 678 }
+        site: { type: string, example: 'https://quintadoabel.pt' }
+        instagram:
+          {
+            type: string,
+            description: Só o nome de utilizador,
+            example: quinta.do.abel,
+          }
+        facebook:
+          { type: string, example: 'https://www.facebook.com/quintadoabel' }
+
+    Ponto:
+      type: object
+      description: O ponto da quinta no mapa (em Portugal)
+      properties:
+        lat: { type: number, example: 41.77 }
+        lng: { type: number, example: -8.58 }
+
+    PaginaDoProdutorInput:
+      type: object
+      properties:
+        nomeExploracao: { type: string }
+        concelho: { type: string }
+        freguesia: { type: string }
+        descricao: { type: string, maxLength: 2000 }
+        levantamento: { $ref: '#/components/schemas/Levantamento' }
+        contactos: { $ref: '#/components/schemas/Contactos' }
+        ponto: { $ref: '#/components/schemas/Ponto' }
+
+    PaginaDoProdutor:
+      type: object
+      properties:
+        id: { type: string }
+        nomeExploracao: { type: string }
+        localizacao: { $ref: '#/components/schemas/Localizacao' }
+        descricao: { type: string }
+        capaUrl: { type: string }
+        logotipoUrl: { type: string }
+        levantamento: { $ref: '#/components/schemas/Levantamento' }
+        contactos: { $ref: '#/components/schemas/Contactos' }
+        ponto: { $ref: '#/components/schemas/Ponto' }
+        exemplo: { type: boolean }
+        desde: { type: string, format: date-time }
+        avaliacao:
+          description: O resumo das avaliações (em /producers/{id} e /producers/eu)
+          allOf: [{ $ref: '#/components/schemas/ResumoDasAvaliacoes' }]
+        validacao:
+          type: string
+          enum: [pendente, aprovado, rejeitado]
+          description: Só nas respostas de /producers/eu e /producers/eu/{imagem}
+
+    MediaDasAvaliacoes:
+      type: object
+      properties:
+        media:
+          type: number
+          nullable: true
+          description: Com uma casa decimal; vazia sem avaliações
+          example: 4.7
+        total: { type: integer, example: 23 }
+
+    ResumoDasAvaliacoes:
+      allOf:
+        - $ref: '#/components/schemas/MediaDasAvaliacoes'
+        - type: object
+          properties:
+            distribuicao:
+              type: object
+              description: Quantas avaliações há de cada número de estrelas
+              additionalProperties: { type: integer }
+              example: { '1': 0, '2': 1, '3': 2, '4': 6, '5': 14 }
+
+    AvaliacaoInput:
+      type: object
+      required: [classificacao]
+      properties:
+        classificacao: { type: integer, minimum: 1, maximum: 5 }
+        comentario: { type: string, maxLength: 1000 }
+        produtos:
+          type: array
+          description: Estrelas opcionais para os produtos da encomenda
+          items:
+            type: object
+            required: [produto, classificacao]
+            properties:
+              produto: { type: string }
+              classificacao: { type: integer, minimum: 1, maximum: 5 }
+
+    NovaAvaliacao:
+      allOf:
+        - type: object
+          required: [encomenda]
+          properties:
+            encomenda: { type: string, description: A encomenda entregue }
+        - $ref: '#/components/schemas/AvaliacaoInput'
+
+    Avaliacao:
+      type: object
+      properties:
+        id: { type: string }
+        classificacao: { type: integer, minimum: 1, maximum: 5 }
+        comentario: { type: string }
+        produtos:
+          type: array
+          items:
+            type: object
+            properties:
+              produto: { type: string }
+              nome: { type: string }
+              classificacao: { type: integer, minimum: 1, maximum: 5 }
+        resposta:
+          type: object
+          description: A resposta do produtor
+          properties:
+            texto: { type: string }
+            data: { type: string, format: date-time }
+        autor:
+          type: object
+          properties:
+            id: { type: string }
+            nome: { type: string, example: Ana T. }
+        produtor: { type: string }
+        encomenda: { type: string }
+        data: { type: string, format: date-time }
+        editadaEm: { type: string, format: date-time }
+        denunciada:
+          type: boolean
+          description: Na lista, com sessão, se a pessoa já a denunciou
+        visivel:
+          type: boolean
+          description: Em /reviews/{id}, para quem a escreveu, o produtor e o administrador
+        moderacao:
+          description: Em /reviews/{id}, para quem a escreveu, o produtor e o administrador
+          allOf: [{ $ref: '#/components/schemas/Moderacao' }]
+
+    MotivoDaDenuncia:
+      type: string
+      enum: [ofensiva, dados-pessoais, falsa, publicidade, outro]
+
+    Moderacao:
+      type: object
+      description: A última decisão do administrador
+      properties:
+        decisao: { type: string, enum: [mantida, ocultada] }
+        motivo: { type: string }
+        data: { type: string, format: date-time }
+
+    CasoDeDenuncia:
+      type: object
+      description: Uma avaliação denunciada, como o administrador a vê
+      properties:
+        avaliacao:
+          type: object
+          properties:
+            id: { type: string }
+            classificacao: { type: integer, minimum: 1, maximum: 5 }
+            comentario: { type: string }
+            resposta:
+              type: object
+              properties:
+                texto: { type: string }
+                data: { type: string, format: date-time }
+            data: { type: string, format: date-time }
+            visivel: { type: boolean }
+            autor:
+              type: object
+              properties:
+                id: { type: string }
+                nome: { type: string, example: Ana Maria Teixeira }
+            produtor:
+              type: object
+              properties:
+                id: { type: string }
+                nomeExploracao: { type: string }
+            moderacao: { $ref: '#/components/schemas/Moderacao' }
+        denuncias:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              motivo: { $ref: '#/components/schemas/MotivoDaDenuncia' }
+              descricao: { type: string }
+              estado: { type: string, enum: [pendente, decidida] }
+              decisao: { type: string, enum: [mantida, ocultada] }
+              data: { type: string, format: date-time }
+              autor:
+                type: object
+                properties:
+                  id: { type: string }
+                  nome: { type: string }
+                  eOProdutor:
+                    type: boolean
+                    description: Se quem denunciou é o produtor avaliado

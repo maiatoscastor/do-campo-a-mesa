@@ -70,3 +70,117 @@
     color: var(--bs-body-color);
   }
 }
+
+// Lista das notificações (na página, no telemóvel, e no painel do sino, no computador): o ícone
+// do tipo, o texto e há quanto tempo. As que estavam por ler têm o texto a cheio e um ponto verde.
+.lista-notificacoes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li + li {
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+.notificacao {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 2rem 0.875rem 1rem;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    background-color: var(--bs-secondary-bg);
+  }
+}
+
+.notificacao-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+}
+
+.notificacao-texto {
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.notificacao-nova {
+  .notificacao-texto {
+    font-weight: 700;
+  }
+
+  // A hora fica com o peso normal
+  time {
+    font-weight: 400;
+  }
+
+  // O ponto à direita: o texto a cheio não chega para quem não distingue bem o peso da letra
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    transform: translateY(-50%);
+  }
+}
+
+.notificacoes-vazio {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 2rem 1.5rem;
+  color: var(--bs-secondary-color);
+  text-align: center;
+
+  .fw-semibold {
+    color: var(--bs-body-color);
+  }
+}
+
+// O sino e, no computador, o painel por baixo dele, alinhado à direita
+.sino {
+  position: relative;
+}
+
+.painel-notificacoes {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 1070;
+  width: 24rem;
+  max-height: min(32rem, calc(100vh - 6rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow-lg);
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.painel-notificacoes-titulo {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+  font-size: 1rem;
+}

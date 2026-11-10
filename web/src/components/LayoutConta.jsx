@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router';
 import Icone from './Icone.jsx';
-import { useProdutoresPendentes } from '../hooks/useProdutoresPendentes.js';
+import MenuSeccoes from './MenuSeccoes.jsx';
 import { useSessao } from '../hooks/useSessao.js';
 import { iniciais, PAPEIS } from '../utilizador.js';
 
@@ -10,7 +10,7 @@ const SECCOES = [
   { caminho: '/conta', nome: 'Dados pessoais', icone: 'pessoa' },
   {
     caminho: '/conta/quinta',
-    nome: 'Quinta ou negócio',
+    nome: 'A minha página',
     icone: 'quinta',
     papeis: ['produtor'],
   },
@@ -32,24 +32,13 @@ const SECCOES = [
     icone: 'encomendas',
     papeis: ['produtor'],
   },
-  {
-    caminho: '/conta/produtores',
-    nome: 'Validar produtores',
-    icone: 'validar',
-    papeis: ['admin'],
-  },
 ];
 
-// Estrutura de "A minha conta": quem tem a sessão e os separadores de cada papel. No telemóvel, os
-// separadores ficam numa faixa que desliza na horizontal; no computador, numa coluna ao lado.
+// Estrutura de "A minha conta": quem tem a sessão e os separadores de cada papel. O administrador
+// só tem aqui os dados pessoais: o trabalho dele fica na área da administração (LayoutAdmin.jsx).
 export default function LayoutConta() {
   const { utilizador, atualizar, sair } = useSessao();
   const navegar = useNavigate();
-  const { pathname } = useLocation();
-  const menu = useRef(null);
-  const [pendentes, recontarPendentes] = useProdutoresPendentes();
-  // Número a mostrar ao lado de cada separador (por agora, só os produtores por validar)
-  const contadores = { '/conta/produtores': pendentes };
   const seccoes = SECCOES.filter(
     ({ papeis }) => !papeis || papeis.includes(utilizador.papel),
   );
@@ -59,13 +48,6 @@ export default function LayoutConta() {
   useEffect(() => {
     atualizar().catch(() => {});
   }, [atualizar]);
-
-  // No telemóvel, a faixa de separadores desliza até ao da página aberta, para ele estar sempre à vista
-  useEffect(() => {
-    menu.current
-      ?.querySelector('a.active')
-      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [pathname]);
 
   // Volta ao início. O flushSync muda de página antes de a sessão acabar: sem ele, via-se por um
   // instante a mensagem de que esta página exige conta.
@@ -102,34 +84,16 @@ export default function LayoutConta() {
 
           {/* Com uma só secção, os separadores não servem para nada */}
           {seccoes.length > 1 && (
-            <nav
-              className="conta-menu"
-              aria-label="Secções da conta"
-              ref={menu}
-            >
-              <ul>
-                {seccoes.map(({ caminho, nome, icone }) => (
-                  <li key={caminho}>
-                    <NavLink to={caminho} end={caminho === '/conta'}>
-                      <Icone nome={icone} tamanho={20} />
-                      {nome}
-                      {contadores[caminho] > 0 && (
-                        <span className="contador">
-                          {contadores[caminho]}
-                          <span className="visually-hidden"> por validar</span>
-                        </span>
-                      )}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <MenuSeccoes
+              rotulo="Secções da conta"
+              seccoes={seccoes}
+              raiz="/conta"
+            />
           )}
         </div>
       </div>
       <div className="col-lg-9">
-        {/* As secções podem pedir para recontar (por exemplo, depois de validar um produtor) */}
-        <Outlet context={{ recontarPendentes }} />
+        <Outlet />
       </div>
     </div>
   );

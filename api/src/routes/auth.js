@@ -2,6 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { auth } from '../middleware/auth.js';
 import { User } from '../models/User.js';
+import { avisarAdministradores } from '../sockets/avisos.js';
 import { criarErro, problemasDeUtilizador } from '../utils/erro.js';
 import {
   cifrarPassword,
@@ -86,6 +87,20 @@ router.post('/registo', async (req, res) => {
   utilizador.passwordHash = await cifrarPassword(password);
 
   await guardar(utilizador);
+
+  // Um produtor novo fica à espera de validação: os administradores são avisados
+  if (papel === 'produtor') {
+    await avisarAdministradores(
+      req.app.get('io'),
+      {
+        texto: `Novo produtor por validar: ${utilizador.produtor.nomeExploracao}.`,
+        tipo: 'conta',
+        ligacao: '/admin/produtores',
+      },
+      'produtores-mudaram',
+      {},
+    );
+  }
 
   res.status(201).json({
     token: emitirToken(utilizador),

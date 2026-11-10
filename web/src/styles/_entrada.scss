@@ -11,8 +11,8 @@
   --entrada-bloco: #{v.cor(neutro, 1)};
   --painel-claro: #{v.cor(verde, 9)};
   --painel-escuro: #{v.cor(verde, 12)};
-  --painel-texto: #fff;
-  --painel-linhas: rgba(255, 255, 255, 0.07);
+  --painel-texto: #{v.$branco};
+  --painel-linhas: #{rgba(v.$branco, 0.07)};
   --ladrilho-verde: #{v.cor(verde, 3)};
   --ladrilho-ambar: #{v.cor(ambar, 3)};
   --ladrilho-neutro: #{v.cor(neutro, 1)};
@@ -25,7 +25,7 @@
   --painel-claro: #{v.cor(verde, 4, escuro)};
   --painel-escuro: #{v.cor(verde, 2, escuro)};
   --painel-texto: #{v.cor(verde, 12, escuro)};
-  --painel-linhas: rgba(255, 255, 255, 0.04);
+  --painel-linhas: #{rgba(v.$branco, 0.04)};
   --ladrilho-verde: #{v.cor(verde, 5, escuro)};
   --ladrilho-ambar: #{v.cor(ambar, 5, escuro)};
   --ladrilho-neutro: #{v.cor(neutro, 5, escuro)};
@@ -78,7 +78,7 @@
       var(--bs-primary-bg-subtle),
       transparent 70%
     );
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgba(v.$preto, 0.05);
     color: var(--bs-body-color);
   }
 }
@@ -163,7 +163,7 @@
   padding: 1.25rem max(1rem, calc((100% - 28rem) / 2)) 2rem;
   border-radius: var(--bs-border-radius-xl) var(--bs-border-radius-xl) 0 0;
   background-color: var(--entrada-bloco);
-  box-shadow: 0 -0.5rem 1.5rem rgba(0, 0, 0, 0.14);
+  box-shadow: 0 -0.5rem 1.5rem rgba(v.$preto, 0.14);
   color: var(--bs-body-color);
 
   // O main recebe o foco de quem usa o teclado, mas não precisa de contorno
@@ -230,8 +230,8 @@
   .btn-primary {
     min-height: 3.25rem;
     background-image: linear-gradient(
-      rgba(255, 255, 255, 0.06),
-      rgba(255, 255, 255, 0)
+      rgba(v.$branco, 0.06),
+      rgba(v.$branco, 0)
     );
     box-shadow: 0 0.75rem 1.5rem -0.75rem var(--bs-primary);
 
@@ -266,7 +266,7 @@
   a.active {
     background-color: var(--entrada-bloco);
     color: var(--bs-body-color);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 1px 3px rgba(v.$preto, 0.14);
     // Com o mesmo nome nas duas páginas, o browser anima a pílula de um lado para o outro
     view-transition-name: alternador-ativo;
   }
@@ -321,9 +321,9 @@
   min-height: 0;
   padding: 12%;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(v.$branco, 0.28);
   border-radius: var(--bs-border-radius-lg);
-  box-shadow: 0 0.75rem 1.5rem -0.75rem rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0.75rem 1.5rem -0.75rem rgba(v.$preto, 0.45);
 
   svg {
     --rodar: 0deg;

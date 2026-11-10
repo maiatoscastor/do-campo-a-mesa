@@ -1,0 +1,430 @@
+// Avaliações: as estrelas (para ver e para escolher), a nota geral, a distribuição e a lista.
+// Mobile First.
+@use 'mixins' as m;
+
+// As estrelas são âmbar (o --bs-warning do tema), com contraste acima de 3:1 nos dois modos
+.estrelas {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  color: var(--bs-warning);
+  line-height: 0;
+  vertical-align: middle;
+}
+
+.estrelas-vazias,
+.estrelas-cheias {
+  display: inline-flex;
+
+  // Cada estrela fica com o seu tamanho: as cheias são cortadas, e não espremidas
+  svg {
+    flex: none;
+  }
+}
+
+// As cheias por cima das vazias, cortadas na largura da nota
+.estrelas-cheias {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+}
+
+// Escolher as estrelas: alvos grandes para o dedo
+.escolher-estrelas {
+  margin-bottom: 1rem;
+}
+
+.escolher-estrelas-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.escolher-estrelas-opcoes {
+  display: inline-flex;
+}
+
+// O botão de opção escondido fica dentro da estrela (position: relative), para o browser rolar até
+// ela quando o foco lá chega
+.escolher-estrela {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: var(--bs-border-radius);
+  color: var(--bs-warning);
+  cursor: pointer;
+
+  // O botão de opção está escondido: o contorno do foco aparece na estrela
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -2px;
+  }
+}
+
+.escolher-estrelas-texto {
+  font-weight: 700;
+}
+
+// As dos produtos: mais pequenas, com o nome do produto ao lado no computador
+.escolher-estrelas-pequenas {
+  padding-block: 0.5rem;
+  margin-bottom: 0;
+
+  & + & {
+    border-top: 1px solid var(--bs-border-color);
+  }
+
+  .escolher-estrela {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+  }
+
+  .escolher-estrelas-texto {
+    font-size: 0.875rem;
+  }
+}
+
+.escolher-estrelas-nome {
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+// A nota junto ao nome do produtor
+.nota-produtor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  color: var(--bs-body-color);
+  text-decoration: none;
+
+  .icone,
+  svg {
+    color: var(--bs-warning);
+  }
+
+  &:hover span:last-child {
+    text-decoration: underline;
+  }
+}
+
+// O resumo das avaliações (ResumoDasAvaliacoes.jsx): a nota, as barras e o botão, uns por baixo
+// dos outros. Quando o próprio cartão é largo (na página do produtor, a partir do tablet), a nota e
+// o botão ficam à esquerda e as barras à direita. É o cartão que decide (container query), porque na
+// página das avaliações o mesmo resumo fica numa coluna estreita no computador.
+.resumo-avaliacoes {
+  container-type: inline-size;
+}
+
+.resumo-avaliacoes-corpo {
+  display: grid;
+  grid-template-areas: 'nota' 'barras' 'acoes';
+  gap: 1rem;
+}
+
+.resumo-avaliacoes-nota {
+  display: flex;
+  grid-area: nota;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.resumo-avaliacoes-acoes {
+  grid-area: acoes;
+}
+
+@container (min-width: 34rem) {
+  .resumo-avaliacoes-corpo {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'nota barras' 'acoes barras';
+    grid-template-rows: auto 1fr;
+    column-gap: 2.5rem;
+  }
+
+  .resumo-avaliacoes-nota {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.nota-geral-numero {
+  font-family: var(--bs-headings-font-family, inherit);
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+// Página das avaliações: o resumo por cima no telemóvel, e numa coluna fixa ao lado no computador
+.avaliacoes-pagina {
+  display: grid;
+  gap: 1.5rem;
+
+  @include m.a-partir-de(lg) {
+    grid-template-columns: 20rem minmax(0, 1fr);
+    align-items: start;
+
+    .resumo-avaliacoes {
+      position: sticky;
+      top: 5.5rem;
+    }
+  }
+}
+
+// A distribuição: uma barra por número de estrelas, que filtra a lista ao tocar (ou abre a lista já
+// filtrada, na página do produtor)
+.distribuicao {
+  display: grid;
+  grid-area: barras;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.distribuicao-barra {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) 2rem;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--bs-border-radius);
+  background: none;
+  color: var(--bs-body-color);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  text-decoration: none;
+
+  &:hover:not(:disabled, .distribuicao-barra-vazia) {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+  }
+
+  &:disabled,
+  &.distribuicao-barra-vazia {
+    color: var(--bs-secondary-color);
+  }
+}
+
+.distribuicao-estrelas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-weight: 700;
+
+  svg {
+    color: var(--bs-warning);
+  }
+}
+
+.distribuicao-trilho {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: var(--bs-secondary-bg);
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background-color: var(--bs-warning);
+  }
+}
+
+.distribuicao-quantas {
+  text-align: right;
+}
+
+// A lista das avaliações
+.lista-avaliacoes {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+
+  li + li {
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+.avaliacao {
+  padding-block: 1rem;
+}
+
+// O comentário mantém as mudanças de linha de quem o escreveu
+.avaliacao-comentario {
+  margin-bottom: 0.5rem;
+  white-space: pre-line;
+}
+
+.avaliacao-produtos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.625rem;
+    border-radius: var(--bs-border-radius-pill);
+    background-color: var(--bs-secondary-bg);
+    font-size: 0.8125rem;
+  }
+}
+
+.avaliacao-produto-nota {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+
+  svg {
+    color: var(--bs-warning);
+  }
+}
+
+// A resposta do produtor, recuada e com uma linha à esquerda
+.resposta-produtor {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--bs-primary);
+  border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+  background-color: var(--bs-tertiary-bg);
+}
+
+.resposta-produtor-texto {
+  white-space: pre-line;
+}
+
+// A nota no cartão da encomenda e no cartão do produto
+.avaliacao-da-encomenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+}
+
+.cartao-produto-nota {
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+
+  > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  svg {
+    color: var(--bs-warning);
+  }
+}
+
+// O topo de cada avaliação: o autor e a data à esquerda, o "Denunciar" à direita
+.avaliacao-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+// Denunciar uma avaliação: discreto, ao lado da data, para não competir com a avaliação
+.denunciar,
+.denunciada {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+}
+
+.denunciar {
+  // 44 px de altura, para tocar com o dedo, sem empurrar a avaliação para baixo
+  min-height: 2.75rem;
+  margin-block: -0.625rem;
+  padding: 0 0.25rem;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--bs-danger-text-emphasis);
+  }
+}
+
+.denunciada {
+  color: var(--bs-secondary-color);
+}
+
+.formulario-denuncia {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-tertiary-bg);
+
+  // Sem motivo, todos os círculos ficam a vermelho, mas os textos das opções mantêm a cor normal
+  // (a mensagem por baixo é que diz o que falta)
+  .form-check-input.is-invalid ~ .form-check-label {
+    color: inherit;
+  }
+}
+
+// Os casos das denúncias, na administração: a avaliação recuada, como uma citação, e as denúncias
+// numa lista com uma linha entre cada uma
+.caso-avaliacao {
+  padding: 0.75rem 1rem;
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-tertiary-bg);
+}
+
+.lista-denuncias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding-block: 0.5rem;
+  }
+
+  li + li {
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+.caso-decisao {
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+.selo-por-decidir {
+  background-color: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+}
+
+.selo-mantida {
+  background-color: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+}
+
+.selo-ocultada {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}

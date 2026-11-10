@@ -3,8 +3,8 @@ import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import multer from 'multer';
 import { criarErro } from './erro.js';
 
-// Fotografias dos produtos. Em desenvolvimento ficam na pasta api/uploads (fora do Git); na
-// publicação, passam para um storage na Cloud.
+// Fotografias dos produtos e imagens das páginas dos produtores. Em desenvolvimento ficam na pasta
+// api/uploads (fora do Git); na publicação, passam para um storage na Cloud.
 export const PASTA_UPLOADS = new URL('../../uploads/', import.meta.url);
 const TAMANHO_MAXIMO = 5 * 1024 * 1024; // 5 MB
 
@@ -33,14 +33,86 @@ function extensao(conteudo) {
   return null;
 }
 
-// Guarda a imagem com um nome aleatório (o nome original nunca é usado) e devolve o endereço dela
-export async function guardarImagem(ficheiro) {
+// A largura e a altura de uma imagem JPEG, PNG ou WebP, lidas do cabeçalho do ficheiro, sem a abrir
+// toda. Devolve null se não as encontrar.
+export function dimensoesDaImagem(conteudo) {
+  // PNG: o primeiro bloco (IHDR) tem a largura e a altura
+  if (conteudo.length >= 24 && conteudo.toString('latin1', 12, 16) === 'IHDR') {
+    return {
+      largura: conteudo.readUInt32BE(16),
+      altura: conteudo.readUInt32BE(20),
+    };
+  }
+  // WebP: depende do bloco (com perdas, sem perdas ou estendido)
+  if (conteudo.length >= 30 && conteudo.toString('latin1', 8, 12) === 'WEBP') {
+    const bloco = conteudo.toString('latin1', 12, 16);
+    if (bloco === 'VP8 ') {
+      return {
+        largura: conteudo.readUInt16LE(26) & 0x3fff,
+        altura: conteudo.readUInt16LE(28) & 0x3fff,
+      };
+    }
+    if (bloco === 'VP8L') {
+      const bits = conteudo.readUInt32LE(21);
+      return {
+        largura: (bits & 0x3fff) + 1,
+        altura: ((bits >> 14) & 0x3fff) + 1,
+      };
+    }
+    if (bloco === 'VP8X') {
+      return {
+        largura: conteudo.readUIntLE(24, 3) + 1,
+        altura: conteudo.readUIntLE(27, 3) + 1,
+      };
+    }
+  }
+  // JPEG: percorre os marcadores até ao início do fotograma (SOF), que tem a altura e a largura
+  if (conteudo[0] === 0xff && conteudo[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < conteudo.length) {
+      if (conteudo[i] !== 0xff) {
+        i += 1;
+        continue;
+      }
+      const marcador = conteudo[i + 1];
+      const eSof =
+        marcador >= 0xc0 &&
+        marcador <= 0xcf &&
+        ![0xc4, 0xc8, 0xcc].includes(marcador);
+      if (eSof) {
+        return {
+          altura: conteudo.readUInt16BE(i + 5),
+          largura: conteudo.readUInt16BE(i + 7),
+        };
+      }
+      i += 2 + conteudo.readUInt16BE(i + 2);
+    }
+  }
+  return null;
+}
+
+// Guarda a imagem com um nome aleatório (o nome original nunca é usado) e devolve o endereço dela.
+// Com "minimo" ({ largura, altura }), recusa imagens mais pequenas (por exemplo, uma capa).
+export async function guardarImagem(ficheiro, minimo) {
   if (!ficheiro) {
     throw criarErro(400, 'Escolha uma fotografia');
   }
   const tipo = extensao(ficheiro.buffer);
   if (!tipo) {
     throw criarErro(400, 'A fotografia tem de ser JPEG, PNG ou WebP');
+  }
+  if (minimo) {
+    const dimensoes = dimensoesDaImagem(ficheiro.buffer);
+    if (
+      !dimensoes ||
+      dimensoes.largura < minimo.largura ||
+      dimensoes.altura < minimo.altura
+    ) {
+      throw criarErro(
+        400,
+        `A imagem tem de ter pelo menos ${minimo.largura} × ${minimo.altura} px`,
+      );
+    }
   }
   await mkdir(PASTA_UPLOADS, { recursive: true });
   const nome = `${randomUUID()}.${tipo}`;

@@ -4,7 +4,9 @@ import { auth } from '../middleware/auth.js';
 import { avisar } from '../sockets/avisos.js';
 import { ESTADOS, Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
+import { Review } from '../models/Review.js';
 import { User } from '../models/User.js';
+import { formatarEuros } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
 
 const router = Router();
@@ -12,9 +14,16 @@ const router = Router();
 const MAXIMO_DE_PRODUTOS = 50;
 const MAXIMO_POR_PRODUTO = 1000;
 
+// O que o produtor fez à encomenda, como o comprador o lê na notificação
+const MUDANCAS = {
+  confirmada: 'confirmou a sua encomenda',
+  pronta: 'tem a sua encomenda pronta',
+  entregue: 'marcou a sua encomenda como entregue. Já a pode avaliar',
+};
+
 // O que se envia ao cliente. O comprador e o produtor, quando foram carregados (populate), vêm só
-// com os dados que interessam a quem vê a encomenda.
-function encomendaPublica(encomenda) {
+// com os dados que interessam a quem vê a encomenda. A avaliação, quando existe, vem resumida.
+function encomendaPublica(encomenda, avaliacao) {
   const { _id, comprador, produtor, ...resto } = encomenda.toObject({
     versionKey: false,
   });
@@ -31,7 +40,27 @@ function encomendaPublica(encomenda) {
           localizacao: produtor.produtor.localizacao,
         }
       : produtor,
+    avaliacao,
   };
+}
+
+// As encomendas prontas a enviar, cada uma com a sua avaliação (o identificador, as estrelas e se
+// está visível): o comprador vê se já a avaliou, e o produtor vê a nota que recebeu
+async function comAvaliacoes(encomendas) {
+  const avaliacoes = await Review.find({
+    encomenda: { $in: encomendas.map(({ _id }) => _id) },
+  }).select('encomenda classificacao visivel');
+  return encomendas.map((encomenda) => {
+    const avaliacao = avaliacoes.find((a) => a.encomenda.equals(encomenda._id));
+    return encomendaPublica(
+      encomenda,
+      avaliacao && {
+        id: avaliacao.id,
+        classificacao: avaliacao.classificacao,
+        visivel: avaliacao.visivel,
+      },
+    );
+  });
 }
 
 // As linhas do pedido, [{ produto, quantidade }], num Map de produto para quantidade. O mesmo
@@ -78,7 +107,7 @@ router.get('/', auth(), async (req, res) => {
   const encomendas = await Order.find({ comprador: req.user.id })
     .sort({ createdAt: -1 })
     .populate('produtor', 'produtor.nomeExploracao produtor.localizacao');
-  res.json(encomendas.map(encomendaPublica));
+  res.json(await comAvaliacoes(encomendas));
 });
 
 // GET /api/orders/recebidas: as encomendas feitas ao produtor com sessão
@@ -86,7 +115,26 @@ router.get('/recebidas', auth('produtor'), async (req, res) => {
   const encomendas = await Order.find({ produtor: req.user.id })
     .sort({ createdAt: -1 })
     .populate('comprador', 'nome email');
-  res.json(encomendas.map(encomendaPublica));
+  res.json(await comAvaliacoes(encomendas));
+});
+
+// GET /api/orders/:id: uma encomenda, para quem a fez ou para o produtor a quem foi feita (por
+// exemplo, para a avaliar). Fica depois de /recebidas, senão "recebidas" seria lido como um id.
+router.get('/:id', auth(), async (req, res) => {
+  const encomenda = await Order.findById(req.params.id)
+    .populate('produtor', 'produtor.nomeExploracao produtor.localizacao')
+    .populate('comprador', 'nome email');
+  if (!encomenda) {
+    throw criarErro(404, 'Encomenda não encontrada');
+  }
+  const envolvido =
+    encomenda.comprador._id.equals(req.user.id) ||
+    encomenda.produtor._id.equals(req.user.id);
+  if (!envolvido) {
+    throw criarErro(403, 'Esta encomenda não é sua');
+  }
+  const [publica] = await comAvaliacoes([encomenda]);
+  res.json(publica);
 });
 
 // POST /api/orders: encomenda o carrinho. Corpo: { linhas: [{ produto, quantidade }], modo, morada }.
@@ -175,13 +223,19 @@ router.post('/', auth('comprador', 'produtor'), async (req, res) => {
 
   // Cada produtor fica logo a saber da sua encomenda
   for (const encomenda of criadas) {
-    avisar(req, encomenda.produtor, 'nova-encomenda', {
-      id: encomenda._id,
-      total: encomenda.total,
-      comprador: req.user.nome,
-    });
+    await avisar(
+      req.app.get('io'),
+      encomenda.produtor,
+      {
+        texto: `Nova encomenda de ${req.user.nome}: ${formatarEuros(encomenda.total)}.`,
+        tipo: 'encomenda',
+        ligacao: '/conta/encomendas',
+      },
+      'nova-encomenda',
+      { id: encomenda._id },
+    );
   }
-  res.status(201).json(criadas.map(encomendaPublica));
+  res.status(201).json(criadas.map((encomenda) => encomendaPublica(encomenda)));
 });
 
 // PATCH /api/orders/:id/estado: o produtor passa a encomenda ao estado seguinte
@@ -220,12 +274,23 @@ router.patch('/:id/estado', auth('produtor'), async (req, res) => {
     throw criarErro(409, 'A encomenda mudou entretanto. Recarregue a página.');
   }
   // O comprador vê a mudança no momento, em qualquer página em que esteja
-  avisar(req, atualizada.comprador._id, 'encomenda-atualizada', {
-    id: atualizada._id,
-    estado,
-    produtor: atualizada.produtor.produtor.nomeExploracao,
-  });
-  res.json(encomendaPublica(atualizada));
+  await avisar(
+    req.app.get('io'),
+    atualizada.comprador._id,
+    {
+      texto: `${atualizada.produtor.produtor.nomeExploracao} ${MUDANCAS[estado]}.`,
+      tipo: 'encomenda',
+      // Depois de entregue, a notificação leva logo ao formulário da avaliação
+      ligacao:
+        estado === 'entregue'
+          ? `/encomendas/${atualizada._id}/avaliar`
+          : '/encomendas',
+    },
+    'encomenda-atualizada',
+    { id: atualizada._id, estado },
+  );
+  const [publica] = await comAvaliacoes([atualizada]);
+  res.json(publica);
 });
 
 export default router;

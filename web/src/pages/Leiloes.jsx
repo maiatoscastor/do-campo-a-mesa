@@ -2,15 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../api/cliente.js';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
+import CartaoLeilaoAoVivo from '../components/CartaoLeilaoAoVivo.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import ImagemProduto from '../components/ImagemProduto.jsx';
 import { useAgora } from '../hooks/useAgora.js';
-import {
-  faseDoLeilao,
-  formatarDia,
-  formatarHora,
-  formatarTempo,
-} from '../leiloes.js';
+import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
 import { formatarPreco } from '../produtos.js';
 
 // Os próximos leilões agrupados por dia, pela ordem em que começam
@@ -75,7 +71,7 @@ export default function Leiloes() {
           <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
             {aDecorrer.map(({ leilao }) => (
               <div className="col" key={leilao.id}>
-                <CartaoAoVivo leilao={leilao} agora={agora} />
+                <CartaoLeilaoAoVivo leilao={leilao} agora={agora} />
               </div>
             ))}
           </div>
@@ -122,46 +118,5 @@ export default function Leiloes() {
         </section>
       )}
     </>
-  );
-}
-
-// Um leilão a decorrer: a licitação atual e o tempo que falta, a contar
-function CartaoAoVivo({ leilao, agora }) {
-  const { nome, lote, produtor, licitacaoAtual, numeroDeLicitacoes } = leilao;
-  return (
-    <Link
-      className="card cartao-leilao h-100"
-      to={`/leiloes/${leilao.id}`}
-      viewTransition
-    >
-      <div className="cartao-leilao-topo">
-        <ImagemProduto produto={leilao} />
-        <span className="selo selo-direto">Em direto</span>
-      </div>
-      <div className="card-body">
-        <h3 className="cartao-produto-nome">
-          {nome} · {lote}
-        </h3>
-        <p className="cartao-produto-produtor">{produtor.nomeExploracao}</p>
-        <div className="d-flex align-items-end justify-content-between gap-2">
-          <p className="mb-0">
-            <span className="d-block small text-body-secondary">
-              {numeroDeLicitacoes > 0 ? 'Licitação atual' : 'Preço base'}
-            </span>
-            <strong className="numeros fs-5">
-              {formatarPreco(licitacaoAtual.valor)}
-            </strong>
-          </p>
-          <p className="mb-0 text-end">
-            <span className="d-block small text-body-secondary">
-              Termina em
-            </span>
-            <strong className="numeros">
-              {formatarTempo(new Date(leilao.terminaEm).getTime() - agora)}
-            </strong>
-          </p>
-        </div>
-      </div>
-    </Link>
   );
 }

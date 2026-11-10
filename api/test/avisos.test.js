@@ -5,10 +5,12 @@ import mongoose from 'mongoose';
 import { io as ligar } from 'socket.io-client';
 import app from '../src/app.js';
 import { ligarBaseDeDados } from '../src/config/db.js';
+import { Notification } from '../src/models/Notification.js';
 import { Order } from '../src/models/Order.js';
 import { Product } from '../src/models/Product.js';
 import { User } from '../src/models/User.js';
 import { ligarSockets } from '../src/sockets/index.js';
+import { formatarEuros } from '../src/utils/dinheiro.js';
 import { cifrarPassword } from '../src/utils/password.js';
 
 const PASSWORD = 'uma-password-de-teste';
@@ -23,7 +25,9 @@ before(async () => {
   endereco.pathname += '-teste';
   process.env.MONGODB_URI = endereco.href;
   await ligarBaseDeDados();
-  await Promise.all([User, Product, Order].map((modelo) => modelo.init()));
+  await Promise.all(
+    [User, Product, Order, Notification].map((modelo) => modelo.init()),
+  );
   servidor = createServer(app);
   app.set('io', ligarSockets(servidor));
   await new Promise((resolver) => servidor.listen(0, resolver));
@@ -32,7 +36,7 @@ before(async () => {
 
 async function limpar() {
   await Promise.all(
-    [Order, Product, User].map((modelo) => modelo.deleteMany({})),
+    [Notification, Order, Product, User].map((modelo) => modelo.deleteMany({})),
   );
 }
 
@@ -126,6 +130,7 @@ describe('avisos em tempo real', () => {
     const { produtor, ana, produto } = await umaEncomenda();
     const doProdutor = await cliente(produtor.token);
     const aviso = proximo(doProdutor, 'nova-encomenda');
+    const notificacao = proximo(doProdutor, 'notificacao');
 
     const { dados } = await pedir('POST', '/orders', {
       token: ana.token,
@@ -135,11 +140,14 @@ describe('avisos em tempo real', () => {
       },
     });
 
-    assert.deepEqual(await aviso, {
-      id: dados[0].id,
-      total: 17,
-      comprador: 'Ana Teixeira',
-    });
+    assert.deepEqual(await aviso, { id: dados[0].id });
+    const { texto, ligacao, lida } = await notificacao;
+    assert.equal(
+      texto,
+      `Nova encomenda de Ana Teixeira: ${formatarEuros(17)}.`,
+    );
+    assert.equal(ligacao, '/conta/encomendas');
+    assert.equal(lida, false);
   });
 
   it('o comprador é avisado quando o produtor muda o estado, e só ele', async () => {
@@ -171,11 +179,7 @@ describe('avisos em tempo real', () => {
     });
 
     const [noTelemovel, noPortatil] = await avisos;
-    assert.deepEqual(noTelemovel, {
-      id: dados[0].id,
-      estado: 'confirmada',
-      produtor: 'Quinta do Abel',
-    });
+    assert.deepEqual(noTelemovel, { id: dados[0].id, estado: 'confirmada' });
     assert.deepEqual(noPortatil, noTelemovel);
     assert.equal(ruiRecebeu, false);
   });
@@ -203,5 +207,45 @@ describe('avisos em tempo real', () => {
     });
 
     assert.deepEqual(await aviso, { aprovado: true });
+  });
+});
+
+describe('notificações guardadas', () => {
+  it('quem não estava ligado vê a notificação depois, e pode marcá-la como lida', async () => {
+    const { produtor, ana, produto } = await umaEncomenda();
+    const rui = await criarConta('Rui');
+    const { dados } = await pedir('POST', '/orders', {
+      token: ana.token,
+      corpo: {
+        linhas: [{ produto: produto.id, quantidade: 1 }],
+        modo: 'levantamento',
+      },
+    });
+    // A Ana não tem a aplicação aberta: não há nenhuma ligação dela
+    await pedir('PATCH', `/orders/${dados[0].id}/estado`, {
+      token: produtor.token,
+      corpo: { estado: 'confirmada' },
+    });
+
+    const daAna = await pedir('GET', '/notifications', { token: ana.token });
+    const doRui = await pedir('GET', '/notifications', { token: rui.token });
+    const lidas = await pedir('PATCH', '/notifications/lidas', {
+      token: ana.token,
+    });
+    const depois = await pedir('GET', '/notifications', { token: ana.token });
+    const semSessao = await pedir('GET', '/notifications');
+
+    assert.equal(daAna.dados.porLer, 1);
+    assert.equal(
+      daAna.dados.notificacoes[0].texto,
+      'Quinta do Abel confirmou a sua encomenda.',
+    );
+    assert.equal(daAna.dados.notificacoes[0].ligacao, '/encomendas');
+    assert.equal(daAna.dados.notificacoes[0].tipo, 'encomenda');
+    assert.deepEqual(doRui.dados, { porLer: 0, notificacoes: [] });
+    assert.equal(lidas.estado, 204);
+    assert.equal(depois.dados.porLer, 0);
+    assert.equal(depois.dados.notificacoes[0].lida, true);
+    assert.equal(semSessao.estado, 401);
   });
 });

@@ -3,24 +3,16 @@ import { Link } from 'react-router';
 import Icone from './Icone.jsx';
 import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
-import { formatarPreco } from '../produtos.js';
 
 // Quanto tempo cada aviso fica no ecrã, e quantos se mostram de cada vez
 const DURACAO = 8000;
 const MAXIMO = 3;
 
-// O que o produtor fez à encomenda, visto pelo comprador
-const MUDANCAS = {
-  confirmada: 'confirmou a sua encomenda',
-  pronta: 'tem a sua encomenda pronta',
-  entregue: 'marcou a sua encomenda como entregue',
-};
-
 let proximoId = 0;
 
-// Os avisos em tempo real que chegam pela sala pessoal de quem tem a sessão (encomendas, leilões e
-// validação da conta). Aparecem no canto do ecrã, em qualquer página, e desaparecem sozinhos. São
-// anunciados aos leitores de ecrã (aria-live).
+// As notificações que chegam em tempo real pela sala pessoal de quem tem a sessão (encomendas,
+// leilões e validação da conta). Aparecem no canto do ecrã, em qualquer página, e desaparecem
+// sozinhas; continuam guardadas na página Notificações. São anunciadas aos leitores de ecrã.
 export default function Avisos() {
   const { atualizar } = useSessao();
   const [avisos, setAvisos] = useState([]);
@@ -42,46 +34,13 @@ export default function Avisos() {
     [fechar],
   );
 
-  useEventoSocket('encomenda-atualizada', ({ estado, produtor }) =>
-    mostrar(
-      `${produtor} ${MUDANCAS[estado] ?? `mudou a sua encomenda para ${estado}`}.`,
-      { para: '/encomendas', texto: 'Ver encomendas' },
-    ),
-  );
-
-  useEventoSocket('nova-encomenda', ({ comprador, total }) =>
-    mostrar(`Nova encomenda de ${comprador}: ${formatarPreco(total)}.`, {
-      para: '/conta/encomendas',
-      texto: 'Ver encomendas',
-    }),
-  );
-
-  useEventoSocket('leilao-ganho', ({ nome, lote, valor }) =>
-    mostrar(
-      `Ganhou o leilão de ${nome} (${lote}) por ${formatarPreco(valor)}.`,
-      { para: '/encomendas', texto: 'Ver a encomenda' },
-    ),
-  );
-
-  useEventoSocket('leilao-terminado', ({ nome, vencedor, valor }) =>
-    mostrar(
-      vencedor
-        ? `O seu leilão de ${nome} terminou: vendido a ${vencedor} por ${formatarPreco(valor)}.`
-        : `O seu leilão de ${nome} terminou sem licitações.`,
-      { para: '/conta/leiloes', texto: 'Ver leilões' },
-    ),
+  // O texto e a página vêm do servidor, que também guarda a notificação para se ver mais tarde
+  useEventoSocket('notificacao', ({ texto, ligacao }) =>
+    mostrar(texto, ligacao),
   );
 
   // A conta muda (por exemplo, o produtor passa a poder publicar): lê-se outra vez do servidor
-  useEventoSocket('conta-validada', ({ aprovado }) => {
-    atualizar().catch(() => {});
-    mostrar(
-      aprovado
-        ? 'A sua conta de produtor foi aprovada. Já pode publicar produtos e leilões.'
-        : 'A sua conta de produtor não foi aprovada.',
-      { para: '/conta/quinta', texto: 'Ver a conta' },
-    );
-  });
+  useEventoSocket('conta-validada', () => atualizar().catch(() => {}));
 
   return (
     <div className="avisos" role="status" aria-live="polite">
@@ -90,9 +49,11 @@ export default function Avisos() {
           <Icone nome="sino" tamanho={20} className="aviso-icone" />
           <p className="mb-0">
             {texto}{' '}
-            <Link to={ligacao.para} onClick={() => fechar(id)}>
-              {ligacao.texto}
-            </Link>
+            {ligacao && (
+              <Link to={ligacao} onClick={() => fechar(id)}>
+                Ver
+              </Link>
+            )}
           </p>
           <button
             className="aviso-fechar"

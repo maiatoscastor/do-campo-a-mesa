@@ -1,4 +1,5 @@
 // Estilos base que o Bootstrap não permite definir por variáveis.
+@use 'variables' as v;
 
 // Títulos com as letras mais juntas e as linhas equilibradas (sem palavras soltas na última linha).
 h1,
@@ -40,7 +41,22 @@ html {
   padding: 0.625rem 1.125rem;
   border-radius: var(--bs-border-radius-pill);
   background-color: var(--bs-primary);
-  color: #fff;
+  color: v.$branco;
   font-weight: 700;
   text-decoration: none;
+}
+
+// Enquanto chega o código de uma página aberta diretamente (ACarregar.jsx): fica invisível durante
+// meio segundo e só depois aparece
+.a-carregar {
+  padding: 3rem 1rem;
+  color: var(--bs-secondary-color);
+  text-align: center;
+  animation: aparecer 0.2s 0.5s both;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
 }

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { auth, produtorAprovado } from '../middleware/auth.js';
-import { Auction } from '../models/Auction.js';
+import { Auction, descreverLote } from '../models/Auction.js';
 import { Product } from '../models/Product.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 
@@ -27,13 +27,17 @@ function inicioDoPedido(valor) {
 
 // GET /api/auctions: a agenda, aberta a todos. Por omissão, os leilões a decorrer e os próximos, pela
 // hora de início; com ?estado=terminado, os que já acabaram, dos mais recentes para os mais antigos.
+// Com ?produtor=<id>, só os desse produtor.
 router.get('/', async (req, res) => {
   const terminados = req.query.estado === 'terminado';
-  const leiloes = await Auction.find(
-    terminados
-      ? { estado: 'terminado' }
-      : { estado: { $in: ['agendado', 'ativo'] } },
-  )
+  const filtro = terminados
+    ? { estado: 'terminado' }
+    : { estado: { $in: ['agendado', 'ativo'] } };
+  // Só os de um produtor (na página dele)
+  if (mongoose.isObjectIdOrHexString(req.query.produtor)) {
+    filtro.produtor = req.query.produtor;
+  }
+  const leiloes = await Auction.find(filtro)
     .sort(terminados ? { terminaEm: -1 } : { iniciaEm: 1 })
     .limit(100)
     .populate('produtor', CAMPOS_DO_PRODUTOR);
@@ -61,8 +65,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/auctions: um produtor aprovado põe em leilão um lote de um dos seus produtos.
-// Corpo: { produto, lote, descricao, precoBase, incremento, iniciaEm, duracao (em minutos) }.
-// Responde 201, com o endereço do novo leilão no cabeçalho Location.
+// Corpo: { produto, quantidade, doStock, descricao, precoBase, incremento, iniciaEm, duracao (em
+// minutos) }. Com doStock, a quantidade sai do stock do produto. Responde 201, com o endereço do
+// novo leilão no cabeçalho Location.
 router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
   const corpo = req.body ?? {};
   const texto = (valor) => (typeof valor === 'string' ? valor : undefined);
@@ -76,6 +81,10 @@ router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
       : null;
   const iniciaEm = inicioDoPedido(corpo.iniciaEm);
   const duracao = corpo.duracao;
+  const quantidade = corpo.quantidade;
+  const quantidadeValida =
+    Number.isInteger(quantidade) && quantidade >= 1 && quantidade <= 1000000;
+  const doStock = corpo.doStock === true;
 
   const leilao = new Auction({
     produtor: req.user.id,
@@ -83,7 +92,13 @@ router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
     nome: produto?.nome,
     categoria: produto?.categoria,
     imagemUrl: produto?.imagemUrl,
-    lote: texto(corpo.lote),
+    unidade: produto?.unidade,
+    quantidade: quantidadeValida ? quantidade : undefined,
+    lote:
+      produto && quantidadeValida
+        ? descreverLote(quantidade, produto.unidade)
+        : undefined,
+    doStock,
     descricao: texto(corpo.descricao),
     precoBase: numero(corpo.precoBase),
     incremento: numero(corpo.incremento),
@@ -91,16 +106,24 @@ router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
     terminaEm: new Date(iniciaEm.getTime() + duracao * MINUTO),
   });
 
-  // O produto, o início e a duração verificam-se aqui, com mensagens próprias; o resto, pelo modelo
+  // O produto, a quantidade, o início e a duração verificam-se aqui, com mensagens próprias; o
+  // resto, pelo modelo
   const detalhes = await problemasDe(leilao, [
     'produto',
     'nome',
     'categoria',
+    'lote',
+    'quantidade',
     'iniciaEm',
     'terminaEm',
   ]);
   if (!produto) {
     detalhes.produto = 'Escolha um dos seus produtos';
+  }
+  if (!quantidadeValida) {
+    detalhes.quantidade = 'Indique a quantidade do lote (um número inteiro)';
+  } else if (doStock && produto && quantidade > produto.stock) {
+    detalhes.quantidade = `Só há ${produto.stock} em stock`;
   }
   const agora = Date.now();
   if (Number.isNaN(iniciaEm.getTime())) {
@@ -120,17 +143,49 @@ router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
     throw Object.assign(criarErro(400, 'Dados inválidos'), { detalhes });
   }
 
-  await leilao.save();
+  if (doStock) {
+    // O stock desce na mesma transação em que o leilão é gravado: se entretanto o produto tiver sido
+    // vendido na loja e já não chegar, nada é gravado
+    await mongoose.connection.transaction(async (session) => {
+      const reservado = await Product.findOneAndUpdate(
+        { _id: produto._id, stock: { $gte: quantidade } },
+        { $inc: { stock: -quantidade } },
+        { session },
+      );
+      if (!reservado) {
+        throw Object.assign(criarErro(400, 'Dados inválidos'), {
+          detalhes: { quantidade: 'O stock mudou entretanto e já não chega' },
+        });
+      }
+      await leilao.save({ session });
+    });
+  } else {
+    await leilao.save();
+  }
   res.status(201).location(`/api/auctions/${leilao.id}`).json(leilao.publico());
 });
 
 // DELETE /api/auctions/:id: o produtor cancela um leilão que ainda não começou. Responde 204.
 router.delete('/:id', auth('produtor'), async (req, res) => {
-  // Numa só operação: não se apaga um leilão que entretanto tenha começado
-  const apagado = await Auction.findOneAndDelete({
-    _id: req.params.id,
-    produtor: req.user.id,
-    iniciaEm: { $gt: new Date() },
+  // Numa só operação: não se apaga um leilão que entretanto tenha começado. Se o lote saiu do
+  // stock, volta ao produto na mesma transação.
+  let apagado;
+  await mongoose.connection.transaction(async (session) => {
+    apagado = await Auction.findOneAndDelete(
+      {
+        _id: req.params.id,
+        produtor: req.user.id,
+        iniciaEm: { $gt: new Date() },
+      },
+      { session },
+    );
+    if (apagado?.doStock) {
+      await Product.updateOne(
+        { _id: apagado.produto },
+        { $inc: { stock: apagado.quantidade } },
+        { session },
+      );
+    }
   });
   if (!apagado) {
     const leilao = await Auction.findById(req.params.id);

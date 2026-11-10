@@ -1,0 +1,221 @@
+// Página pública do produtor (PaginaProdutor.jsx) e o mapa (MapaQuinta.jsx). Mobile First.
+@use 'mixins' as m;
+@use 'variables' as v;
+
+.produtor-topo {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+// Sem capa, fica o verde da marca
+.produtor-capa {
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  border-radius: var(--bs-border-radius-xl);
+  background: linear-gradient(135deg, var(--bs-primary), var(--bs-success));
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @include m.a-partir-de(md) {
+    aspect-ratio: 16 / 5;
+  }
+}
+
+// Só o logótipo sobe para cima da capa; o nome fica por baixo dela (no telemóvel, por baixo do
+// logótipo; a partir do tablet, ao lado), para um nome ou uma localidade longos nunca a taparem
+.produtor-identidade {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-inline: 1rem;
+
+  @include m.a-partir-de(md) {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+.produtor-topo > .btn {
+  justify-self: start;
+}
+
+.produtor-logotipo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  margin-top: -3.75rem;
+  overflow: hidden;
+  border: 4px solid var(--bs-body-bg);
+  border-radius: 50%;
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  font-size: 1.5rem;
+  font-weight: 800;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.produtor-historia {
+  white-space: pre-line;
+}
+
+.produtor-corpo {
+  display: grid;
+  gap: 1.5rem;
+
+  @include m.a-partir-de(lg) {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.mapa-quinta {
+  position: relative;
+  z-index: 0;
+  height: 16rem;
+  border-radius: var(--bs-border-radius-lg);
+}
+
+// O botão para abrir o ponto na aplicação de mapas, por cima do mapa, no canto de cima à direita
+// (o Leaflet usa o de cima à esquerda para o zoom e o de baixo para os créditos)
+.mapa-moldura {
+  position: relative;
+}
+
+.mapa-abrir {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-primary-text-emphasis);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--bs-box-shadow);
+
+  &:hover {
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+  }
+}
+
+// O horário de levantamento: a semana toda, com os números alinhados e o dia de hoje destacado
+// (a verde se houver levantamento nesse dia, a cinzento se não houver)
+.horario {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.horario-dia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--bs-border-radius);
+  font-variant-numeric: tabular-nums;
+
+  &.fechado {
+    color: var(--bs-secondary-color);
+  }
+
+  &[aria-current='date'] {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-emphasis-color);
+    font-weight: 700;
+  }
+
+  &[aria-current='date']:not(.fechado) {
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+  }
+}
+
+.selo-hoje {
+  background-color: var(--bs-primary);
+  color: v.$branco;
+}
+
+.horario-dia.fechado .selo-hoje {
+  background-color: var(--bs-secondary-color);
+  color: var(--bs-body-bg);
+}
+
+.pino-mapa span {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid v.$branco;
+  border-radius: 50% 50% 50% 0;
+  background-color: var(--bs-primary);
+  box-shadow: var(--bs-box-shadow-sm);
+  transform: rotate(-45deg);
+}
+
+// Editor da página (MinhaPagina.jsx): os dias de levantamento em botões que se ligam e desligam,
+// grandes o suficiente para o dedo
+.dias-da-semana {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.dia-da-semana {
+  min-height: 2.75rem;
+  padding: 0;
+  border: 1.5px solid var(--borda-campo);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+
+  &[aria-pressed='true'] {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary);
+    color: v.$branco;
+  }
+}
+
+// O botão Guardar fica à mão no fundo do ecrã, por cima da barra de navegação do telemóvel
+.barra-guardar {
+  position: sticky;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow);
+
+  @include m.a-partir-de(lg) {
+    bottom: 1rem;
+  }
+}

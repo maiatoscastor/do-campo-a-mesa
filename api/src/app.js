@@ -10,9 +10,11 @@ import admin from './routes/admin.js';
 import auctions from './routes/auctions.js';
 import auth from './routes/auth.js';
 import localidades from './routes/localidades.js';
+import notifications from './routes/notifications.js';
 import orders from './routes/orders.js';
 import producers from './routes/producers.js';
 import products from './routes/products.js';
+import reviews from './routes/reviews.js';
 import { PASTA_UPLOADS } from './utils/imagens.js';
 
 // Configura o Express sem o pôr a escutar: quem arranca o servidor é o server.js.
@@ -47,9 +49,11 @@ app.use('/api/auth', auth);
 app.use('/api/admin', admin);
 app.use('/api/auctions', auctions);
 app.use('/api/localidades', localidades);
+app.use('/api/notifications', notifications);
 app.use('/api/orders', orders);
 app.use('/api/products', products);
 app.use('/api/producers', producers);
+app.use('/api/reviews', reviews);
 
 // As fotografias dos produtos. Cada ficheiro tem um nome aleatório que nunca muda, por isso o browser
 // pode guardá-lo sem voltar a perguntar; o nosniff impede o browser de o tratar como outro tipo.

@@ -31,9 +31,12 @@ export default function Encomendas() {
   const recarregar = () => setVersao((n) => n + 1);
   useEventoSocket('encomenda-atualizada', recarregar);
   useEventoSocket('leilao-ganho', recarregar);
+  useEventoSocket('avaliacao-moderada', recarregar);
 
   let confirmacao = '';
-  if (state?.feitas === 1) {
+  if (state?.avaliada) {
+    confirmacao = 'Obrigado pela avaliação.';
+  } else if (state?.feitas === 1) {
     confirmacao = 'Encomenda feita. O produtor vai confirmá-la.';
   } else if (state?.feitas > 1) {
     confirmacao = `Foram feitas ${state.feitas} encomendas, uma por produtor.`;

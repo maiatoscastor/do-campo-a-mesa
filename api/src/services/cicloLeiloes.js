@@ -1,7 +1,10 @@
 import mongoose from 'mongoose';
 import { Auction } from '../models/Auction.js';
 import { Order } from '../models/Order.js';
+import { Product } from '../models/Product.js';
+import { avisar } from '../sockets/avisos.js';
 import { sala } from '../sockets/leiloes.js';
+import { formatarEuros } from '../utils/dinheiro.js';
 
 // De quanto em quanto tempo se abrem e fecham os leilões. As licitações não dependem disto: a
 // operação atómica confirma sempre a hora de início e de fim.
@@ -27,8 +30,9 @@ export async function abrirAgendados(io) {
 
 // Fecha os leilões cujo tempo acabou. Cada fecho só acontece se o leilão ainda não estiver terminado,
 // por isso, mesmo com várias instâncias da API, só uma fecha cada leilão. Se houve licitações, o
-// vencedor recebe uma encomenda com o lote, já confirmada, criada na mesma transação: ou fica tudo
-// gravado, ou nada (e o leilão volta a ser fechado na volta seguinte).
+// vencedor recebe uma encomenda com o lote, já confirmada; sem licitações, o lote que tinha saído do
+// stock volta ao produto. Tudo na mesma transação: ou fica tudo gravado, ou nada (e o leilão volta a
+// ser fechado na volta seguinte).
 export async function fecharExpirados(io) {
   const agora = new Date();
   const lista = await Auction.find({
@@ -47,7 +51,18 @@ export async function fecharExpirados(io) {
         { estado: 'terminado' },
         { session, returnDocument: 'after' },
       );
-      if (!leilao || leilao.numeroDeLicitacoes === 0) {
+      if (!leilao) {
+        return;
+      }
+      if (leilao.numeroDeLicitacoes === 0) {
+        // Sem licitações, o lote que saiu do stock volta ao produto
+        if (leilao.doStock) {
+          await Product.updateOne(
+            { _id: leilao.produto },
+            { $inc: { stock: leilao.quantidade } },
+            { session },
+          );
+        }
         return;
       }
       const { comprador, valor } = leilao.licitacaoAtual;
@@ -90,12 +105,33 @@ export async function fecharExpirados(io) {
       valor: encomenda ? leilao.licitacaoAtual.valor : null,
     };
     io.to(sala(_id)).emit('terminado', resultado);
-    io.to(`user:${leilao.produtor}`).emit('leilao-terminado', resultado);
+    // O produtor e o vencedor ficam com a notificação, mesmo que não estejam a ver o leilão
+    const lote = `${leilao.nome} (${leilao.lote})`;
+    await avisar(
+      io,
+      leilao.produtor,
+      {
+        texto: encomenda
+          ? `O seu leilão de ${lote} terminou: vendido a ${resultado.vencedor} por ${formatarEuros(resultado.valor)}.`
+          : `O seu leilão de ${lote} terminou sem licitações.`,
+        tipo: 'leilao',
+        ligacao: '/conta/leiloes',
+      },
+      'leilao-terminado',
+      resultado,
+    );
     if (encomenda) {
-      io.to(`user:${leilao.licitacaoAtual.comprador}`).emit('leilao-ganho', {
-        ...resultado,
-        encomenda: encomenda._id,
-      });
+      await avisar(
+        io,
+        leilao.licitacaoAtual.comprador,
+        {
+          texto: `Ganhou o leilão de ${lote} por ${formatarEuros(resultado.valor)}.`,
+          tipo: 'leilao',
+          ligacao: '/encomendas',
+        },
+        'leilao-ganho',
+        { ...resultado, encomenda: encomenda._id },
+      );
     }
   }
 }

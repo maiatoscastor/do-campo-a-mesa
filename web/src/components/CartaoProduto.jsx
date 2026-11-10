@@ -1,14 +1,25 @@
+import { Link } from 'react-router';
 import Icone from './Icone.jsx';
 import ImagemProduto from './ImagemProduto.jsx';
 import Quantidade from './Quantidade.jsx';
 import { useCarrinho } from '../hooks/useCarrinho.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { formatarPreco } from '../produtos.js';
+import { formatarMedia, textoDasAvaliacoes } from '../avaliacoes.js';
 
 // Cartão de um produto no catálogo. Os dados inventados levam o selo "Exemplo". Em baixo, o botão
 // para pôr no carrinho, que passa a escolha da quantidade quando o produto já lá está.
 export default function CartaoProduto({ produto }) {
-  const { nome, preco, unidade, stock, biologico, exemplo, produtor } = produto;
+  const {
+    nome,
+    preco,
+    unidade,
+    stock,
+    biologico,
+    exemplo,
+    produtor,
+    avaliacao,
+  } = produto;
   const { utilizador } = useSessao();
   const { quantidadeDe, definir } = useCarrinho();
   const esgotado = stock === 0;
@@ -29,13 +40,28 @@ export default function CartaoProduto({ produto }) {
       <div className="card-body d-flex flex-column">
         <h2 className="cartao-produto-nome">{nome}</h2>
         <p className="cartao-produto-produtor">
-          {produtor.nomeExploracao}
+          <Link to={`/produtores/${produtor.id}`}>
+            {produtor.nomeExploracao}
+          </Link>
           {produtor.localizacao?.nomeConcelho &&
             ` · ${produtor.localizacao.nomeConcelho}`}
         </p>
         <p className="cartao-produto-preco">
           <strong>{formatarPreco(preco)}</strong> / {unidade}
         </p>
+        {avaliacao && (
+          <p className="cartao-produto-nota">
+            <span aria-hidden="true">
+              <Icone nome="estrela" cheio tamanho={16} />
+              <strong>{formatarMedia(avaliacao.media)}</strong>
+              <span className="text-body-secondary">({avaliacao.total})</span>
+            </span>
+            <span className="visually-hidden">
+              Nota {formatarMedia(avaliacao.media)} de 5,{' '}
+              {textoDasAvaliacoes(avaliacao.total)}
+            </span>
+          </p>
+        )}
         {biologico && (
           <span className="selo selo-biologico align-self-start">
             Biológico
