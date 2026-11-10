@@ -13,6 +13,7 @@ import Inicio from './pages/Inicio.jsx';
 import Leiloes from './pages/Leiloes.jsx';
 import MeusLeiloes from './pages/MeusLeiloes.jsx';
 import MeusProdutos from './pages/MeusProdutos.jsx';
+import Notificacoes from './pages/Notificacoes.jsx';
 import NovoLeilao from './pages/NovoLeilao.jsx';
 import PaginaDeErro from './pages/PaginaDeErro.jsx';
 import PaginaNaoEncontrada from './pages/PaginaNaoEncontrada.jsx';
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
           {
             element: <RotaProtegida fechada={ENCOMENDAS_FECHADAS} />,
             children: [{ path: 'encomendas', element: <Encomendas /> }],
+          },
+          {
+            element: <RotaProtegida />,
+            children: [{ path: 'notificacoes', element: <Notificacoes /> }],
           },
           {
             // A minha conta: uma secção por separador, e cada papel só vê as suas

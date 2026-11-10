@@ -6,6 +6,7 @@ import '@fontsource-variable/bricolage-grotesque';
 import '@fontsource-variable/plus-jakarta-sans';
 import './styles/main.scss';
 import CarrinhoProvider from './context/CarrinhoProvider.jsx';
+import NotificacoesProvider from './context/NotificacoesProvider.jsx';
 import SessaoProvider from './context/SessaoProvider.jsx';
 import SocketProvider from './context/SocketProvider.jsx';
 import { router } from './rotas.jsx';
@@ -15,9 +16,11 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <SessaoProvider>
       <SocketProvider>
-        <CarrinhoProvider>
-          <RouterProvider router={router} />
-        </CarrinhoProvider>
+        <NotificacoesProvider>
+          <CarrinhoProvider>
+            <RouterProvider router={router} />
+          </CarrinhoProvider>
+        </NotificacoesProvider>
       </SocketProvider>
     </SessaoProvider>
   </StrictMode>,

@@ -34,7 +34,19 @@ router.patch('/produtores/:id/validacao', async (req, res) => {
   }
 
   // O produtor fica logo a saber, sem ter de voltar a entrar
-  avisar(req, produtor._id, 'conta-validada', { aprovado });
+  await avisar(
+    req.app.get('io'),
+    produtor._id,
+    {
+      texto: aprovado
+        ? 'A sua conta de produtor foi aprovada. Já pode publicar produtos e leilões.'
+        : 'A sua conta de produtor não foi aprovada.',
+      tipo: 'conta',
+      ligacao: '/conta/quinta',
+    },
+    'conta-validada',
+    { aprovado },
+  );
   res.json(produtor.publico());
 });
 

@@ -51,7 +51,12 @@
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
+  // Também é usada num <button> (o sino, no computador): sem o fundo e a borda que o browser
+  // põe nos botões, fica só o ícone, como nas ligações
+  padding: 0;
+  border: 0;
   border-radius: 50%;
+  background-color: transparent;
   color: var(--bs-body-color);
   text-decoration: none;
 

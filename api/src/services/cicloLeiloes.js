@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import { Auction } from '../models/Auction.js';
 import { Order } from '../models/Order.js';
+import { avisar } from '../sockets/avisos.js';
 import { sala } from '../sockets/leiloes.js';
+import { formatarEuros } from '../utils/dinheiro.js';
 
 // De quanto em quanto tempo se abrem e fecham os leilões. As licitações não dependem disto: a
 // operação atómica confirma sempre a hora de início e de fim.
@@ -90,12 +92,33 @@ export async function fecharExpirados(io) {
       valor: encomenda ? leilao.licitacaoAtual.valor : null,
     };
     io.to(sala(_id)).emit('terminado', resultado);
-    io.to(`user:${leilao.produtor}`).emit('leilao-terminado', resultado);
+    // O produtor e o vencedor ficam com a notificação, mesmo que não estejam a ver o leilão
+    const lote = `${leilao.nome} (${leilao.lote})`;
+    await avisar(
+      io,
+      leilao.produtor,
+      {
+        texto: encomenda
+          ? `O seu leilão de ${lote} terminou: vendido a ${resultado.vencedor} por ${formatarEuros(resultado.valor)}.`
+          : `O seu leilão de ${lote} terminou sem licitações.`,
+        tipo: 'leilao',
+        ligacao: '/conta/leiloes',
+      },
+      'leilao-terminado',
+      resultado,
+    );
     if (encomenda) {
-      io.to(`user:${leilao.licitacaoAtual.comprador}`).emit('leilao-ganho', {
-        ...resultado,
-        encomenda: encomenda._id,
-      });
+      await avisar(
+        io,
+        leilao.licitacaoAtual.comprador,
+        {
+          texto: `Ganhou o leilão de ${lote} por ${formatarEuros(resultado.valor)}.`,
+          tipo: 'leilao',
+          ligacao: '/encomendas',
+        },
+        'leilao-ganho',
+        { ...resultado, encomenda: encomenda._id },
+      );
     }
   }
 }

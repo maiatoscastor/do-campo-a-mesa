@@ -5,12 +5,20 @@ import { avisar } from '../sockets/avisos.js';
 import { ESTADOS, Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
+import { formatarEuros } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
 
 const router = Router();
 
 const MAXIMO_DE_PRODUTOS = 50;
 const MAXIMO_POR_PRODUTO = 1000;
+
+// O que o produtor fez à encomenda, como o comprador o lê na notificação
+const MUDANCAS = {
+  confirmada: 'confirmou a sua encomenda',
+  pronta: 'tem a sua encomenda pronta',
+  entregue: 'marcou a sua encomenda como entregue',
+};
 
 // O que se envia ao cliente. O comprador e o produtor, quando foram carregados (populate), vêm só
 // com os dados que interessam a quem vê a encomenda.
@@ -175,11 +183,17 @@ router.post('/', auth('comprador', 'produtor'), async (req, res) => {
 
   // Cada produtor fica logo a saber da sua encomenda
   for (const encomenda of criadas) {
-    avisar(req, encomenda.produtor, 'nova-encomenda', {
-      id: encomenda._id,
-      total: encomenda.total,
-      comprador: req.user.nome,
-    });
+    await avisar(
+      req.app.get('io'),
+      encomenda.produtor,
+      {
+        texto: `Nova encomenda de ${req.user.nome}: ${formatarEuros(encomenda.total)}.`,
+        tipo: 'encomenda',
+        ligacao: '/conta/encomendas',
+      },
+      'nova-encomenda',
+      { id: encomenda._id },
+    );
   }
   res.status(201).json(criadas.map(encomendaPublica));
 });
@@ -220,11 +234,17 @@ router.patch('/:id/estado', auth('produtor'), async (req, res) => {
     throw criarErro(409, 'A encomenda mudou entretanto. Recarregue a página.');
   }
   // O comprador vê a mudança no momento, em qualquer página em que esteja
-  avisar(req, atualizada.comprador._id, 'encomenda-atualizada', {
-    id: atualizada._id,
-    estado,
-    produtor: atualizada.produtor.produtor.nomeExploracao,
-  });
+  await avisar(
+    req.app.get('io'),
+    atualizada.comprador._id,
+    {
+      texto: `${atualizada.produtor.produtor.nomeExploracao} ${MUDANCAS[estado]}.`,
+      tipo: 'encomenda',
+      ligacao: '/encomendas',
+    },
+    'encomenda-atualizada',
+    { id: atualizada._id, estado },
+  );
   res.json(encomendaPublica(atualizada));
 });
 

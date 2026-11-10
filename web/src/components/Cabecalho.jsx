@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router';
 import Icone from './Icone.jsx';
 import MarcaFechada from './MarcaFechada.jsx';
+import SinoNotificacoes from './SinoNotificacoes.jsx';
 import { useCarrinho } from '../hooks/useCarrinho.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { destinosPara, textoDoCarrinho } from '../navegacao.js';
@@ -65,6 +66,8 @@ export default function Cabecalho() {
               )}
             </NavLink>
           )}
+
+          {utilizador && <SinoNotificacoes />}
 
           {utilizador ? (
             <NavLink

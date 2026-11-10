@@ -23,6 +23,10 @@ tags:
   - name: Produtos
   - name: Produtores
   - name: Encomendas
+  - name: Notificações
+    description: >
+      Os avisos de cada utilizador (encomendas, leilões, validação da conta). Chegam também em tempo
+      real pelo Socket.io, no evento notificacao, e ficam guardados para se verem mais tarde.
   - name: Leilões
     description: >
       A agenda e a criação de leilões. As licitações em direto não passam por aqui: usam o
@@ -490,6 +494,35 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
 
+  /notifications:
+    get:
+      tags: [Notificações]
+      summary: As últimas 30 notificações de quem tem a sessão, e quantas estão por ler
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: As notificações, das mais recentes para as mais antigas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  porLer: { type: integer }
+                  notificacoes:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notificacao' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+
+  /notifications/lidas:
+    patch:
+      tags: [Notificações]
+      summary: Marcar todas como lidas
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Marcadas, sem corpo
+        '401': { $ref: '#/components/responses/SemSessao' }
+
   /auctions:
     get:
       tags: [Leilões]
@@ -902,3 +935,17 @@ components:
         estado: { type: string, enum: [agendado, ativo, terminado] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    Notificacao:
+      type: object
+      properties:
+        id: { type: string }
+        texto:
+          { type: string, example: Quinta do Abel confirmou a sua encomenda. }
+        tipo: { type: string, enum: [encomenda, leilao, conta] }
+        ligacao:
+          type: string
+          description: A página da aplicação a que se refere
+          example: /encomendas
+        lida: { type: boolean }
+        data: { type: string, format: date-time }
