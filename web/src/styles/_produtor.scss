@@ -41,8 +41,11 @@
   }
 }
 
-.produtor-topo > .btn {
+// O botão por baixo do nome ("Editar a página" ou "Favorito"), alinhado com o texto de cima
+.produtor-topo > .btn,
+.produtor-topo > .botao-favorito {
   justify-self: start;
+  margin-inline: 1rem;
 }
 
 .produtor-logotipo {

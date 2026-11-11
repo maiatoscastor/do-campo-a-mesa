@@ -561,10 +561,28 @@ paths:
     get:
       tags: [Produtores]
       summary: Os produtores aprovados
+      description: >
+        Aberto a todos, por ordem alfabética se não for pedida outra. A sessão (opcional) só é
+        precisa para favoritos=true.
+      security: [{}, { bearerAuth: [] }]
       parameters:
         - name: comProdutos
           in: query
           description: Só os que têm produtos (para os filtros do catálogo)
+          schema: { type: string, enum: ['true'] }
+        - name: q
+          in: query
+          description: Pesquisa no nome, no concelho e na freguesia
+          schema: { type: string }
+        - name: ordem
+          in: query
+          description: >
+            requisitados (mais encomendas entregues nos últimos 90 dias), avaliados (média mais alta
+            e, com a mesma média, mais avaliações) ou novos (registados há menos tempo)
+          schema: { type: string, enum: [requisitados, avaliados, novos] }
+        - name: favoritos
+          in: query
+          description: Só os favoritos de quem tem a sessão
           schema: { type: string, enum: ['true'] }
       responses:
         '200':
@@ -574,6 +592,40 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Produtor' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+
+  /producers/{id}/favorito:
+    put:
+      tags: [Produtores]
+      summary: Pôr o produtor nos favoritos (comprador ou produtor)
+      description: >
+        Pôr duas vezes dá o mesmo resultado. Quem tem o produtor nos favoritos recebe uma
+        notificação quando ele marca um leilão.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204': { description: Nos favoritos }
+        '400':
+          description: Identificador inválido, ou a própria página
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+    delete:
+      tags: [Produtores]
+      summary: Tirar o produtor dos favoritos
+      description: Responde 204 também se o produtor já não estava nos favoritos.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204': { description: Fora dos favoritos }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
 
   /producers/{id}:
     get:
@@ -1015,7 +1067,9 @@ paths:
     post:
       tags: [Leilões]
       summary: Pôr em leilão um lote de um dos seus produtos (produtor aprovado)
-      description: A licitação atual começa no preço base.
+      description: >
+        A licitação atual começa no preço base. Quem tem o produtor nos favoritos recebe uma
+        notificação, com o dia e a hora do início.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -1242,6 +1296,10 @@ components:
           description: A média das avaliações (só quando já tem alguma)
           allOf: [{ $ref: '#/components/schemas/MediaDasAvaliacoes' }]
         exemplo: { type: boolean }
+        desde:
+          type: string
+          format: date-time
+          description: Quando se registou
 
     ProductInput:
       type: object

@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 import { auth, produtorAprovado } from '../middleware/auth.js';
 import { Auction, descreverLote } from '../models/Auction.js';
 import { Product } from '../models/Product.js';
-import { avisarPainel } from '../sockets/avisos.js';
+import { User } from '../models/User.js';
+import { avisar, avisarPainel } from '../sockets/avisos.js';
+import { formatarDataHora } from '../utils/datas.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 
 const router = Router();
@@ -64,6 +66,35 @@ router.get('/:id', async (req, res) => {
   }
   res.json(leilao.publico());
 });
+
+// Avisa quem tem o produtor nos favoritos de que ele marcou um leilão (ou de que começou um, se
+// começa já), com a ligação para a sala
+async function avisarFavoritos(io, leilao) {
+  try {
+    const [produtor, seguidores] = await Promise.all([
+      User.findById(leilao.produtor).select('produtor.nomeExploracao'),
+      User.find({ favoritos: leilao.produtor }).select('_id'),
+    ]);
+    const quem = produtor.produtor.nomeExploracao;
+    const lote = `${leilao.nome} (${leilao.lote})`;
+    const texto =
+      leilao.iniciaEm <= new Date()
+        ? `${quem} começou um leilão de ${lote}.`
+        : `${quem} marcou um leilão de ${lote} para ${formatarDataHora(leilao.iniciaEm)}.`;
+    await Promise.all(
+      seguidores.map(({ _id }) =>
+        avisar(io, _id, {
+          texto,
+          tipo: 'leilao',
+          ligacao: `/leiloes/${leilao.id}`,
+        }),
+      ),
+    );
+  } catch (erro) {
+    // O leilão já está gravado: um aviso que falha não o desfaz
+    console.error(`Aviso aos favoritos não enviado: ${erro.message}`);
+  }
+}
 
 // POST /api/auctions: um produtor aprovado põe em leilão um lote de um dos seus produtos.
 // Corpo: { produto, quantidade, doStock, descricao, precoBase, incremento, iniciaEm, duracao (em
@@ -164,6 +195,7 @@ router.post('/', auth('produtor'), produtorAprovado, async (req, res) => {
     await leilao.save();
   }
   await avisarPainel(req.app.get('io'));
+  await avisarFavoritos(req.app.get('io'), leilao);
   res.status(201).location(`/api/auctions/${leilao.id}`).json(leilao.publico());
 });
 

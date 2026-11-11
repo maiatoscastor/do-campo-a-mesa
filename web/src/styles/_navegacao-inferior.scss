@@ -35,8 +35,8 @@ $altura: 4.25rem; // 68 px
   color: var(--bs-secondary-color);
   text-decoration: none;
 
-  // Página atual: texto verde e pílula verde suave à volta do ícone
-  &[aria-current='page'] {
+  // Página atual (ou, nos produtores, "Produtos"): texto verde e pílula verde suave à volta do ícone
+  &.active {
     color: var(--bs-primary-text-emphasis);
 
     .navegacao-inferior-icone {

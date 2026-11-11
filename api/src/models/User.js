@@ -198,11 +198,18 @@ const userSchema = new Schema(
       default: 'comprador',
     },
     produtor: { type: produtorSchema, default: undefined },
+    // Os produtores que a pessoa guardou nos favoritos. São referências (os produtores são outros
+    // utilizadores, com a sua própria página), guardadas no utilizador porque cada pessoa tem poucos
+    // favoritos e são sempre lidos a partir dela.
+    favoritos: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     // Contas inventadas para testar (produtores de exemplo), identificadas como tal na aplicação
     exemplo: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
+
+// Para encontrar depressa quem tem um produtor nos favoritos (para o avisar quando marca um leilão)
+userSchema.index({ favoritos: 1 });
 
 // O que pode ser enviado ao cliente: nunca o hash da password
 userSchema.methods.publico = function publico() {

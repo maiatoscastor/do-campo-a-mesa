@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth.js';
+import { auth, authOpcional } from '../middleware/auth.js';
+import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
 import {
@@ -12,8 +13,13 @@ import {
   guardarImagem,
   receberImagem,
 } from '../utils/imagens.js';
+import { expressao } from '../utils/pesquisa.js';
 
 const router = Router();
+
+// "Mais requisitados" quer dizer com mais encomendas entregues nestes últimos dias
+const DIAS_DOS_REQUISITADOS = 90;
+const DIA = 24 * 60 * 60 * 1000;
 
 // O tamanho mínimo da capa (recomendado: 1600 × 500 px) e do logótipo
 const MINIMO_DA_CAPA = { largura: 1200, altura: 300 };
@@ -90,38 +96,103 @@ function pontoDoPedido(valor) {
   return { lat: numero(valor.lat), lng: numero(valor.lng) };
 }
 
+// Quantas encomendas cada produtor entregou desde uma data, num Map do identificador do produtor para
+// o número (a data é a do passo "entregue" do histórico da encomenda)
+async function entreguesDesde(desde) {
+  const grupos = await Order.aggregate([
+    {
+      $match: {
+        estado: 'entregue',
+        historico: {
+          $elemMatch: { estado: 'entregue', data: { $gte: desde } },
+        },
+      },
+    },
+    { $group: { _id: '$produtor', quantas: { $sum: 1 } } },
+  ]);
+  return new Map(grupos.map(({ _id, quantas }) => [String(_id), quantas]));
+}
+
+// As ordens da página dos produtores. A lista já vem por ordem alfabética e o sort do JavaScript é
+// estável: com o mesmo valor, os produtores ficam por ordem alfabética.
+const ORDENS = {
+  // Mais encomendas entregues nos últimos 90 dias
+  requisitados: async (lista) => {
+    const entregues = await entreguesDesde(
+      new Date(Date.now() - DIAS_DOS_REQUISITADOS * DIA),
+    );
+    const de = ({ id }) => entregues.get(id) ?? 0;
+    return lista.sort((a, b) => de(b) - de(a));
+  },
+  // Média mais alta e, com a mesma média, mais avaliações; os que não têm avaliações ficam no fim
+  avaliados: (lista) =>
+    lista.sort(
+      (a, b) =>
+        (b.avaliacao?.media ?? 0) - (a.avaliacao?.media ?? 0) ||
+        (b.avaliacao?.total ?? 0) - (a.avaliacao?.total ?? 0),
+    ),
+  // Os que se registaram há menos tempo
+  novos: (lista) => lista.sort((a, b) => b.desde - a.desde),
+};
+
 // GET /api/producers: os produtores aprovados, abertos a todos, com o logótipo, quantos produtos têm
-// e a média das avaliações (para os cartões). Com ?comProdutos=true, só os que têm produtos: é o que
-// usam os filtros do catálogo, para nenhum filtro dar zero resultados.
-router.get('/', async (req, res) => {
+// e a média das avaliações (para os cartões). Parâmetros, todos opcionais:
+// - comProdutos=true: só os que têm produtos (é o que usam os filtros do catálogo, para nenhum filtro
+//   dar zero resultados);
+// - q: pesquisa no nome, no concelho e na freguesia;
+// - ordem: requisitados, avaliados ou novos (sem ordem, por ordem alfabética);
+// - favoritos=true: só os favoritos de quem tem a sessão (sem sessão, 401).
+router.get('/', authOpcional, async (req, res) => {
+  const filtro = { papel: 'produtor', 'produtor.validacao': 'aprovado' };
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (q) {
+    const procura = expressao(q);
+    filtro.$or = [
+      { 'produtor.nomeExploracao': procura },
+      { 'produtor.localizacao.nomeConcelho': procura },
+      { 'produtor.localizacao.nomeFreguesia': procura },
+    ];
+  }
+  if (req.query.favoritos === 'true') {
+    if (!req.user) {
+      throw criarErro(401, 'Sessão inválida ou expirada');
+    }
+    const eu = await User.findById(req.user.id).select('favoritos');
+    filtro._id = { $in: eu?.favoritos ?? [] };
+  }
+
   const [produtos, produtores] = await Promise.all([
     Product.aggregate([{ $group: { _id: '$produtor', quantos: { $sum: 1 } } }]),
-    User.find({ papel: 'produtor', 'produtor.validacao': 'aprovado' })
+    User.find(filtro)
       .select(
-        'produtor.nomeExploracao produtor.localizacao produtor.logotipoUrl exemplo',
+        'produtor.nomeExploracao produtor.localizacao produtor.logotipoUrl exemplo createdAt',
       )
       .sort({ 'produtor.nomeExploracao': 1 }),
   ]);
   const quantos = new Map(
     produtos.map(({ _id, quantos: n }) => [String(_id), n]),
   );
-  const lista =
+  const escolhidos =
     req.query.comProdutos === 'true'
       ? produtores.filter(({ id }) => quantos.has(id))
       : produtores;
-  const medias = await mediasDosProdutores(lista.map(({ _id }) => _id));
+  const medias = await mediasDosProdutores(escolhidos.map(({ _id }) => _id));
 
-  res.json(
-    lista.map(({ id, produtor, exemplo }) => ({
-      id,
-      nomeExploracao: produtor.nomeExploracao,
-      localizacao: produtor.localizacao,
-      logotipoUrl: produtor.logotipoUrl,
-      produtos: quantos.get(id) ?? 0,
-      avaliacao: medias.get(id),
-      exemplo,
-    })),
-  );
+  let lista = escolhidos.map(({ id, produtor, exemplo, createdAt }) => ({
+    id,
+    nomeExploracao: produtor.nomeExploracao,
+    localizacao: produtor.localizacao,
+    logotipoUrl: produtor.logotipoUrl,
+    produtos: quantos.get(id) ?? 0,
+    avaliacao: medias.get(id),
+    exemplo,
+    desde: createdAt,
+  }));
+  const ordenar = ORDENS[req.query.ordem];
+  if (ordenar) {
+    lista = await ordenar(lista);
+  }
+  res.json(lista);
 });
 
 // O produtor com sessão (para as rotas /eu)
@@ -220,6 +291,48 @@ router.put('/eu/capa', auth('produtor'), receberImagem, capa.trocar);
 router.delete('/eu/capa', auth('produtor'), capa.tirar);
 router.put('/eu/logotipo', auth('produtor'), receberImagem, logotipo.trocar);
 router.delete('/eu/logotipo', auth('produtor'), logotipo.tirar);
+
+// Um produtor aprovado que se pode pôr nos favoritos: existe, e não é quem faz o pedido
+async function produtorParaFavorito(req) {
+  const produtor = await User.findOne({
+    _id: req.params.id,
+    papel: 'produtor',
+    'produtor.validacao': 'aprovado',
+  }).select('_id');
+  if (!produtor) {
+    throw criarErro(404, 'Produtor não encontrado');
+  }
+  if (produtor._id.equals(req.user.id)) {
+    throw criarErro(400, 'A sua própria página não pode ir para os favoritos');
+  }
+  return produtor;
+}
+
+// PUT /api/producers/:id/favorito: põe o produtor nos favoritos de quem tem a sessão. Pôr duas vezes
+// dá o mesmo resultado ($addToSet não repete), por isso dois toques seguidos não estragam nada.
+// Responde 204. O administrador não compra, por isso não tem favoritos (403).
+router.put('/:id/favorito', auth('comprador', 'produtor'), async (req, res) => {
+  const produtor = await produtorParaFavorito(req);
+  await User.updateOne(
+    { _id: req.user.id },
+    { $addToSet: { favoritos: produtor._id } },
+  );
+  res.status(204).end();
+});
+
+// DELETE /api/producers/:id/favorito: tira o produtor dos favoritos. Responde 204, também se já lá
+// não estava. Não exige que o produtor ainda exista, para se poder tirar um que saiu da loja.
+router.delete(
+  '/:id/favorito',
+  auth('comprador', 'produtor'),
+  async (req, res) => {
+    await User.updateOne(
+      { _id: req.user.id },
+      { $pull: { favoritos: req.params.id } },
+    );
+    res.status(204).end();
+  },
+);
 
 // GET /api/producers/:id: a página pública de um produtor aprovado
 router.get('/:id', async (req, res) => {
