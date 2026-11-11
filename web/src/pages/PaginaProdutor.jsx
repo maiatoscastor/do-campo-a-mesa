@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, enderecoDaImagem } from '../api/cliente.js';
+import BotaoFavorito from '../components/BotaoFavorito.jsx';
 import CartaoProduto from '../components/CartaoProduto.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import HorarioLevantamento from '../components/HorarioLevantamento.jsx';
@@ -152,10 +153,12 @@ export default function PaginaProdutor() {
             )}
           </div>
         </div>
-        {souEu && (
+        {souEu ? (
           <Link className="btn btn-suave btn-sm" to="/conta/quinta">
             Editar a página
           </Link>
+        ) : (
+          <BotaoFavorito produtor={{ id, nomeExploracao }} comTexto />
         )}
       </header>
 
