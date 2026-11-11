@@ -245,6 +245,8 @@ describe('denunciar uma avaliação', () => {
     assert.deepEqual(resumo, {
       produtoresPorValidar: 0,
       denunciasPorDecidir: 1,
+      denunciasDeAvaliacoes: 1,
+      denunciasDeProdutores: 0,
     });
   });
 });

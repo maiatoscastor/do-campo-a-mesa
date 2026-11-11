@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { auth, authOpcional } from '../middleware/auth.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
+import { Report } from '../models/Report.js';
 import { produtoresAVender, User } from '../models/User.js';
 import {
   mediasDosProdutores,
   resumoDoProdutor,
 } from '../services/avaliacoes.js';
+import { avisarAdministradores } from '../sockets/avisos.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 import {
   apagarImagem,
@@ -333,18 +335,89 @@ router.delete(
   },
 );
 
-// GET /api/producers/:id: a página pública de um produtor a vender (aprovado e sem castigo)
-router.get('/:id', async (req, res) => {
-  const utilizador = await User.findOne({
-    ...produtoresAVender(),
-    _id: req.params.id,
-  });
+// O produtor do endereço, se estiver a vender (aprovado e sem castigo); senão, 404
+async function produtorAVender(id) {
+  const utilizador = await User.findOne({ ...produtoresAVender(), _id: id });
   if (!utilizador) {
     throw criarErro(404, 'Produtor não encontrado');
   }
+  return utilizador;
+}
+
+// GET /api/producers/:id: a página pública de um produtor a vender (aprovado e sem castigo). Com
+// sessão (opcional), diz também se a pessoa tem uma denúncia deste produtor por decidir (denunciado),
+// para a página mostrar "Denunciado" em vez de deixar denunciar outra vez.
+router.get('/:id', authOpcional, async (req, res) => {
+  const utilizador = await produtorAVender(req.params.id);
+  const denunciado = req.user
+    ? Boolean(
+        await Report.exists({
+          tipo: 'produtor',
+          produtor: utilizador._id,
+          autor: req.user.id,
+          estado: 'pendente',
+        }),
+      )
+    : undefined;
   res.json({
     ...paginaDoProdutor(utilizador),
     avaliacao: await resumoDoProdutor(utilizador._id),
+    ...(denunciado === undefined ? {} : { denunciado }),
+  });
+});
+
+// POST /api/producers/:id/denuncias: alguém com sessão denuncia um produtor. Corpo: { motivo,
+// descricao } (a descrição é obrigatória no motivo "outro"). Cada pessoa só tem uma denúncia de cada
+// produtor por decidir; depois da decisão, pode voltar a denunciar. A denúncia não muda nada sozinha:
+// fica à espera do administrador. Responde 201.
+router.post('/:id/denuncias', auth(), async (req, res) => {
+  const produtor = await produtorAVender(req.params.id);
+  if (produtor._id.equals(req.user.id)) {
+    throw criarErro(403, 'Não pode denunciar a sua própria página');
+  }
+  const porDecidir = { tipo: 'produtor', produtor: produtor._id };
+  if (
+    await Report.exists({
+      ...porDecidir,
+      autor: req.user.id,
+      estado: 'pendente',
+    })
+  ) {
+    throw criarErro(409, 'Já denunciou este produtor');
+  }
+
+  const corpo = req.body ?? {};
+  const denuncia = new Report({
+    ...porDecidir,
+    autor: req.user.id,
+    motivo: typeof corpo.motivo === 'string' ? corpo.motivo : undefined,
+    descricao:
+      typeof corpo.descricao === 'string'
+        ? corpo.descricao.trim() || undefined
+        : undefined,
+  });
+  // Só a primeira denúncia por decidir chega ao administrador como notificação; as outras só
+  // atualizam as listas e os números
+  const jaNaLista = await Report.exists({ ...porDecidir, estado: 'pendente' });
+  // Um pedido repetido ao mesmo tempo esbarra no índice único e dá 409 (no tratador de erros)
+  await denuncia.save();
+
+  await avisarAdministradores(
+    req.app.get('io'),
+    !jaNaLista && {
+      texto: `Nova denúncia de um produtor: ${produtor.produtor.nomeExploracao}.`,
+      tipo: 'denuncia',
+      ligacao: '/admin/denuncias?tipo=produtor',
+    },
+    'denuncias-mudaram',
+    {},
+  );
+  res.status(201).json({
+    id: denuncia._id,
+    motivo: denuncia.motivo,
+    descricao: denuncia.descricao,
+    estado: denuncia.estado,
+    data: denuncia.createdAt,
   });
 });
 

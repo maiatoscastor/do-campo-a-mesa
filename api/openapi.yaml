@@ -203,8 +203,11 @@ paths:
                   produtoresPorValidar: { type: integer, example: 2 }
                   denunciasPorDecidir:
                     type: integer
-                    description: Avaliações com denúncias por decidir (cada uma conta uma vez)
+                    description: >
+                      Avaliações e produtores com denúncias por decidir (cada caso conta uma vez)
                     example: 1
+                  denunciasDeAvaliacoes: { type: integer, example: 1 }
+                  denunciasDeProdutores: { type: integer, example: 0 }
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
 
@@ -288,12 +291,16 @@ paths:
   /admin/denuncias:
     get:
       tags: [Administração]
-      summary: As avaliações denunciadas, por decidir ou já decididas
+      summary: As avaliações ou os produtores denunciados, por decidir ou já decididos
       description: >
-        Por decidir: primeiro as que esperam há mais tempo, cada uma com as denúncias por decidir.
-        Decididas: das mais recentes para as mais antigas, com todas as denúncias que tiveram.
+        Por decidir: primeiro os que esperam há mais tempo, cada um com as denúncias por decidir.
+        Decididos: dos mais recentes para os mais antigos, com todas as denúncias que tiveram.
       security: [{ bearerAuth: [] }]
       parameters:
+        - name: tipo
+          in: query
+          description: Sem tipo, as avaliações; com produtor, os produtores
+          schema: { type: string, enum: [produtor] }
         - name: estado
           in: query
           schema: { type: string, enum: [decidida] }
@@ -312,10 +319,67 @@ paths:
                   porDecidir: { type: integer }
                   casos:
                     type: array
-                    items: { $ref: '#/components/schemas/CasoDeDenuncia' }
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/CasoDeDenuncia'
+                        - $ref: '#/components/schemas/CasoDeProdutor'
                   temMais: { type: boolean }
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/produtores/{id}/moderacao:
+    patch:
+      tags: [Administração]
+      summary: Decidir as denúncias de um produtor (rejeitar, dar um aviso ou suspender)
+      description: >
+        Na suspensão, os produtos e a página saem da loja até à data, o produtor não pode criar
+        produtos nem leilões, e os leilões dele por acabar são cancelados (com o stock reservado
+        devolvido e aviso a quem licitou). O produtor recebe o aviso ou a suspensão com o motivo;
+        quem denunciou recebe a decisão. No fim da data, volta tudo sozinho.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decisao, motivo]
+              properties:
+                decisao: { type: string, enum: [rejeitada, aviso, suspensao] }
+                motivo: { type: string, maxLength: 500 }
+                ate:
+                  type: string
+                  format: date-time
+                  description: Só na suspensão; no futuro e, no máximo, daqui a um ano
+      responses:
+        '200':
+          description: O caso, já decidido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CasoDeProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: Não há denúncias deste produtor por decidir
+
+  /admin/produtores/{id}/castigo:
+    delete:
+      tags: [Administração]
+      summary: Levantar o castigo de um produtor antes do fim
+      description: O produtor é avisado, e os produtos e a página voltam logo à loja.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204': { description: Castigo levantado }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
 
   /admin/avaliacoes/{id}/moderacao:
     patch:
@@ -630,7 +694,11 @@ paths:
   /producers/{id}:
     get:
       tags: [Produtores]
-      summary: A página pública de um produtor aprovado
+      summary: A página pública de um produtor a vender (aprovado e sem castigo)
+      description: >
+        Aberta a todos. Com sessão (opcional), diz também se a pessoa tem uma denúncia deste produtor
+        por decidir (denunciado).
+      security: [{}, { bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/Id'
       responses:
@@ -638,9 +706,61 @@ paths:
           description: A página
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/PaginaDoProdutor' }
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginaDoProdutor'
+                  - type: object
+                    properties:
+                      denunciado:
+                        type: boolean
+                        description: Só com sessão
         '400': { $ref: '#/components/responses/DadosInvalidos' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
+
+  /producers/{id}/denuncias:
+    post:
+      tags: [Produtores]
+      summary: Denunciar um produtor (uma denúncia por decidir de cada vez; o próprio não pode)
+      description: >
+        Nada muda até o administrador decidir. Os administradores são avisados da primeira denúncia
+        por decidir de cada produtor. Depois da decisão, a mesma pessoa pode voltar a denunciar.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo:
+                  { $ref: '#/components/schemas/MotivoDaDenunciaDeProdutor' }
+                descricao:
+                  type: string
+                  maxLength: 500
+                  description: Obrigatória no motivo outro
+      responses:
+        '201':
+          description: Denúncia registada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  motivo:
+                    { $ref: '#/components/schemas/MotivoDaDenunciaDeProdutor' }
+                  descricao: { type: string }
+                  estado: { type: string, enum: [pendente] }
+                  data: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: Já tem uma denúncia deste produtor por decidir
 
   /producers/eu:
     get:
@@ -1694,6 +1814,55 @@ components:
     MotivoDaDenuncia:
       type: string
       enum: [ofensiva, dados-pessoais, falsa, publicidade, outro]
+
+    MotivoDaDenunciaDeProdutor:
+      type: string
+      enum: [nao-entregou, diferente, informacao-falsa, ofensivo, outro]
+
+    CasoDeProdutor:
+      type: object
+      description: Um produtor denunciado, como o administrador o vê
+      properties:
+        produtor:
+          type: object
+          properties:
+            id: { type: string }
+            nome: { type: string }
+            nomeExploracao: { type: string }
+            localizacao: { $ref: '#/components/schemas/Localizacao' }
+            exemplo: { type: boolean }
+            castigo:
+              description: O castigo em vigor, se houver
+              allOf:
+                - $ref: '#/components/schemas/Castigo'
+                - type: object
+                  properties:
+                    desde: { type: string, format: date-time }
+        historico:
+          type: object
+          description: Quantos avisos e suspensões já teve (cada decisão conta uma vez)
+          properties:
+            avisos: { type: integer }
+            suspensoes: { type: integer }
+        denuncias:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              motivo:
+                { $ref: '#/components/schemas/MotivoDaDenunciaDeProdutor' }
+              descricao: { type: string }
+              estado: { type: string, enum: [pendente, decidida] }
+              decisao: { type: string, enum: [rejeitada, aviso, suspensao] }
+              motivoDaDecisao: { type: string }
+              decididaEm: { type: string, format: date-time }
+              data: { type: string, format: date-time }
+              autor:
+                type: object
+                properties:
+                  id: { type: string }
+                  nome: { type: string }
 
     Moderacao:
       type: object
