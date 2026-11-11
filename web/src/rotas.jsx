@@ -138,6 +138,10 @@ export const router = createBrowserRouter([
                         ...aPedido(() => import('./pages/MeusLeiloes.jsx')),
                       },
                       {
+                        path: 'estatisticas',
+                        ...aPedido(() => import('./pages/Estatisticas.jsx')),
+                      },
+                      {
                         path: 'leiloes/novo',
                         ...aPedido(() => import('./pages/NovoLeilao.jsx')),
                       },

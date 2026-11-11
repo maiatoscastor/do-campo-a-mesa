@@ -27,6 +27,12 @@ const SECCOES = [
     papeis: ['produtor'],
   },
   {
+    caminho: '/conta/estatisticas',
+    nome: 'Estatísticas',
+    icone: 'estatisticas',
+    papeis: ['produtor'],
+  },
+  {
     caminho: '/conta/encomendas',
     nome: 'Encomendas recebidas',
     icone: 'encomendas',

@@ -338,7 +338,7 @@ a.linha-inicio:hover {
   line-clamp: 2;
 }
 
-// Os números (Indicador.jsx): o valor grande, com os dígitos alinhados, e a comparação por baixo
+// Os números (Indicador.jsx): o valor grande e, por baixo, o pormenor e a comparação
 .indicador {
   height: 100%;
   padding: 1rem;
@@ -361,7 +361,6 @@ a.linha-inicio:hover {
   font-family: v.$letra-titulos;
   font-size: 1.625rem;
   font-weight: 750;
-  font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }

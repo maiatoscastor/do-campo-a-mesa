@@ -258,7 +258,11 @@ function Numeros({ encomendas, resumo }) {
   const media = (periodo) =>
     periodo.quantas > 0 ? periodo.valor / periodo.quantas : 0;
   return (
-    <SeccaoInicio titulo="Resumo dos últimos 30 dias">
+    <SeccaoInicio
+      titulo="Resumo dos últimos 30 dias"
+      ligacao="/conta/estatisticas"
+      textoDaLigacao="Ver as estatísticas"
+    >
       <div className="row row-cols-2 row-cols-xl-4 g-3">
         <div className="col">
           <Indicador

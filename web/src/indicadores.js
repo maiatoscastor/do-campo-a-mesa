@@ -30,19 +30,20 @@ export function encomendasPorPeriodo(todas, agora = new Date()) {
   };
 }
 
-// "+25 % face aos 30 dias anteriores", com o sentido (para a cor; o sinal diz o mesmo por escrito)
-export function comparacao(atual, anterior) {
+// "+25 % face aos 30 dias anteriores", com o sentido (para a cor; o sinal diz o mesmo por escrito).
+// "periodo" é o período anterior por extenso (por omissão, os 30 dias das contas do início).
+export function comparacao(atual, anterior, periodo = '30 dias anteriores') {
   if (anterior === 0) {
     return atual === 0
-      ? { texto: 'Igual aos 30 dias anteriores', sentido: 'igual' }
-      : { texto: 'Nada nos 30 dias anteriores', sentido: 'sobe' };
+      ? { texto: `Igual aos ${periodo}`, sentido: 'igual' }
+      : { texto: `Nada nos ${periodo}`, sentido: 'sobe' };
   }
   const variacao = (atual - anterior) / anterior;
   if (Math.abs(variacao) < 0.005) {
-    return { texto: 'Igual aos 30 dias anteriores', sentido: 'igual' };
+    return { texto: `Igual aos ${periodo}`, sentido: 'igual' };
   }
   return {
-    texto: `${PERCENTAGEM.format(variacao)} face aos 30 dias anteriores`,
+    texto: `${PERCENTAGEM.format(variacao)} face aos ${periodo}`,
     sentido: variacao > 0 ? 'sobe' : 'desce',
   };
 }
