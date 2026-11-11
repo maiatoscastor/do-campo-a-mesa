@@ -776,6 +776,30 @@ paths:
         '409':
           description: Já tem uma denúncia deste produtor por decidir
 
+  /producers/eu/estatisticas:
+    get:
+      tags: [Produtores]
+      summary: As estatísticas do produtor com sessão (vendas, produtos, encomendas, leilões, avaliações)
+      description: >
+        Nos últimos dias escolhidos, comparados com o mesmo número de dias antes. As vendas não
+        contam as encomendas canceladas. O gráfico agrupa por dia (7 e 30), por semana (90) ou por
+        mês (365), na hora de Portugal, com todas as barras (também as de zero).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: periodo
+          in: query
+          description: Em dias
+          schema: { type: integer, enum: [7, 30, 90, 365], default: 30 }
+      responses:
+        '200':
+          description: As estatísticas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EstatisticasDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
   /producers/eu:
     get:
       tags: [Produtores]
@@ -1740,6 +1764,60 @@ components:
           type: string
           enum: [pendente, aprovado, rejeitado]
           description: Só nas respostas de /producers/eu e /producers/eu/{imagem}
+
+    VendasDoPeriodo:
+      type: object
+      properties:
+        valor: { type: number, description: Em euros }
+        encomendas: { type: integer }
+        valorMedio: { type: number }
+
+    EstatisticasDoProdutor:
+      type: object
+      properties:
+        periodo:
+          type: object
+          properties:
+            dias: { type: integer }
+            agrupamento: { type: string, enum: [dia, semana, mes] }
+            desde: { type: string, format: date-time }
+            ate: { type: string, format: date-time }
+        vendas: { $ref: '#/components/schemas/VendasDoPeriodo' }
+        anterior: { $ref: '#/components/schemas/VendasDoPeriodo' }
+        serie:
+          type: array
+          items:
+            type: object
+            properties:
+              chave: { type: string, example: '2026-W46' }
+              inicio:
+                type: string
+                format: date
+                description: O primeiro dia da barra dentro do período
+              valor: { type: number }
+              encomendas: { type: integer }
+        produtos:
+          type: array
+          description: Os 5 mais vendidos (pelo valor)
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              nome: { type: string }
+              unidade: { type: string }
+              quantidade: { type: integer }
+              valor: { type: number }
+        estados:
+          type: object
+          description: Quantas encomendas do período em cada estado
+          additionalProperties: { type: integer }
+        leiloes:
+          type: object
+          properties:
+            terminados: { type: integer }
+            vendidos: { type: integer }
+            valor: { type: number }
+        avaliacao: { $ref: '#/components/schemas/ResumoDasAvaliacoes' }
 
     MediaDasAvaliacoes:
       type: object
