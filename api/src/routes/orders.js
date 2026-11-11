@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import { auth } from '../middleware/auth.js';
+import { auth, contaAtiva } from '../middleware/auth.js';
 import { avisar, avisarPainel } from '../sockets/avisos.js';
 import { ESTADOS, Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
@@ -139,105 +139,112 @@ router.get('/:id', auth(), async (req, res) => {
 
 // POST /api/orders: encomenda o carrinho. Corpo: { linhas: [{ produto, quantidade }], modo, morada }.
 // Cria uma encomenda por produtor e responde 201 com a lista delas.
-router.post('/', auth('comprador', 'produtor'), async (req, res) => {
-  const corpo = req.body ?? {};
-  const quantidades = quantidadesDoPedido(corpo.linhas);
-  const entrega = {
-    modo: typeof corpo.modo === 'string' ? corpo.modo : undefined,
-    morada:
-      corpo.modo === 'entrega' && typeof corpo.morada === 'string'
-        ? corpo.morada
-        : undefined,
-  };
-  // O modo e a morada validam-se antes de mexer no stock
-  await new Order(entrega).validate(['modo', 'morada']);
+router.post(
+  '/',
+  auth('comprador', 'produtor'),
+  contaAtiva,
+  async (req, res) => {
+    const corpo = req.body ?? {};
+    const quantidades = quantidadesDoPedido(corpo.linhas);
+    const entrega = {
+      modo: typeof corpo.modo === 'string' ? corpo.modo : undefined,
+      morada:
+        corpo.modo === 'entrega' && typeof corpo.morada === 'string'
+          ? corpo.morada
+          : undefined,
+    };
+    // O modo e a morada validam-se antes de mexer no stock
+    await new Order(entrega).validate(['modo', 'morada']);
 
-  // Só se encomendam produtos de produtores a vender (aprovados e sem castigo), e nunca os do próprio
-  const produtos = await Product.find({
-    _id: { $in: [...quantidades.keys()] },
-  });
-  const aprovados = await User.find({
-    ...produtoresAVender(),
-    _id: { $in: produtos.map(({ produtor }) => produtor) },
-  }).distinct('_id');
-  for (const id of quantidades.keys()) {
-    const produto = produtos.find((p) => p.id === id);
-    if (!produto || !aprovados.some((a) => a.equals(produto.produtor))) {
-      throw criarErro(409, 'Um dos produtos já não está à venda');
-    }
-    if (produto.produtor.equals(req.user.id)) {
-      throw criarErro(400, 'Não pode encomendar os seus próprios produtos');
-    }
-  }
-
-  // Tudo ou nada: o stock de todos os produtos desce numa transação, e se faltar stock de um, a
-  // transação é anulada e nenhum stock muda. O filtro "stock ≥ quantidade" e a descida ($inc) são
-  // uma só operação atómica, por isso duas encomendas ao mesmo tempo nunca vendem o mesmo stock.
-  // O MongoDB repete a transação sozinho se ela chocar com outra.
-  let criadas;
-  await mongoose.connection.transaction(async (session) => {
-    const porProdutor = new Map();
-    for (const [id, quantidade] of quantidades) {
-      // Devolve o produto como estava antes de descer o stock: com o preço desse momento
-      const produto = await Product.findOneAndUpdate(
-        { _id: id, stock: { $gte: quantidade } },
-        { $inc: { stock: -quantidade } },
-        { session },
-      );
-      if (!produto) {
-        const atual = await Product.findById(id).session(session);
-        throw criarErro(
-          409,
-          atual
-            ? `Só restam ${atual.stock} de "${atual.nome}"`
-            : 'Um dos produtos já não está à venda',
-        );
+    // Só se encomendam produtos de produtores a vender (aprovados e sem castigo), e nunca os do próprio
+    const produtos = await Product.find({
+      _id: { $in: [...quantidades.keys()] },
+    });
+    const aprovados = await User.find({
+      ...produtoresAVender(),
+      _id: { $in: produtos.map(({ produtor }) => produtor) },
+    }).distinct('_id');
+    for (const id of quantidades.keys()) {
+      const produto = produtos.find((p) => p.id === id);
+      if (!produto || !aprovados.some((a) => a.equals(produto.produtor))) {
+        throw criarErro(409, 'Um dos produtos já não está à venda');
       }
-      const chave = produto.produtor.toString();
-      porProdutor.set(chave, [
-        ...(porProdutor.get(chave) ?? []),
-        {
-          produto: produto._id,
-          nome: produto.nome,
-          unidade: produto.unidade,
-          preco: produto.preco,
-          quantidade,
-        },
-      ]);
+      if (produto.produtor.equals(req.user.id)) {
+        throw criarErro(400, 'Não pode encomendar os seus próprios produtos');
+      }
     }
 
-    const agora = new Date();
-    criadas = await Order.create(
-      [...porProdutor].map(([produtor, linhas]) => ({
-        comprador: req.user.id,
-        produtor,
-        linhas,
-        total: totalDe(linhas),
-        ...entrega,
-        historico: [{ estado: 'pendente', data: agora }],
-      })),
-      // Com uma sessão, o Mongoose exige que vários documentos sejam gravados por ordem
-      { session, ordered: true },
-    );
-  });
+    // Tudo ou nada: o stock de todos os produtos desce numa transação, e se faltar stock de um, a
+    // transação é anulada e nenhum stock muda. O filtro "stock ≥ quantidade" e a descida ($inc) são
+    // uma só operação atómica, por isso duas encomendas ao mesmo tempo nunca vendem o mesmo stock.
+    // O MongoDB repete a transação sozinho se ela chocar com outra.
+    let criadas;
+    await mongoose.connection.transaction(async (session) => {
+      const porProdutor = new Map();
+      for (const [id, quantidade] of quantidades) {
+        // Devolve o produto como estava antes de descer o stock: com o preço desse momento
+        const produto = await Product.findOneAndUpdate(
+          { _id: id, stock: { $gte: quantidade } },
+          { $inc: { stock: -quantidade } },
+          { session },
+        );
+        if (!produto) {
+          const atual = await Product.findById(id).session(session);
+          throw criarErro(
+            409,
+            atual
+              ? `Só restam ${atual.stock} de "${atual.nome}"`
+              : 'Um dos produtos já não está à venda',
+          );
+        }
+        const chave = produto.produtor.toString();
+        porProdutor.set(chave, [
+          ...(porProdutor.get(chave) ?? []),
+          {
+            produto: produto._id,
+            nome: produto.nome,
+            unidade: produto.unidade,
+            preco: produto.preco,
+            quantidade,
+          },
+        ]);
+      }
 
-  // Cada produtor fica logo a saber da sua encomenda
-  for (const encomenda of criadas) {
-    await avisar(
-      req.app.get('io'),
-      encomenda.produtor,
-      {
-        texto: `Nova encomenda de ${req.user.nome}: ${formatarEuros(encomenda.total)}.`,
-        tipo: 'encomenda',
-        ligacao: '/conta/encomendas',
-      },
-      'nova-encomenda',
-      { id: encomenda._id },
-    );
-  }
-  await avisarPainel(req.app.get('io'));
-  res.status(201).json(criadas.map((encomenda) => encomendaPublica(encomenda)));
-});
+      const agora = new Date();
+      criadas = await Order.create(
+        [...porProdutor].map(([produtor, linhas]) => ({
+          comprador: req.user.id,
+          produtor,
+          linhas,
+          total: totalDe(linhas),
+          ...entrega,
+          historico: [{ estado: 'pendente', data: agora }],
+        })),
+        // Com uma sessão, o Mongoose exige que vários documentos sejam gravados por ordem
+        { session, ordered: true },
+      );
+    });
+
+    // Cada produtor fica logo a saber da sua encomenda
+    for (const encomenda of criadas) {
+      await avisar(
+        req.app.get('io'),
+        encomenda.produtor,
+        {
+          texto: `Nova encomenda de ${req.user.nome}: ${formatarEuros(encomenda.total)}.`,
+          tipo: 'encomenda',
+          ligacao: '/conta/encomendas',
+        },
+        'nova-encomenda',
+        { id: encomenda._id },
+      );
+    }
+    await avisarPainel(req.app.get('io'));
+    res
+      .status(201)
+      .json(criadas.map((encomenda) => encomendaPublica(encomenda)));
+  },
+);
 
 // PATCH /api/orders/:id/estado: o produtor passa a encomenda ao estado seguinte
 // (pendente → confirmada → pronta → entregue). Corpo: { estado }.
@@ -252,6 +259,9 @@ router.patch('/:id/estado', auth('produtor'), async (req, res) => {
   const estado = req.body?.estado;
   if (!ESTADOS.includes(estado)) {
     throw criarErro(400, 'Estado inválido');
+  }
+  if (encomenda.estado === 'cancelada') {
+    throw criarErro(409, 'A encomenda foi cancelada');
   }
   const seguinte = ESTADOS[ESTADOS.indexOf(encomenda.estado) + 1];
   if (estado !== seguinte) {

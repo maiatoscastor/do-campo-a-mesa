@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Auction, ESTADOS_POR_ACABAR } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
+import { contaBloqueada, User } from '../models/User.js';
 import { CAMPOS_DO_PRODUTOR } from '../routes/auctions.js';
 import { formatarEuros, temAteDoisDecimais } from '../utils/dinheiro.js';
 import { nomeCurto } from '../utils/nomes.js';
@@ -36,14 +37,21 @@ function seguro(tratar) {
 // Presença: quantas pessoas estão a ver o leilão. Cada utilizador conta uma vez, mesmo com vários
 // separadores abertos; cada visitante sem conta conta como uma pessoa. "aSair" é o socket que está a
 // desligar-se e que ainda aparece na sala.
-async function emitirPresenca(io, leilaoId, aSair) {
+export async function pessoasNaSala(io, leilaoId, aSair) {
   const sockets = await io.in(sala(leilaoId)).fetchSockets();
   const pessoas = new Set(
     sockets
       .filter(({ id }) => id !== aSair)
       .map(({ id, data }) => data.utilizador?.id ?? id),
   );
-  io.to(sala(leilaoId)).emit('presenca', pessoas.size);
+  return pessoas.size;
+}
+
+async function emitirPresenca(io, leilaoId, aSair) {
+  io.to(sala(leilaoId)).emit(
+    'presenca',
+    await pessoasNaSala(io, leilaoId, aSair),
+  );
 }
 
 // O motivo por que uma licitação não foi aceite, lido depois de a operação atómica falhar
@@ -139,6 +147,11 @@ export function registarLeiloes(io, socket) {
       }
       if (utilizador.papel === 'admin') {
         return recusar('As contas de administrador não licitam');
+      }
+      // O token dura 2 horas: confirma-se na base de dados que a conta não foi bloqueada entretanto
+      const conta = await User.findById(utilizador.id).select('castigo');
+      if (contaBloqueada(conta)) {
+        return recusar('A sua conta está bloqueada');
       }
       if (!eIdentificador(leilaoId)) {
         return recusar('Leilão não encontrado');

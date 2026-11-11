@@ -3,8 +3,10 @@ import Icone from './Icone.jsx';
 import MenuSeccoes from './MenuSeccoes.jsx';
 import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
 
-// As secções da administração, cada uma com o número do que espera por decisão
+// As secções da administração: o painel, as que têm o número do que espera por decisão, e o estado
+// dos serviços
 const SECCOES = [
+  { caminho: '/admin/painel', nome: 'Painel', icone: 'estatisticas' },
   {
     caminho: '/admin/produtores',
     nome: 'Produtores',
@@ -19,6 +21,7 @@ const SECCOES = [
     tarefa: 'denunciasPorDecidir',
     sufixo: 'por decidir',
   },
+  { caminho: '/admin/servicos', nome: 'Serviços', icone: 'servicos' },
 ];
 
 // A área da administração (/admin), à parte de "A minha conta": o administrador chega aqui pela

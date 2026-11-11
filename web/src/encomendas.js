@@ -24,16 +24,31 @@ export function produtosParaComprarOutraVez(encomendas, produtos) {
   return lista;
 }
 
-// O estado a seguir a este, ou undefined se a encomenda já foi entregue
+// O estado a seguir a este, ou undefined se a encomenda já foi entregue ou foi cancelada
 export function estadoSeguinte(estado) {
-  return ESTADOS[ESTADOS.findIndex((e) => e.estado === estado) + 1];
+  const atual = ESTADOS.findIndex((e) => e.estado === estado);
+  return atual === -1 ? undefined : ESTADOS[atual + 1];
+}
+
+// O nome de um estado, também do "cancelada", que fica fora dos passos (só acontece quando o
+// produtor é banido)
+export function nomeDoEstado(estado) {
+  if (estado === 'cancelada') {
+    return 'Cancelada';
+  }
+  return ESTADOS.find((e) => e.estado === estado)?.nome ?? estado;
+}
+
+// Se a encomenda ainda está por entregar (nem entregue, nem cancelada)
+export function porEntregar({ estado }) {
+  return estado !== 'entregue' && estado !== 'cancelada';
 }
 
 // As encomendas que o comprador ainda acompanha no início: primeiro as que estão em curso, depois
 // as entregues que ainda não avaliou
 export function encomendasPorAcompanhar(encomendas) {
   return [
-    ...encomendas.filter(({ estado }) => estado !== 'entregue'),
+    ...encomendas.filter(porEntregar),
     ...encomendas.filter(
       ({ estado, avaliacao }) => estado === 'entregue' && !avaliacao,
     ),
@@ -72,4 +87,24 @@ export function somar(linhas) {
     0,
   );
   return centimos / 100;
+}
+
+// O que falta fazer às encomendas em curso, a partir de quantas há em cada estado:
+// "1 por confirmar · 2 a preparar · 1 pronta a entregar" (só os estados com alguma)
+const POR_FAZER = {
+  pendente: ['por confirmar', 'por confirmar'],
+  confirmada: ['a preparar', 'a preparar'],
+  pronta: ['pronta a entregar', 'prontas a entregar'],
+};
+
+export function textoPorFazer(porEstado) {
+  const partes = Object.entries(POR_FAZER)
+    .map(([estado, [uma, varias]]) => {
+      const quantas = porEstado[estado] ?? 0;
+      // O número e as palavras ficam juntos na mesma linha (espaços que não partem)
+      const texto = (quantas === 1 ? uma : varias).replaceAll(' ', '\u00a0');
+      return quantas > 0 && `${quantas}\u00a0${texto}`;
+    })
+    .filter(Boolean);
+  return partes.length > 0 ? partes.join(' · ') : 'Nada por tratar';
 }

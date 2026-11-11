@@ -20,9 +20,14 @@ export const MOTIVOS_DE_DENUNCIA_DE_PRODUTOR = [
 ];
 
 // As decisões do administrador: numa avaliação, mantê-la ou ocultá-la; num produtor, rejeitar a
-// denúncia, dar um aviso ou suspender a conta de produtor
+// denúncia, dar um aviso, suspender a conta de produtor ou bani-lo (bloquear a conta)
 export const DECISOES_DE_AVALIACAO = ['mantida', 'ocultada'];
-export const DECISOES_DE_PRODUTOR = ['rejeitada', 'aviso', 'suspensao'];
+export const DECISOES_DE_PRODUTOR = [
+  'rejeitada',
+  'aviso',
+  'suspensao',
+  'banimento',
+];
 
 // Uma denúncia de uma avaliação ou de um produtor, feita por alguém com sessão. Fica numa coleção à
 // parte, porque cada uma tem o seu autor, o seu motivo e o seu estado, e o administrador lê-as todas

@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { auth } from '../middleware/auth.js';
-import { User } from '../models/User.js';
+import { limiteDoLogin, limiteDoRegisto } from '../middleware/limites.js';
+import { contaBloqueada, User } from '../models/User.js';
 import { avisarAdministradores, avisarPainel } from '../sockets/avisos.js';
 import { criarErro, problemasDeUtilizador } from '../utils/erro.js';
 import {
@@ -46,8 +47,8 @@ async function guardar(utilizador) {
 
 // POST /api/auth/registo: cria uma conta de comprador ou de produtor e inicia a sessão.
 // Só se leem os campos permitidos, em vez de copiar o req.body inteiro: de outra forma, alguém
-// podia registar-se como administrador ou como produtor já aprovado.
-router.post('/registo', async (req, res) => {
+// podia registar-se como administrador ou como produtor já aprovado. Com limite de contas por hora.
+router.post('/registo', limiteDoRegisto, async (req, res) => {
   const corpo = req.body ?? {};
   const password = texto(corpo.password);
   const papel = corpo.papel ?? 'comprador';
@@ -109,8 +110,8 @@ router.post('/registo', async (req, res) => {
   });
 });
 
-// POST /api/auth/login: inicia a sessão
-router.post('/login', async (req, res) => {
+// POST /api/auth/login: inicia a sessão. Com limite de tentativas falhadas.
+router.post('/login', limiteDoLogin, async (req, res) => {
   const email = texto(req.body?.email)?.trim().toLowerCase();
   const password = texto(req.body?.password);
 
@@ -125,6 +126,10 @@ router.post('/login', async (req, res) => {
   if (!certa) {
     throw criarErro(401, 'Email ou password incorretos');
   }
+  // Só depois da password certa se diz que a conta está bloqueada
+  if (contaBloqueada(utilizador)) {
+    throw criarErro(403, 'A sua conta está bloqueada');
+  }
 
   res.json({
     token: emitirToken(utilizador),
@@ -138,6 +143,11 @@ router.get('/eu', auth(), async (req, res) => {
   const utilizador = await User.findById(req.user.id);
   if (!utilizador) {
     throw criarErro(401, 'Sessão inválida ou expirada');
+  }
+  // Uma conta bloqueada perde a sessão: com o 401, a aplicação termina-a (lê esta rota ao abrir e
+  // quando o servidor avisa que a conta mudou)
+  if (contaBloqueada(utilizador)) {
+    throw criarErro(401, 'A sua conta está bloqueada');
   }
   res.json(utilizador.publico());
 });

@@ -1,0 +1,60 @@
+// O estado dos serviços (Servicos.jsx): o resumo no topo e uma linha por serviço, com o selo do
+// estado (ícone e palavra, para não depender só da cor) e o tempo de resposta
+
+// "Tudo a funcionar" a verde, ou "N serviços com problemas" a vermelho
+.servicos-resumo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+
+  svg {
+    flex: none;
+  }
+}
+
+.servicos-resumo-problema {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}
+
+.servico {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+}
+
+.servico-texto {
+  min-width: 0;
+}
+
+// O selo e, por baixo, o tempo de resposta
+.servico-estado {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+
+  .selo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+}
+
+.selo-servico-ok {
+  background-color: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+}
+
+.selo-servico-erro {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}

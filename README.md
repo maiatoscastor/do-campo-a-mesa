@@ -64,7 +64,7 @@ O registo público só cria compradores e produtores. A conta de administrador c
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run dev`          | Arranca a API com o `.env` e reinicia-a sempre que um ficheiro é guardado                                                                                                    |
 | `npm start`            | Arranca a API em produção, onde as variáveis de ambiente vêm da plataforma e não do `.env`                                                                                   |
-| `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim                                                                                            |
+| `npm test`             | Corre os testes numa base de dados própria, com o sufixo `-teste`, apagada no fim, e com os limites de tentativas desligados (`test/testes.env`)                             |
 | `npm run criar-admin`  | Cria uma conta de administrador, pedindo os dados no terminal                                                                                                                |
 | `npm run exemplo`      | Junta produtores, produtos e leilões de exemplo, com o selo "Exemplo". Os que já existem ficam; os leilões voltam a ser marcados a partir de agora (`-- --apagar` tira tudo) |
 | `npm run lint`         | Verifica o código com o ESLint                                                                                                                                               |

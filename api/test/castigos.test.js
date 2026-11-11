@@ -268,7 +268,11 @@ describe('decisão do administrador', () => {
     );
 
     assert.equal(estado, 200);
-    assert.deepEqual(dados.historico, { avisos: 1, suspensoes: 0 });
+    assert.deepEqual(dados.historico, {
+      avisos: 1,
+      suspensoes: 0,
+      banimentos: 0,
+    });
     assert.equal(dados.denuncias[0].decisao, 'aviso');
     assert.equal(catalogo.dados.length, 1);
     assert.equal(porDecidir.dados.casos.length, 0);
@@ -382,7 +386,11 @@ describe('suspensão', () => {
 
     assert.equal(decisao.estado, 200);
     assert.equal(decisao.dados.produtor.castigo.tipo, 'suspensao');
-    assert.deepEqual(decisao.dados.historico, { avisos: 0, suspensoes: 1 });
+    assert.deepEqual(decisao.dados.historico, {
+      avisos: 0,
+      suspensoes: 1,
+      banimentos: 0,
+    });
     assert.deepEqual(catalogo.dados, []);
     assert.deepEqual(produtores.dados, []);
     assert.equal(pagina.estado, 404);
@@ -459,6 +467,120 @@ describe('suspensão', () => {
     assert.equal(
       (await textos(abel)).at(-1),
       'A suspensão da sua conta de produtor terminou. Os seus produtos e a sua página voltaram à loja.',
+    );
+  });
+});
+
+describe('banimento', () => {
+  it('bloqueia a conta, cancela as encomendas por entregar e devolve o stock, até ser desbloqueada', async () => {
+    const admin = await criarAdmin();
+    const abel = await criarConta('Quinta do Abel', { papel: 'produtor' });
+    const rosa = await criarConta('Horta da Rosa', { papel: 'produtor' });
+    const ana = await criarConta('Ana Teixeira');
+    const kiwi = await criarProduto(abel.token, 'Kiwi', 50);
+    const grelos = await criarProduto(rosa.token, 'Grelos', 20);
+    const encomendar = async (quantidade) => {
+      const { dados } = await pedir('POST', '/orders', {
+        token: ana.token,
+        corpo: {
+          linhas: [{ produto: kiwi, quantidade }],
+          modo: 'levantamento',
+        },
+      });
+      return dados[0].id;
+    };
+    const mudar = (id, estado) =>
+      pedir('PATCH', `/orders/${id}/estado`, {
+        token: abel.token,
+        corpo: { estado },
+      });
+    // Uma pendente (2), uma confirmada (3) e uma entregue (5): o stock fica em 40
+    const pendente = await encomendar(2);
+    const confirmada = await encomendar(3);
+    await mudar(confirmada, 'confirmada');
+    const entregue = await encomendar(5);
+    for (const estado of ['confirmada', 'pronta', 'entregue']) {
+      await mudar(entregue, estado);
+    }
+    await Notification.deleteMany({});
+    await denunciar(abel, ana);
+
+    const decisao = await decidir(abel, admin, {
+      decisao: 'banimento',
+      motivo: 'Fraude repetida.',
+    });
+
+    const estados = Object.fromEntries(
+      (await Order.find()).map(({ _id, estado }) => [String(_id), estado]),
+    );
+    const stock = (await Product.findById(kiwi)).stock;
+    const login = await pedir('POST', '/auth/login', {
+      corpo: { email: 'quinta.do.abel@teste.pt', password: PASSWORD },
+    });
+    const eu = await pedir('GET', '/auth/eu', { token: abel.token });
+    const vender = await pedir('POST', '/products', {
+      token: abel.token,
+      corpo: {
+        nome: 'Mel',
+        categoria: 'Mel',
+        preco: 8,
+        unidade: 'frasco',
+        stock: 3,
+      },
+    });
+    const comprar = await pedir('POST', '/orders', {
+      token: abel.token,
+      corpo: {
+        linhas: [{ produto: grelos, quantidade: 1 }],
+        modo: 'levantamento',
+      },
+    });
+    const mudarCancelada = await mudar(pendente, 'confirmada');
+
+    assert.equal(decisao.estado, 200);
+    assert.equal(decisao.dados.produtor.castigo.tipo, 'banimento');
+    assert.equal(decisao.dados.historico.banimentos, 1);
+    assert.equal(estados[pendente], 'cancelada');
+    assert.equal(estados[confirmada], 'cancelada');
+    assert.equal(estados[entregue], 'entregue');
+    // Voltaram as 2 + 3 das canceladas: 50 - 5 da entregue
+    assert.equal(stock, 45);
+    assert.deepEqual(
+      (await textos(ana)).filter((texto) => texto.includes('cancelada')),
+      [
+        'A sua encomenda a Quinta do Abel foi cancelada: o produtor deixou de vender na aplicação.',
+        'A sua encomenda a Quinta do Abel foi cancelada: o produtor deixou de vender na aplicação.',
+      ],
+    );
+    assert.equal(login.estado, 403);
+    assert.equal(login.dados.erro, 'A sua conta está bloqueada');
+    assert.equal(eu.estado, 401);
+    assert.equal(vender.estado, 403);
+    assert.equal(vender.dados.erro, 'A sua conta está bloqueada');
+    assert.equal(comprar.estado, 403);
+    assert.equal(mudarCancelada.estado, 409);
+    assert.deepEqual(
+      (await pedir('GET', '/products')).dados.map(({ nome }) => nome),
+      ['Grelos'],
+    );
+
+    // Desbloquear: volta a entrar e os produtos voltam à loja; as canceladas ficam canceladas
+    const desbloquear = await pedir(
+      'DELETE',
+      `/admin/produtores/${abel.id}/castigo`,
+      { token: admin.token },
+    );
+    const outraVez = await pedir('POST', '/auth/login', {
+      corpo: { email: 'quinta.do.abel@teste.pt', password: PASSWORD },
+    });
+
+    assert.equal(desbloquear.estado, 204);
+    assert.equal(outraVez.estado, 200);
+    assert.equal((await pedir('GET', '/products')).dados.length, 2);
+    assert.equal((await Order.findById(pendente)).estado, 'cancelada');
+    assert.equal(
+      (await textos(abel)).at(-1),
+      'A sua conta foi desbloqueada pelo administrador. Os seus produtos e a sua página voltaram à loja.',
     );
   });
 });

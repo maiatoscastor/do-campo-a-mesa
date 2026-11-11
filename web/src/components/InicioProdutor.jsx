@@ -12,29 +12,25 @@ import {
   formatarMedia,
   textoDasAvaliacoes,
 } from '../avaliacoes.js';
-import { ESTADOS, formatarData, formatarDataCurta } from '../encomendas.js';
+import {
+  formatarData,
+  formatarDataCurta,
+  nomeDoEstado,
+  porEntregar,
+  textoPorFazer,
+} from '../encomendas.js';
 import { comparacao, encomendasPorPeriodo } from '../indicadores.js';
 import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
 import { formatarPreco, STOCK_BAIXO } from '../produtos.js';
 import { primeiroNome } from '../utilizador.js';
 
-// O que falta fazer a cada encomenda, como aparece no cartão ("2 por confirmar")
-const POR_FAZER = {
-  pendente: ['por confirmar', 'por confirmar'],
-  confirmada: ['a preparar', 'a preparar'],
-  pronta: ['pronta a entregar', 'prontas a entregar'],
-};
-
+// "1 por confirmar · 2 a preparar", a partir da lista das encomendas por tratar
 function textoDasEncomendas(encomendas) {
-  const partes = Object.entries(POR_FAZER)
-    .map(([estado, [uma, varias]]) => {
-      const quantas = encomendas.filter((e) => e.estado === estado).length;
-      // O número e as palavras ficam juntos na mesma linha (espaços que não partem)
-      const texto = (quantas === 1 ? uma : varias).replaceAll(' ', '\u00a0');
-      return quantas > 0 && `${quantas}\u00a0${texto}`;
-    })
-    .filter(Boolean);
-  return partes.length > 0 ? partes.join(' · ') : 'Nada por tratar';
+  const porEstado = {};
+  for (const { estado } of encomendas) {
+    porEstado[estado] = (porEstado[estado] ?? 0) + 1;
+  }
+  return textoPorFazer(porEstado);
 }
 
 // Os produtos com 5 ou menos, primeiro os que têm menos: "Kiwi (2) · Mel (esgotado) e mais 1"
@@ -151,8 +147,7 @@ export default function InicioProdutor() {
   }
 
   const carregar = (calcular) => (dados ? calcular(dados) : 'A carregar…');
-  const porTratar =
-    dados?.encomendas.filter(({ estado }) => estado !== 'entregue') ?? [];
+  const porTratar = dados?.encomendas.filter(porEntregar) ?? [];
   const baixos = (dados?.produtos ?? [])
     .filter(({ stock }) => stock <= STOCK_BAIXO)
     .sort((a, b) => a.stock - b.stock);
@@ -254,7 +249,11 @@ function Numeros({ encomendas, resumo }) {
   const media = (periodo) =>
     periodo.quantas > 0 ? periodo.valor / periodo.quantas : 0;
   return (
-    <SeccaoInicio titulo="Resumo dos últimos 30 dias">
+    <SeccaoInicio
+      titulo="Resumo dos últimos 30 dias"
+      ligacao="/conta/estatisticas"
+      textoDaLigacao="Ver as estatísticas"
+    >
       <div className="row row-cols-2 row-cols-xl-4 g-3">
         <div className="col">
           <Indicador
@@ -326,10 +325,7 @@ function UltimasEncomendas({ encomendas }) {
                   </span>
                 </span>
                 <span className={`selo selo-${encomenda.estado}`}>
-                  {
-                    ESTADOS.find(({ estado }) => estado === encomenda.estado)
-                      .nome
-                  }
+                  {nomeDoEstado(encomenda.estado)}
                 </span>
               </Link>
             </li>

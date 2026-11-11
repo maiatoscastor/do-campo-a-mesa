@@ -138,6 +138,10 @@ export const router = createBrowserRouter([
                         ...aPedido(() => import('./pages/MeusLeiloes.jsx')),
                       },
                       {
+                        path: 'estatisticas',
+                        ...aPedido(() => import('./pages/Estatisticas.jsx')),
+                      },
+                      {
                         path: 'leiloes/novo',
                         ...aPedido(() => import('./pages/NovoLeilao.jsx')),
                       },
@@ -157,7 +161,11 @@ export const router = createBrowserRouter([
                 children: [
                   {
                     index: true,
-                    element: <Navigate to="produtores" replace />,
+                    element: <Navigate to="painel" replace />,
+                  },
+                  {
+                    path: 'painel',
+                    ...aPedido(() => import('./pages/PainelAdmin.jsx')),
                   },
                   {
                     path: 'produtores',
@@ -166,6 +174,10 @@ export const router = createBrowserRouter([
                   {
                     path: 'denuncias',
                     ...aPedido(() => import('./pages/Denuncias.jsx')),
+                  },
+                  {
+                    path: 'servicos',
+                    ...aPedido(() => import('./pages/Servicos.jsx')),
                   },
                 ],
               },

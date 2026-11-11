@@ -8,6 +8,7 @@ import {
   mediasDosProdutores,
   resumoDoProdutor,
 } from '../services/avaliacoes.js';
+import { estatisticasDoProdutor, PERIODOS } from '../services/estatisticas.js';
 import { avisarAdministradores } from '../sockets/avisos.js';
 import { criarErro, problemasDe } from '../utils/erro.js';
 import {
@@ -223,6 +224,20 @@ router.get('/eu', auth('produtor'), async (req, res) => {
     ...paginaPropria(utilizador),
     avaliacao: await resumoDoProdutor(utilizador._id),
   });
+});
+
+// GET /api/producers/eu/estatisticas?periodo=7|30|90|365: as estatísticas do produtor com sessão nos
+// últimos dias escolhidos (por omissão, 30): as vendas comparadas com o período anterior, as vendas
+// no gráfico (por dia, semana ou mês), os produtos mais vendidos, as encomendas por estado, os
+// leilões que acabaram e as avaliações
+router.get('/eu/estatisticas', auth('produtor'), async (req, res) => {
+  const dias = Number(req.query.periodo ?? 30);
+  if (!PERIODOS[dias]) {
+    throw Object.assign(criarErro(400, 'Dados inválidos'), {
+      detalhes: { periodo: 'Escolha 7, 30, 90 ou 365 dias' },
+    });
+  }
+  res.json(await estatisticasDoProdutor(req.user.id, dias));
 });
 
 // PATCH /api/producers/eu: o produtor muda a sua página. Só os campos enviados mudam; um campo

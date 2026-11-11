@@ -44,6 +44,15 @@ const DECISOES = {
     ajuda:
       'É enviado ao produtor. Os produtos e a página saem da loja até à data, e os leilões dele que ainda não acabaram são cancelados.',
   },
+  banimento: {
+    acao: 'Banir',
+    confirmar: 'Banir e bloquear a conta',
+    nome: 'Banimento',
+    selo: 'selo-suspenso',
+    botao: 'btn-suave-perigo',
+    ajuda:
+      'É enviado ao produtor. A conta fica bloqueada até a desbloquear: ele não volta a entrar, os produtos e a página saem da loja, e os leilões e as encomendas por entregar são cancelados, com aviso aos compradores.',
+  },
 };
 
 // As durações da suspensão: em dias, ou até uma data escolhida
@@ -64,8 +73,8 @@ function motivoMaisComum(denuncias) {
   return maisComum ? fraseDoMotivo(maisComum[0]) : '';
 }
 
-// "1 aviso e 2 suspensões antes", ou nada se não teve nenhum
-function textoDoHistorico({ avisos, suspensoes }) {
+// "Já teve 1 aviso e 2 suspensões", ou nada se não teve nenhum
+function textoDoHistorico({ avisos, suspensoes, banimentos }) {
   const partes = [];
   if (avisos > 0) {
     partes.push(avisos === 1 ? '1 aviso' : `${avisos} avisos`);
@@ -73,12 +82,19 @@ function textoDoHistorico({ avisos, suspensoes }) {
   if (suspensoes > 0) {
     partes.push(suspensoes === 1 ? '1 suspensão' : `${suspensoes} suspensões`);
   }
-  return partes.length > 0 ? `Já teve ${partes.join(' e ')}` : '';
+  if (banimentos > 0) {
+    partes.push(banimentos === 1 ? '1 banimento' : `${banimentos} banimentos`);
+  }
+  if (partes.length === 0) {
+    return '';
+  }
+  const ultima = partes.pop();
+  return `Já teve ${partes.length > 0 ? `${partes.join(', ')} e ${ultima}` : ultima}`;
 }
 
 // Um produtor denunciado, na página das denúncias da administração: quem é, o castigo em vigor (com
 // o botão para o levantar), o que já teve, as denúncias (com quem as fez) e, se estiver por decidir,
-// as três decisões
+// as quatro decisões
 export default function CasoDeProdutor({ caso, aoDecidir, aoLevantar }) {
   const { produtor, historico, denuncias } = caso;
   const porDecidir = denuncias.some(({ estado }) => estado === 'pendente');
@@ -95,7 +111,10 @@ export default function CasoDeProdutor({ caso, aoDecidir, aoLevantar }) {
   if (porDecidir) {
     selo = { classe: 'selo-por-decidir', nome: 'Por decidir' };
   } else if (produtor.castigo) {
-    selo = { classe: 'selo-suspenso', nome: 'Suspenso' };
+    selo = {
+      classe: 'selo-suspenso',
+      nome: produtor.castigo.tipo === 'banimento' ? 'Banido' : 'Suspenso',
+    };
   } else if (ultima) {
     selo = {
       classe: DECISOES[ultima.decisao].selo,
@@ -125,7 +144,7 @@ export default function CasoDeProdutor({ caso, aoDecidir, aoLevantar }) {
         {produtor.castigo && (
           <Castigo
             produtor={produtor}
-            aoLevantar={() => aoLevantar(produtor.id)}
+            aoLevantar={() => aoLevantar(produtor.id, produtor.castigo.tipo)}
           />
         )}
 
@@ -185,14 +204,15 @@ export default function CasoDeProdutor({ caso, aoDecidir, aoLevantar }) {
   );
 }
 
-// O castigo em vigor e o botão para o levantar mais cedo (com confirmação, porque devolve logo os
-// produtos à loja)
+// O castigo em vigor e o botão para o levantar mais cedo, ou para desbloquear a conta (com
+// confirmação, porque devolve logo os produtos à loja)
 function Castigo({ produtor, aoLevantar }) {
   const { pedir } = useSessao();
   const [aConfirmar, setAConfirmar] = useState(false);
   const [aEnviar, setAEnviar] = useState(false);
   const [erro, setErro] = useState(null);
   const { castigo } = produtor;
+  const banido = castigo.tipo === 'banimento';
 
   async function levantar() {
     setAEnviar(true);
@@ -211,20 +231,30 @@ function Castigo({ produtor, aoLevantar }) {
   return (
     <div className="caso-castigo">
       <p className="mb-2">
-        <strong>Suspenso até {formatarData(castigo.ate)}.</strong> Motivo:{' '}
-        {castigo.motivo}
+        <strong>
+          {banido
+            ? `Conta bloqueada desde ${formatarData(castigo.desde)}.`
+            : `Suspenso até ${formatarData(castigo.ate)}.`}
+        </strong>{' '}
+        Motivo: {castigo.motivo}
       </p>
       <AlertaDeErro erro={erro} />
       {aConfirmar ? (
         <div className="d-flex flex-wrap align-items-center gap-2">
-          <span className="small">Os produtos voltam logo à loja.</span>
+          <span className="small">
+            {banido
+              ? 'Ele volta a poder entrar, e os produtos voltam logo à loja.'
+              : 'Os produtos voltam logo à loja.'}
+          </span>
           <button
             className="btn btn-primary btn-sm"
             type="button"
             disabled={aEnviar}
             onClick={levantar}
           >
-            {aEnviar ? 'A levantar…' : 'Levantar a suspensão'}
+            {aEnviar && 'A guardar…'}
+            {!aEnviar &&
+              (banido ? 'Desbloquear a conta' : 'Levantar a suspensão')}
           </button>
           <button
             className="btn btn-suave btn-sm"
@@ -240,7 +270,7 @@ function Castigo({ produtor, aoLevantar }) {
           type="button"
           onClick={() => setAConfirmar(true)}
         >
-          Levantar mais cedo
+          {banido ? 'Desbloquear' : 'Levantar mais cedo'}
         </button>
       )}
     </div>
@@ -278,6 +308,7 @@ function FormularioDaDecisao({
   });
   const detalhes = erro?.detalhes ?? {};
   const suspensao = decisao === 'suspensao';
+  const castigo = suspensao || decisao === 'banimento';
   // Os limites do campo da data (de amanhã a daqui a um ano), calculados uma vez, ao abrir
   const [limites] = useState(() => ({
     min: diaIso(new Date(Date.now() + DIA)),
@@ -363,7 +394,7 @@ function FormularioDaDecisao({
       {!erro?.detalhes && <AlertaDeErro erro={erro} />}
       <div className="d-flex flex-wrap gap-2">
         <button
-          className={`btn btn-sm ${suspensao ? 'btn-danger' : 'btn-primary'}`}
+          className={`btn btn-sm ${castigo ? 'btn-danger' : 'btn-primary'}`}
           type="submit"
           disabled={aEnviar}
         >

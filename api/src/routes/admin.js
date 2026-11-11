@@ -6,8 +6,10 @@ import { Product } from '../models/Product.js';
 import { DECISOES_DE_PRODUTOR, Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
 import { castigoAtivo, produtoresAVender, User } from '../models/User.js';
-import { suspender, tirarCastigo } from '../services/castigos.js';
+import { banir, suspender, tirarCastigo } from '../services/castigos.js';
+import { estadoDosServicos } from '../services/servicos.js';
 import { avisar, avisarAdministradores } from '../sockets/avisos.js';
+import { pessoasNaSala } from '../sockets/leiloes.js';
 import { arredondar } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
 
@@ -62,16 +64,27 @@ router.get('/produtores/pendentes', async (req, res) => {
 // O número e o valor das encomendas feitas num intervalo de tempo
 async function encomendasEntre(desde, ate) {
   const [grupo] = await Order.aggregate([
-    { $match: { createdAt: { $gte: desde, $lt: ate } } },
+    // As canceladas não contam: não chegaram a ser vendas
+    {
+      $match: {
+        createdAt: { $gte: desde, $lt: ate },
+        estado: { $ne: 'cancelada' },
+      },
+    },
     { $group: { _id: null, quantas: { $sum: 1 }, valor: { $sum: '$total' } } },
   ]);
   return { quantas: grupo?.quantas ?? 0, valor: arredondar(grupo?.valor ?? 0) };
 }
 
-// GET /api/admin/painel: a aplicação em números, para o início do administrador. Os utilizadores por
-// papel, os produtos à venda (de produtores aprovados), as encomendas dos últimos 30 dias e dos 30
-// anteriores (para comparar), os leilões a decorrer e marcados, as últimas encomendas e os últimos
-// registos. Tudo contado na base de dados no momento do pedido.
+// Quantas linhas vêm nas listas do painel (as últimas encomendas e os últimos registos)
+const NO_PAINEL = 10;
+
+// GET /api/admin/painel: a aplicação em números, para o início e o painel do administrador. Os
+// utilizadores por papel (e os produtores por estado: aprovados, por validar, rejeitados, suspensos
+// e banidos), os produtos à venda, as encomendas dos últimos 30 dias e dos 30 anteriores (para
+// comparar) e de sempre por estado, os leilões a decorrer (cada um com a licitação atual e quantas
+// pessoas estão a ver) e marcados, as últimas encomendas e os últimos registos. Tudo contado na base
+// de dados no momento do pedido.
 router.get('/painel', async (req, res) => {
   const agora = new Date();
   const ha30Dias = new Date(agora.getTime() - 30 * DIA);
@@ -87,6 +100,11 @@ router.get('/painel', async (req, res) => {
     leiloes,
     ultimasEncomendas,
     ultimosRegistos,
+    produtoresPorValidacao,
+    suspensos,
+    banidos,
+    encomendasPorEstado,
+    aDecorrer,
   ] = await Promise.all([
     User.aggregate([{ $group: { _id: '$papel', quantos: { $sum: 1 } } }]),
     User.countDocuments({ createdAt: { $gte: ha30Dias } }),
@@ -99,16 +117,34 @@ router.get('/painel', async (req, res) => {
     ]),
     Order.find()
       .sort({ createdAt: -1, _id: -1 })
-      .limit(5)
+      .limit(NO_PAINEL)
       .populate('comprador', 'nome')
       .populate('produtor', 'produtor.nomeExploracao'),
     User.find()
       .sort({ createdAt: -1, _id: -1 })
-      .limit(5)
+      .limit(NO_PAINEL)
       .select(
         'nome papel produtor.nomeExploracao produtor.validacao exemplo createdAt',
       ),
+    User.aggregate([
+      { $match: { papel: 'produtor' } },
+      { $group: { _id: '$produtor.validacao', quantos: { $sum: 1 } } },
+    ]),
+    User.countDocuments({
+      'castigo.tipo': 'suspensao',
+      'castigo.ate': { $gt: agora },
+    }),
+    User.countDocuments({ 'castigo.tipo': 'banimento' }),
+    Order.aggregate([{ $group: { _id: '$estado', quantos: { $sum: 1 } } }]),
+    Auction.find({ estado: 'ativo' })
+      .sort({ terminaEm: 1 })
+      .populate('produtor', 'produtor.nomeExploracao'),
   ]);
+  // Quantas pessoas estão em cada sala (sem o Socket.io, nos testes, fica de fora)
+  const io = req.app.get('io');
+  const participantes = await Promise.all(
+    aDecorrer.map(({ _id }) => (io ? pessoasNaSala(io, _id) : null)),
+  );
   const contagem = (lista, chave) =>
     lista.find(({ _id }) => _id === chave)?.quantos ?? 0;
 
@@ -118,12 +154,39 @@ router.get('/painel', async (req, res) => {
       produtores: contagem(porPapel, 'produtor'),
       administradores: contagem(porPapel, 'admin'),
       novos,
+      produtoresPorEstado: {
+        aprovados: contagem(produtoresPorValidacao, 'aprovado'),
+        porValidar: contagem(produtoresPorValidacao, 'pendente'),
+        rejeitados: contagem(produtoresPorValidacao, 'rejeitado'),
+        suspensos,
+        banidos,
+      },
     },
     produtos,
-    encomendas: { ultimos30, anteriores30 },
+    encomendas: {
+      ultimos30,
+      anteriores30,
+      porEstado: Object.fromEntries(
+        encomendasPorEstado.map(({ _id, quantos }) => [_id, quantos]),
+      ),
+    },
     leiloes: {
       aDecorrer: contagem(leiloes, 'ativo'),
       marcados: contagem(leiloes, 'agendado'),
+      lista: aDecorrer.map((leilao, i) => ({
+        id: leilao._id,
+        nome: leilao.nome,
+        lote: leilao.lote,
+        exemplo: leilao.exemplo,
+        produtor: leilao.produtor && {
+          id: leilao.produtor._id,
+          nomeExploracao: leilao.produtor.produtor?.nomeExploracao,
+        },
+        licitacaoAtual: leilao.licitacaoAtual?.valor,
+        numeroDeLicitacoes: leilao.numeroDeLicitacoes,
+        terminaEm: leilao.terminaEm,
+        participantes: participantes[i],
+      })),
     },
     ultimasEncomendas: ultimasEncomendas.map((encomenda) => ({
       id: encomenda._id,
@@ -147,6 +210,12 @@ router.get('/painel', async (req, res) => {
       data: utilizador.createdAt,
     })),
   });
+});
+
+// GET /api/admin/servicos: o estado de cada parte da aplicação (API, MongoDB, Socket.io,
+// armazenamento das imagens e documentação Swagger), verificado no momento do pedido
+router.get('/servicos', async (req, res) => {
+  res.json(await estadoDosServicos(req.app.get('io')));
 });
 
 // PATCH /api/admin/produtores/:id/validacao: aprova ou rejeita um produtor ({ "aprovado": true })
@@ -322,6 +391,7 @@ function casoDeProdutor(produtor, denuncias, historico) {
     historico: {
       avisos: historico.get(`${produtor._id}:aviso`) ?? 0,
       suspensoes: historico.get(`${produtor._id}:suspensao`) ?? 0,
+      banimentos: historico.get(`${produtor._id}:banimento`) ?? 0,
     },
     denuncias: denuncias.map((denuncia) => ({
       id: denuncia._id,
@@ -346,7 +416,7 @@ async function historicoDe(ids) {
         tipo: 'produtor',
         produtor: { $in: ids },
         estado: 'decidida',
-        decisao: { $in: ['aviso', 'suspensao'] },
+        decisao: { $in: ['aviso', 'suspensao', 'banimento'] },
       },
     },
     {
@@ -437,10 +507,11 @@ function dataDaSuspensao(valor, agora) {
 }
 
 // PATCH /api/admin/produtores/:id/moderacao: o administrador decide as denúncias por decidir de um
-// produtor. Corpo: { decisao: 'rejeitada' | 'aviso' | 'suspensao', motivo, ate } (a data só na
-// suspensão). Na suspensão, os produtos e a página saem da loja até à data, e os leilões por acabar
-// são cancelados. O produtor recebe o aviso ou a suspensão com o motivo; quem denunciou recebe a
-// decisão (numa rejeição, com o motivo; num castigo, sem os pormenores, que são entre o
+// produtor. Corpo: { decisao: 'rejeitada' | 'aviso' | 'suspensao' | 'banimento', motivo, ate } (a
+// data só na suspensão). Na suspensão, os produtos e a página saem da loja até à data, e os leilões
+// por acabar são cancelados. No banimento, a conta fica bloqueada até ser desbloqueada, e também as
+// encomendas por entregar são canceladas. O produtor recebe a decisão com o motivo; quem denunciou
+// recebe a decisão (numa rejeição, com o motivo; num castigo, sem os pormenores, que são entre o
 // administrador e o produtor).
 router.patch('/produtores/:id/moderacao', async (req, res) => {
   const agora = new Date();
@@ -449,7 +520,7 @@ router.patch('/produtores/:id/moderacao', async (req, res) => {
     typeof req.body?.motivo === 'string' ? req.body.motivo.trim() : '';
   const detalhes = {};
   if (!DECISOES_DE_PRODUTOR.includes(decisao)) {
-    detalhes.decisao = 'Escolha rejeitar, dar um aviso ou suspender';
+    detalhes.decisao = 'Escolha rejeitar, dar um aviso, suspender ou banir';
   }
   if (!motivo) {
     detalhes.motivo = 'Escreva o motivo da decisão';
@@ -499,6 +570,8 @@ router.patch('/produtores/:id/moderacao', async (req, res) => {
       motivo,
       admin: req.user.id,
     });
+  } else if (decisao === 'banimento') {
+    await banir(io, produtor, { motivo, admin: req.user.id });
   } else if (decisao === 'aviso') {
     await avisar(io, produtor._id, {
       texto: `Recebeu um aviso da administração sobre a sua conta de produtor. Motivo: ${motivo}`,
@@ -529,8 +602,9 @@ router.patch('/produtores/:id/moderacao', async (req, res) => {
   res.json(casoDeProdutor(atualizado, denuncias, historico));
 });
 
-// DELETE /api/admin/produtores/:id/castigo: o administrador levanta o castigo antes do fim. O
-// produtor é avisado, e os produtos e a página voltam logo à loja. Responde 204.
+// DELETE /api/admin/produtores/:id/castigo: o administrador levanta a suspensão antes do fim, ou
+// desbloqueia uma conta banida. O produtor é avisado, e os produtos e a página voltam logo à loja (as
+// encomendas canceladas ficam canceladas). Responde 204.
 router.delete('/produtores/:id/castigo', async (req, res) => {
   const io = req.app.get('io');
   if (!(await tirarCastigo(io, req.params.id))) {

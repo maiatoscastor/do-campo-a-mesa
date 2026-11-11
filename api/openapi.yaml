@@ -65,6 +65,8 @@ paths:
       description: >
         Inicia logo a sessão. Só se aceitam os campos do pedido: ninguém se regista como
         administrador nem como produtor já aprovado. Os produtores ficam à espera de validação.
+        No máximo 10 contas criadas por hora a partir do mesmo endereço IP (os pedidos com erros
+        não contam).
       requestBody:
         required: true
         content:
@@ -82,11 +84,15 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
+        '429': { $ref: '#/components/responses/DemasiadosPedidos' }
 
   /auth/login:
     post:
       tags: [Contas]
       summary: Iniciar a sessão
+      description: >
+        No máximo 10 tentativas falhadas em 15 minutos a partir do mesmo endereço IP (as que correm
+        bem não contam). Passado o limite, todas são recusadas até a janela acabar.
       requestBody:
         required: true
         content:
@@ -103,11 +109,18 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
+        '403':
+          description: A conta está bloqueada (só depois da password certa)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '429': { $ref: '#/components/responses/DemasiadosPedidos' }
 
   /auth/eu:
     get:
       tags: [Contas]
       summary: Os dados atuais de quem tem a sessão
+      description: Numa conta bloqueada responde 401, e a aplicação termina a sessão.
       security: [{ bearerAuth: [] }]
       responses:
         '200':
@@ -238,6 +251,14 @@ paths:
                       novos:
                         type: integer
                         description: Registados nos últimos 30 dias
+                      produtoresPorEstado:
+                        type: object
+                        properties:
+                          aprovados: { type: integer }
+                          porValidar: { type: integer }
+                          rejeitados: { type: integer }
+                          suspensos: { type: integer }
+                          banidos: { type: integer }
                   produtos: { type: integer }
                   encomendas:
                     type: object
@@ -246,11 +267,37 @@ paths:
                         { $ref: '#/components/schemas/EncomendasNoPeriodo' }
                       anteriores30:
                         { $ref: '#/components/schemas/EncomendasNoPeriodo' }
+                      porEstado:
+                        type: object
+                        description: Quantas encomendas há em cada estado (de sempre)
+                        additionalProperties: { type: integer }
                   leiloes:
                     type: object
                     properties:
                       aDecorrer: { type: integer }
                       marcados: { type: integer }
+                      lista:
+                        type: array
+                        description: Os leilões a decorrer, primeiro os que acabam mais cedo
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            nome: { type: string }
+                            lote: { type: string }
+                            exemplo: { type: boolean }
+                            produtor:
+                              type: object
+                              properties:
+                                id: { type: string }
+                                nomeExploracao: { type: string }
+                            licitacaoAtual: { type: number }
+                            numeroDeLicitacoes: { type: integer }
+                            terminaEm: { type: string, format: date-time }
+                            participantes:
+                              type: integer
+                              nullable: true
+                              description: Quantas pessoas estão na sala (cada uma conta uma vez)
                   ultimasEncomendas:
                     type: array
                     items:
@@ -285,6 +332,45 @@ paths:
                           }
                         exemplo: { type: boolean }
                         data: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/servicos:
+    get:
+      tags: [Administração]
+      summary: O estado de cada parte da aplicação
+      description: >
+        Verificado no momento do pedido: a API (há quanto tempo corre, a versão do Node e a memória),
+        o MongoDB (um ping, com o tempo de resposta), o Socket.io (ligações e pessoas), o
+        armazenamento das imagens (se se pode escrever, quantos ficheiros e quanto ocupam) e a
+        documentação Swagger (quantas operações tem). Uma falha vem com uma frase simples; os
+        pormenores técnicos ficam no registo do servidor.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: O estado dos serviços
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verificadoEm: { type: string, format: date-time }
+                  servicos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        servico:
+                          type: string
+                          enum: [api, mongodb, socket, armazenamento, swagger]
+                        estado: { type: string, enum: [ok, erro] }
+                        latenciaMs: { type: integer }
+                        mensagem:
+                          type: string
+                          description: Só quando há um erro
+                        detalhes:
+                          type: object
+                          description: O que se mediu em cada serviço
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
 
@@ -330,12 +416,14 @@ paths:
   /admin/produtores/{id}/moderacao:
     patch:
       tags: [Administração]
-      summary: Decidir as denúncias de um produtor (rejeitar, dar um aviso ou suspender)
+      summary: Decidir as denúncias de um produtor (rejeitar, dar um aviso, suspender ou banir)
       description: >
         Na suspensão, os produtos e a página saem da loja até à data, o produtor não pode criar
         produtos nem leilões, e os leilões dele por acabar são cancelados (com o stock reservado
         devolvido e aviso a quem licitou). O produtor recebe o aviso ou a suspensão com o motivo;
-        quem denunciou recebe a decisão. No fim da data, volta tudo sozinho.
+        quem denunciou recebe a decisão. No fim da data, volta tudo sozinho. No banimento, a conta
+        fica bloqueada (não entra, não compra, não vende nem licita) até ser desbloqueada, e as
+        encomendas por entregar passam a canceladas, com o stock devolvido e aviso aos compradores.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -347,7 +435,11 @@ paths:
               type: object
               required: [decisao, motivo]
               properties:
-                decisao: { type: string, enum: [rejeitada, aviso, suspensao] }
+                decisao:
+                  {
+                    type: string,
+                    enum: [rejeitada, aviso, suspensao, banimento],
+                  }
                 motivo: { type: string, maxLength: 500 }
                 ate:
                   type: string
@@ -369,8 +461,10 @@ paths:
   /admin/produtores/{id}/castigo:
     delete:
       tags: [Administração]
-      summary: Levantar o castigo de um produtor antes do fim
-      description: O produtor é avisado, e os produtos e a página voltam logo à loja.
+      summary: Levantar a suspensão antes do fim, ou desbloquear uma conta banida
+      description: >
+        O produtor é avisado, e os produtos e a página voltam logo à loja. As encomendas canceladas
+        ficam canceladas.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -761,6 +855,30 @@ paths:
         '404': { $ref: '#/components/responses/NaoEncontrado' }
         '409':
           description: Já tem uma denúncia deste produtor por decidir
+
+  /producers/eu/estatisticas:
+    get:
+      tags: [Produtores]
+      summary: As estatísticas do produtor com sessão (vendas, produtos, encomendas, leilões, avaliações)
+      description: >
+        Nos últimos dias escolhidos, comparados com o mesmo número de dias antes. As vendas não
+        contam as encomendas canceladas. O gráfico agrupa por dia (7 e 30), por semana (90) ou por
+        mês (365), na hora de Portugal, com todas as barras (também as de zero).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: periodo
+          in: query
+          description: Em dias
+          schema: { type: integer, enum: [7, 30, 90, 365], default: 30 }
+      responses:
+        '200':
+          description: As estatísticas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EstatisticasDoProdutor' }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
 
   /producers/eu:
     get:
@@ -1297,6 +1415,17 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Erro' }
+    DemasiadosPedidos:
+      description: >
+        Demasiadas tentativas a partir deste endereço IP. A mensagem diz quantos minutos faltam;
+        o cabeçalho Retry-After diz o mesmo em segundos.
+      headers:
+        Retry-After:
+          description: Segundos até poder tentar outra vez
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
 
   schemas:
     Erro:
@@ -1351,8 +1480,11 @@ components:
     Castigo:
       type: object
       properties:
-        tipo: { type: string, enum: [suspensao] }
-        ate: { type: string, format: date-time }
+        tipo: { type: string, enum: [suspensao, banimento] }
+        ate:
+          type: string
+          format: date-time
+          description: Só na suspensão (o banimento dura até ser levantado)
         motivo: { type: string }
 
     Registo:
@@ -1474,7 +1606,10 @@ components:
 
     EstadoDaEncomenda:
       type: string
-      enum: [pendente, confirmada, pronta, entregue]
+      enum: [pendente, confirmada, pronta, entregue, cancelada]
+      description: >
+        cancelada fica fora do caminho normal: só acontece às encomendas por entregar de um produtor
+        banido
 
     NovaEncomenda:
       type: object
@@ -1721,6 +1856,60 @@ components:
           enum: [pendente, aprovado, rejeitado]
           description: Só nas respostas de /producers/eu e /producers/eu/{imagem}
 
+    VendasDoPeriodo:
+      type: object
+      properties:
+        valor: { type: number, description: Em euros }
+        encomendas: { type: integer }
+        valorMedio: { type: number }
+
+    EstatisticasDoProdutor:
+      type: object
+      properties:
+        periodo:
+          type: object
+          properties:
+            dias: { type: integer }
+            agrupamento: { type: string, enum: [dia, semana, mes] }
+            desde: { type: string, format: date-time }
+            ate: { type: string, format: date-time }
+        vendas: { $ref: '#/components/schemas/VendasDoPeriodo' }
+        anterior: { $ref: '#/components/schemas/VendasDoPeriodo' }
+        serie:
+          type: array
+          items:
+            type: object
+            properties:
+              chave: { type: string, example: '2026-W46' }
+              inicio:
+                type: string
+                format: date
+                description: O primeiro dia da barra dentro do período
+              valor: { type: number }
+              encomendas: { type: integer }
+        produtos:
+          type: array
+          description: Os 5 mais vendidos (pelo valor)
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              nome: { type: string }
+              unidade: { type: string }
+              quantidade: { type: integer }
+              valor: { type: number }
+        estados:
+          type: object
+          description: Quantas encomendas do período em cada estado
+          additionalProperties: { type: integer }
+        leiloes:
+          type: object
+          properties:
+            terminados: { type: integer }
+            vendidos: { type: integer }
+            valor: { type: number }
+        avaliacao: { $ref: '#/components/schemas/ResumoDasAvaliacoes' }
+
     MediaDasAvaliacoes:
       type: object
       properties:
@@ -1844,6 +2033,7 @@ components:
           properties:
             avisos: { type: integer }
             suspensoes: { type: integer }
+            banimentos: { type: integer }
         denuncias:
           type: array
           items:
@@ -1854,7 +2044,8 @@ components:
                 { $ref: '#/components/schemas/MotivoDaDenunciaDeProdutor' }
               descricao: { type: string }
               estado: { type: string, enum: [pendente, decidida] }
-              decisao: { type: string, enum: [rejeitada, aviso, suspensao] }
+              decisao:
+                { type: string, enum: [rejeitada, aviso, suspensao, banimento] }
               motivoDaDecisao: { type: string }
               decididaEm: { type: string, format: date-time }
               data: { type: string, format: date-time }

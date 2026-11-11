@@ -176,13 +176,23 @@ const produtorSchema = new Schema(
 
 // Os castigos que o administrador pode dar a um produtor denunciado. Na suspensão, os produtos e a
 // página saem da loja e ele não pode criar produtos nem leilões, até à data "ate"; depois volta tudo
-// sozinho. O aviso não fica aqui (é só a notificação e a decisão na denúncia).
-export const TIPOS_DE_CASTIGO = ['suspensao'];
+// sozinho. No banimento, a conta fica bloqueada (não entra, não compra nem vende) até o
+// administrador a desbloquear. O aviso não fica aqui (é só a notificação e a decisão na denúncia).
+export const TIPOS_DE_CASTIGO = ['suspensao', 'banimento'];
 
 const castigoSchema = new Schema(
   {
     tipo: { type: String, enum: TIPOS_DE_CASTIGO, required: true },
-    ate: { type: Date, required: true },
+    // Só na suspensão: o banimento não tem fim marcado
+    ate: {
+      type: Date,
+      required: [
+        function () {
+          return this.tipo === 'suspensao';
+        },
+        'Falta a data do fim',
+      ],
+    },
     motivo: {
       type: String,
       required: true,
@@ -237,10 +247,19 @@ userSchema.index({ favoritos: 1 });
 // Para o ciclo dos castigos encontrar depressa as suspensões que acabaram
 userSchema.index({ 'castigo.ate': 1 }, { sparse: true });
 
-// O castigo de um utilizador, se ainda estiver em vigor (a data de fim ainda não passou)
+// O castigo de um utilizador, se ainda estiver em vigor: o banimento até ser levantado, a suspensão
+// até a data de fim passar
 export function castigoAtivo(utilizador, agora = new Date()) {
   const castigo = utilizador?.castigo;
-  return castigo?.tipo && castigo.ate > agora ? castigo : null;
+  if (!castigo?.tipo) {
+    return null;
+  }
+  return castigo.tipo === 'banimento' || castigo.ate > agora ? castigo : null;
+}
+
+// Se a conta está bloqueada (banida)
+export function contaBloqueada(utilizador) {
+  return castigoAtivo(utilizador)?.tipo === 'banimento';
 }
 
 // A condição dos produtores que estão a vender: aprovados e sem castigo em vigor. É a mesma no

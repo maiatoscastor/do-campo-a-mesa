@@ -215,3 +215,18 @@
   background-color: var(--bs-secondary-bg);
   color: var(--bs-body-color);
 }
+
+// Cancelada (o produtor foi banido): fora dos passos, a vermelho
+.selo-cancelada {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}
+
+.encomenda-cancelada {
+  margin-bottom: 1rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+  font-size: 0.875rem;
+}
