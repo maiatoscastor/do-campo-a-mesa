@@ -88,3 +88,23 @@ export function somar(linhas) {
   );
   return centimos / 100;
 }
+
+// O que falta fazer às encomendas em curso, a partir de quantas há em cada estado:
+// "1 por confirmar · 2 a preparar · 1 pronta a entregar" (só os estados com alguma)
+const POR_FAZER = {
+  pendente: ['por confirmar', 'por confirmar'],
+  confirmada: ['a preparar', 'a preparar'],
+  pronta: ['pronta a entregar', 'prontas a entregar'],
+};
+
+export function textoPorFazer(porEstado) {
+  const partes = Object.entries(POR_FAZER)
+    .map(([estado, [uma, varias]]) => {
+      const quantas = porEstado[estado] ?? 0;
+      // O número e as palavras ficam juntos na mesma linha (espaços que não partem)
+      const texto = (quantas === 1 ? uma : varias).replaceAll(' ', '\u00a0');
+      return quantas > 0 && `${quantas}\u00a0${texto}`;
+    })
+    .filter(Boolean);
+  return partes.length > 0 ? partes.join(' · ') : 'Nada por tratar';
+}

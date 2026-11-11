@@ -17,29 +17,20 @@ import {
   formatarDataCurta,
   nomeDoEstado,
   porEntregar,
+  textoPorFazer,
 } from '../encomendas.js';
 import { comparacao, encomendasPorPeriodo } from '../indicadores.js';
 import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
 import { formatarPreco, STOCK_BAIXO } from '../produtos.js';
 import { primeiroNome } from '../utilizador.js';
 
-// O que falta fazer a cada encomenda, como aparece no cartão ("2 por confirmar")
-const POR_FAZER = {
-  pendente: ['por confirmar', 'por confirmar'],
-  confirmada: ['a preparar', 'a preparar'],
-  pronta: ['pronta a entregar', 'prontas a entregar'],
-};
-
+// "1 por confirmar · 2 a preparar", a partir da lista das encomendas por tratar
 function textoDasEncomendas(encomendas) {
-  const partes = Object.entries(POR_FAZER)
-    .map(([estado, [uma, varias]]) => {
-      const quantas = encomendas.filter((e) => e.estado === estado).length;
-      // O número e as palavras ficam juntos na mesma linha (espaços que não partem)
-      const texto = (quantas === 1 ? uma : varias).replaceAll(' ', '\u00a0');
-      return quantas > 0 && `${quantas}\u00a0${texto}`;
-    })
-    .filter(Boolean);
-  return partes.length > 0 ? partes.join(' · ') : 'Nada por tratar';
+  const porEstado = {};
+  for (const { estado } of encomendas) {
+    porEstado[estado] = (porEstado[estado] ?? 0) + 1;
+  }
+  return textoPorFazer(porEstado);
 }
 
 // Os produtos com 5 ou menos, primeiro os que têm menos: "Kiwi (2) · Mel (esgotado) e mais 1"

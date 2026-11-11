@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import AlertaDeErro from './AlertaDeErro.jsx';
 import AtalhoInicio from './AtalhoInicio.jsx';
 import Indicador from './Indicador.jsx';
+import { UltimasEncomendas, UltimosRegistos } from './ListasDoPainel.jsx';
 import SeccaoInicio from './SeccaoInicio.jsx';
 import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
-import { formatarDataCurta, nomeDoEstado } from '../encomendas.js';
 import { comparacao } from '../indicadores.js';
-import { formatarHaQuanto } from '../notificacoes.js';
 import { formatarPreco } from '../produtos.js';
-import { PAPEIS, primeiroNome } from '../utilizador.js';
+import { primeiroNome } from '../utilizador.js';
 
 // "1 comprador", "3 compradores"
 function contar(numero, singular, plural) {
@@ -111,10 +109,12 @@ export default function InicioAdministrador() {
           <Numeros painel={painel} />
           <div className="row gx-4 colunas-inicio">
             <div className="col-lg-7">
-              <UltimasEncomendas encomendas={painel.ultimasEncomendas} />
+              <UltimasEncomendas
+                encomendas={painel.ultimasEncomendas.slice(0, 5)}
+              />
             </div>
             <div className="col-lg-5">
-              <UltimosRegistos registos={painel.ultimosRegistos} />
+              <UltimosRegistos registos={painel.ultimosRegistos.slice(0, 5)} />
             </div>
           </div>
         </>
@@ -128,7 +128,11 @@ function Numeros({ painel }) {
   const { ultimos30, anteriores30 } = encomendas;
   const pessoas = utilizadores.compradores + utilizadores.produtores;
   return (
-    <SeccaoInicio titulo="A aplicação em números">
+    <SeccaoInicio
+      titulo="A aplicação em números"
+      ligacao="/admin/painel"
+      textoDaLigacao="Ver o painel"
+    >
       <div className="row row-cols-2 row-cols-xl-4 g-3">
         <div className="col">
           <Indicador
@@ -160,68 +164,6 @@ function Numeros({ painel }) {
           />
         </div>
       </div>
-    </SeccaoInicio>
-  );
-}
-
-function UltimasEncomendas({ encomendas }) {
-  return (
-    <SeccaoInicio titulo="Últimas encomendas">
-      {encomendas.length === 0 ? (
-        <p className="text-body-secondary">Ainda não há encomendas.</p>
-      ) : (
-        <ul className="list-group">
-          {encomendas.map((encomenda) => (
-            <li className="list-group-item linha-inicio" key={encomenda.id}>
-              <span className="lista-produtos-texto">
-                <span className="d-block fw-bold text-truncate">
-                  {encomenda.produtor?.nomeExploracao ?? 'Produtor removido'}
-                </span>
-                <span className="d-block small text-body-secondary text-truncate">
-                  {encomenda.comprador ?? 'Comprador removido'} ·{' '}
-                  {formatarPreco(encomenda.total)} ·{' '}
-                  {formatarDataCurta(encomenda.data)}
-                  {encomenda.origem === 'leilao' && ' · leilão'}
-                </span>
-              </span>
-              <span className={`selo selo-${encomenda.estado}`}>
-                {nomeDoEstado(encomenda.estado)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </SeccaoInicio>
-  );
-}
-
-function UltimosRegistos({ registos }) {
-  return (
-    <SeccaoInicio titulo="Últimos registos">
-      <ul className="list-group">
-        {registos.map((registo) => (
-          <li className="list-group-item linha-inicio" key={registo.id}>
-            <span className="lista-produtos-texto">
-              <span className="d-block fw-bold text-truncate">
-                {registo.nomeExploracao ?? registo.nome}
-              </span>
-              <span className="d-block small text-body-secondary text-truncate">
-                {PAPEIS[registo.papel]}
-                {registo.nomeExploracao && ` · ${registo.nome}`} ·{' '}
-                {formatarHaQuanto(registo.data)}
-              </span>
-            </span>
-            {registo.validacao === 'pendente' && (
-              <Link className="selo selo-por-decidir" to="/admin/produtores">
-                Por validar
-              </Link>
-            )}
-            {registo.exemplo && (
-              <span className="selo selo-exemplo">Exemplo</span>
-            )}
-          </li>
-        ))}
-      </ul>
     </SeccaoInicio>
   );
 }
