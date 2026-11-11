@@ -244,6 +244,14 @@ paths:
                       novos:
                         type: integer
                         description: Registados nos últimos 30 dias
+                      produtoresPorEstado:
+                        type: object
+                        properties:
+                          aprovados: { type: integer }
+                          porValidar: { type: integer }
+                          rejeitados: { type: integer }
+                          suspensos: { type: integer }
+                          banidos: { type: integer }
                   produtos: { type: integer }
                   encomendas:
                     type: object
@@ -252,11 +260,37 @@ paths:
                         { $ref: '#/components/schemas/EncomendasNoPeriodo' }
                       anteriores30:
                         { $ref: '#/components/schemas/EncomendasNoPeriodo' }
+                      porEstado:
+                        type: object
+                        description: Quantas encomendas há em cada estado (de sempre)
+                        additionalProperties: { type: integer }
                   leiloes:
                     type: object
                     properties:
                       aDecorrer: { type: integer }
                       marcados: { type: integer }
+                      lista:
+                        type: array
+                        description: Os leilões a decorrer, primeiro os que acabam mais cedo
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            nome: { type: string }
+                            lote: { type: string }
+                            exemplo: { type: boolean }
+                            produtor:
+                              type: object
+                              properties:
+                                id: { type: string }
+                                nomeExploracao: { type: string }
+                            licitacaoAtual: { type: number }
+                            numeroDeLicitacoes: { type: integer }
+                            terminaEm: { type: string, format: date-time }
+                            participantes:
+                              type: integer
+                              nullable: true
+                              description: Quantas pessoas estão na sala (cada uma conta uma vez)
                   ultimasEncomendas:
                     type: array
                     items:
@@ -291,6 +325,45 @@ paths:
                           }
                         exemplo: { type: boolean }
                         data: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/SemSessao' }
+        '403': { $ref: '#/components/responses/SemPermissao' }
+
+  /admin/servicos:
+    get:
+      tags: [Administração]
+      summary: O estado de cada parte da aplicação
+      description: >
+        Verificado no momento do pedido: a API (há quanto tempo corre, a versão do Node e a memória),
+        o MongoDB (um ping, com o tempo de resposta), o Socket.io (ligações e pessoas), o
+        armazenamento das imagens (se se pode escrever, quantos ficheiros e quanto ocupam) e a
+        documentação Swagger (quantas operações tem). Uma falha vem com uma frase simples; os
+        pormenores técnicos ficam no registo do servidor.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: O estado dos serviços
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verificadoEm: { type: string, format: date-time }
+                  servicos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        servico:
+                          type: string
+                          enum: [api, mongodb, socket, armazenamento, swagger]
+                        estado: { type: string, enum: [ok, erro] }
+                        latenciaMs: { type: integer }
+                        mensagem:
+                          type: string
+                          description: Só quando há um erro
+                        detalhes:
+                          type: object
+                          description: O que se mediu em cada serviço
         '401': { $ref: '#/components/responses/SemSessao' }
         '403': { $ref: '#/components/responses/SemPermissao' }
 

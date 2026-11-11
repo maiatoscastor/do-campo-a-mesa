@@ -37,14 +37,21 @@ function seguro(tratar) {
 // Presença: quantas pessoas estão a ver o leilão. Cada utilizador conta uma vez, mesmo com vários
 // separadores abertos; cada visitante sem conta conta como uma pessoa. "aSair" é o socket que está a
 // desligar-se e que ainda aparece na sala.
-async function emitirPresenca(io, leilaoId, aSair) {
+export async function pessoasNaSala(io, leilaoId, aSair) {
   const sockets = await io.in(sala(leilaoId)).fetchSockets();
   const pessoas = new Set(
     sockets
       .filter(({ id }) => id !== aSair)
       .map(({ id, data }) => data.utilizador?.id ?? id),
   );
-  io.to(sala(leilaoId)).emit('presenca', pessoas.size);
+  return pessoas.size;
+}
+
+async function emitirPresenca(io, leilaoId, aSair) {
+  io.to(sala(leilaoId)).emit(
+    'presenca',
+    await pessoasNaSala(io, leilaoId, aSair),
+  );
 }
 
 // O motivo por que uma licitação não foi aceite, lido depois de a operação atómica falhar

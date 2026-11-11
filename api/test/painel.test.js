@@ -224,13 +224,34 @@ describe('painel do administrador', () => {
       produtores: 2,
       administradores: 1,
       novos: 5,
+      produtoresPorEstado: {
+        aprovados: 1,
+        porValidar: 1,
+        rejeitados: 0,
+        suspensos: 0,
+        banidos: 0,
+      },
     });
     assert.equal(dados.produtos, 2);
     assert.deepEqual(dados.encomendas, {
       ultimos30: { quantas: 2, valor: 7.5 },
       anteriores30: { quantas: 1, valor: 10 },
+      porEstado: { pendente: 3 },
     });
-    assert.deepEqual(dados.leiloes, { aDecorrer: 1, marcados: 1 });
+    assert.equal(dados.leiloes.aDecorrer, 1);
+    assert.equal(dados.leiloes.marcados, 1);
+    // O leilão a decorrer, com a licitação atual (sem o Socket.io, nos testes, não há pessoas a contar)
+    assert.deepEqual(
+      dados.leiloes.lista.map(
+        ({ nome, lote, licitacaoAtual, participantes }) => [
+          nome,
+          lote,
+          licitacaoAtual,
+          participantes,
+        ],
+      ),
+      [['Kiwi', '10 kg', 20, null]],
+    );
     // As mais recentes primeiro, com o comprador e o produtor
     assert.equal(dados.ultimasEncomendas.length, 3);
     assert.equal(dados.ultimasEncomendas[0].comprador, 'Rui Costa');
@@ -249,5 +270,42 @@ describe('painel do administrador', () => {
       ],
     );
     assert.equal(dados.ultimosRegistos[2].validacao, 'pendente');
+  });
+});
+
+describe('estado dos serviços', () => {
+  it('é só para administradores', async () => {
+    const ana = await criarConta('Ana Teixeira');
+
+    const semSessao = await pedir('GET', '/admin/servicos');
+    const comprador = await pedir('GET', '/admin/servicos', {
+      token: ana.token,
+    });
+
+    assert.equal(semSessao.estado, 401);
+    assert.equal(comprador.estado, 403);
+  });
+
+  it('verifica a API, o MongoDB, o armazenamento e a documentação', async () => {
+    const admin = await criarAdmin();
+
+    const { estado, dados } = await pedir('GET', '/admin/servicos', {
+      token: admin,
+    });
+    const porServico = Object.fromEntries(
+      dados.servicos.map((servico) => [servico.servico, servico]),
+    );
+
+    assert.equal(estado, 200);
+    assert.equal(porServico.api.estado, 'ok');
+    assert.equal(porServico.mongodb.estado, 'ok');
+    assert.match(porServico.mongodb.detalhes.baseDeDados, /-teste$/);
+    assert.equal(porServico.armazenamento.estado, 'ok');
+    assert.equal(porServico.swagger.estado, 'ok');
+    assert.ok(porServico.swagger.detalhes.operacoes > 40);
+    // Nos testes, a API corre sem o Socket.io: a verificação diz que não está a correr, sem
+    // pormenores técnicos
+    assert.equal(porServico.socket.estado, 'erro');
+    assert.equal(porServico.socket.mensagem, 'O Socket.io não está a correr');
   });
 });

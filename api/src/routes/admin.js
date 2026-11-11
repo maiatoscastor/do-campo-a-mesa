@@ -7,7 +7,9 @@ import { DECISOES_DE_PRODUTOR, Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
 import { castigoAtivo, produtoresAVender, User } from '../models/User.js';
 import { banir, suspender, tirarCastigo } from '../services/castigos.js';
+import { estadoDosServicos } from '../services/servicos.js';
 import { avisar, avisarAdministradores } from '../sockets/avisos.js';
+import { pessoasNaSala } from '../sockets/leiloes.js';
 import { arredondar } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
 
@@ -74,10 +76,15 @@ async function encomendasEntre(desde, ate) {
   return { quantas: grupo?.quantas ?? 0, valor: arredondar(grupo?.valor ?? 0) };
 }
 
-// GET /api/admin/painel: a aplicação em números, para o início do administrador. Os utilizadores por
-// papel, os produtos à venda (de produtores aprovados), as encomendas dos últimos 30 dias e dos 30
-// anteriores (para comparar), os leilões a decorrer e marcados, as últimas encomendas e os últimos
-// registos. Tudo contado na base de dados no momento do pedido.
+// Quantas linhas vêm nas listas do painel (as últimas encomendas e os últimos registos)
+const NO_PAINEL = 10;
+
+// GET /api/admin/painel: a aplicação em números, para o início e o painel do administrador. Os
+// utilizadores por papel (e os produtores por estado: aprovados, por validar, rejeitados, suspensos
+// e banidos), os produtos à venda, as encomendas dos últimos 30 dias e dos 30 anteriores (para
+// comparar) e de sempre por estado, os leilões a decorrer (cada um com a licitação atual e quantas
+// pessoas estão a ver) e marcados, as últimas encomendas e os últimos registos. Tudo contado na base
+// de dados no momento do pedido.
 router.get('/painel', async (req, res) => {
   const agora = new Date();
   const ha30Dias = new Date(agora.getTime() - 30 * DIA);
@@ -93,6 +100,11 @@ router.get('/painel', async (req, res) => {
     leiloes,
     ultimasEncomendas,
     ultimosRegistos,
+    produtoresPorValidacao,
+    suspensos,
+    banidos,
+    encomendasPorEstado,
+    aDecorrer,
   ] = await Promise.all([
     User.aggregate([{ $group: { _id: '$papel', quantos: { $sum: 1 } } }]),
     User.countDocuments({ createdAt: { $gte: ha30Dias } }),
@@ -105,16 +117,34 @@ router.get('/painel', async (req, res) => {
     ]),
     Order.find()
       .sort({ createdAt: -1, _id: -1 })
-      .limit(5)
+      .limit(NO_PAINEL)
       .populate('comprador', 'nome')
       .populate('produtor', 'produtor.nomeExploracao'),
     User.find()
       .sort({ createdAt: -1, _id: -1 })
-      .limit(5)
+      .limit(NO_PAINEL)
       .select(
         'nome papel produtor.nomeExploracao produtor.validacao exemplo createdAt',
       ),
+    User.aggregate([
+      { $match: { papel: 'produtor' } },
+      { $group: { _id: '$produtor.validacao', quantos: { $sum: 1 } } },
+    ]),
+    User.countDocuments({
+      'castigo.tipo': 'suspensao',
+      'castigo.ate': { $gt: agora },
+    }),
+    User.countDocuments({ 'castigo.tipo': 'banimento' }),
+    Order.aggregate([{ $group: { _id: '$estado', quantos: { $sum: 1 } } }]),
+    Auction.find({ estado: 'ativo' })
+      .sort({ terminaEm: 1 })
+      .populate('produtor', 'produtor.nomeExploracao'),
   ]);
+  // Quantas pessoas estão em cada sala (sem o Socket.io, nos testes, fica de fora)
+  const io = req.app.get('io');
+  const participantes = await Promise.all(
+    aDecorrer.map(({ _id }) => (io ? pessoasNaSala(io, _id) : null)),
+  );
   const contagem = (lista, chave) =>
     lista.find(({ _id }) => _id === chave)?.quantos ?? 0;
 
@@ -124,12 +154,39 @@ router.get('/painel', async (req, res) => {
       produtores: contagem(porPapel, 'produtor'),
       administradores: contagem(porPapel, 'admin'),
       novos,
+      produtoresPorEstado: {
+        aprovados: contagem(produtoresPorValidacao, 'aprovado'),
+        porValidar: contagem(produtoresPorValidacao, 'pendente'),
+        rejeitados: contagem(produtoresPorValidacao, 'rejeitado'),
+        suspensos,
+        banidos,
+      },
     },
     produtos,
-    encomendas: { ultimos30, anteriores30 },
+    encomendas: {
+      ultimos30,
+      anteriores30,
+      porEstado: Object.fromEntries(
+        encomendasPorEstado.map(({ _id, quantos }) => [_id, quantos]),
+      ),
+    },
     leiloes: {
       aDecorrer: contagem(leiloes, 'ativo'),
       marcados: contagem(leiloes, 'agendado'),
+      lista: aDecorrer.map((leilao, i) => ({
+        id: leilao._id,
+        nome: leilao.nome,
+        lote: leilao.lote,
+        exemplo: leilao.exemplo,
+        produtor: leilao.produtor && {
+          id: leilao.produtor._id,
+          nomeExploracao: leilao.produtor.produtor?.nomeExploracao,
+        },
+        licitacaoAtual: leilao.licitacaoAtual?.valor,
+        numeroDeLicitacoes: leilao.numeroDeLicitacoes,
+        terminaEm: leilao.terminaEm,
+        participantes: participantes[i],
+      })),
     },
     ultimasEncomendas: ultimasEncomendas.map((encomenda) => ({
       id: encomenda._id,
@@ -153,6 +210,12 @@ router.get('/painel', async (req, res) => {
       data: utilizador.createdAt,
     })),
   });
+});
+
+// GET /api/admin/servicos: o estado de cada parte da aplicação (API, MongoDB, Socket.io,
+// armazenamento das imagens e documentação Swagger), verificado no momento do pedido
+router.get('/servicos', async (req, res) => {
+  res.json(await estadoDosServicos(req.app.get('io')));
 });
 
 // PATCH /api/admin/produtores/:id/validacao: aprova ou rejeita um produtor ({ "aprovado": true })

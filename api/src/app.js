@@ -1,10 +1,9 @@
 import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import swaggerUi from 'swagger-ui-express';
-import { parse } from 'yaml';
+import { especificacao } from './config/especificacao.js';
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros.js';
 import admin from './routes/admin.js';
 import auctions from './routes/auctions.js';
@@ -40,9 +39,6 @@ app.get('/api/health', (req, res) => {
 });
 
 // A documentação da API (OpenAPI), para ler e experimentar os pedidos no browser
-const especificacao = parse(
-  readFileSync(new URL('../openapi.yaml', import.meta.url), 'utf8'),
-);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(especificacao));
 
 app.use('/api/auth', auth);
