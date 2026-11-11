@@ -3,6 +3,13 @@ import { model, Schema } from 'mongoose';
 // Os estados de uma encomenda, pela ordem em que acontecem
 export const ESTADOS = ['pendente', 'confirmada', 'pronta', 'entregue'];
 
+// "cancelada" fica fora do caminho normal: só acontece quando o produtor é banido, às encomendas que
+// ainda não tinham sido entregues
+export const ESTADOS_DA_ENCOMENDA = [...ESTADOS, 'cancelada'];
+
+// As encomendas que o produtor ainda tem de tratar
+export const ESTADOS_POR_ENTREGAR = ['pendente', 'confirmada', 'pronta'];
+
 // Cada linha guarda o nome, a unidade e o preço do produto no momento da encomenda (embebidos):
 // o produtor pode mudar o preço ou apagar o produto depois, e a encomenda tem de continuar a dizer
 // o que foi combinado. A referência ao produto fica para se saber de onde veio.
@@ -20,7 +27,7 @@ const linhaSchema = new Schema(
 // Quando a encomenda passou a cada estado, para o comprador e o produtor verem as datas
 const passoSchema = new Schema(
   {
-    estado: { type: String, enum: ESTADOS, required: true },
+    estado: { type: String, enum: ESTADOS_DA_ENCOMENDA, required: true },
     data: { type: Date, required: true },
   },
   { _id: false },
@@ -72,7 +79,7 @@ const orderSchema = new Schema(
         'Indique a morada de entrega',
       ],
     },
-    estado: { type: String, enum: ESTADOS, default: 'pendente' },
+    estado: { type: String, enum: ESTADOS_DA_ENCOMENDA, default: 'pendente' },
     historico: { type: [passoSchema], default: [] },
     // Uma encomenda feita na loja, ou o lote de um leilão, criado para o vencedor quando o leilão acaba
     origem: { type: String, enum: ['loja', 'leilao'], default: 'loja' },

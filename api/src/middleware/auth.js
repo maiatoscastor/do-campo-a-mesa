@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { castigoAtivo, User } from '../models/User.js';
+import { castigoAtivo, contaBloqueada, User } from '../models/User.js';
 import { formatarDataHora } from '../utils/datas.js';
 
 // Exige um token válido e, se forem indicados papéis, um desses papéis:
@@ -61,8 +61,21 @@ export async function produtorAprovado(req, res, next) {
   const castigo = castigoAtivo(utilizador);
   if (castigo) {
     return res.status(403).json({
-      erro: `A sua conta de produtor está suspensa até ${formatarDataHora(castigo.ate)}`,
+      erro:
+        castigo.tipo === 'banimento'
+          ? 'A sua conta está bloqueada'
+          : `A sua conta de produtor está suspensa até ${formatarDataHora(castigo.ate)}`,
     });
+  }
+  next();
+}
+
+// Não deixa passar uma conta bloqueada. O token dura 2 horas, por isso as rotas de comprar
+// confirmam o estado da conta na base de dados. Usa-se a seguir ao auth().
+export async function contaAtiva(req, res, next) {
+  const utilizador = await User.findById(req.user.id).select('castigo');
+  if (contaBloqueada(utilizador)) {
+    return res.status(403).json({ erro: 'A sua conta está bloqueada' });
   }
   next();
 }

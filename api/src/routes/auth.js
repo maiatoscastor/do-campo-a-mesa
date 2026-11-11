@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { auth } from '../middleware/auth.js';
-import { User } from '../models/User.js';
+import { contaBloqueada, User } from '../models/User.js';
 import { avisarAdministradores, avisarPainel } from '../sockets/avisos.js';
 import { criarErro, problemasDeUtilizador } from '../utils/erro.js';
 import {
@@ -125,6 +125,10 @@ router.post('/login', async (req, res) => {
   if (!certa) {
     throw criarErro(401, 'Email ou password incorretos');
   }
+  // Só depois da password certa se diz que a conta está bloqueada
+  if (contaBloqueada(utilizador)) {
+    throw criarErro(403, 'A sua conta está bloqueada');
+  }
 
   res.json({
     token: emitirToken(utilizador),
@@ -138,6 +142,11 @@ router.get('/eu', auth(), async (req, res) => {
   const utilizador = await User.findById(req.user.id);
   if (!utilizador) {
     throw criarErro(401, 'Sessão inválida ou expirada');
+  }
+  // Uma conta bloqueada perde a sessão: com o 401, a aplicação termina-a (lê esta rota ao abrir e
+  // quando o servidor avisa que a conta mudou)
+  if (contaBloqueada(utilizador)) {
+    throw criarErro(401, 'A sua conta está bloqueada');
   }
   res.json(utilizador.publico());
 });

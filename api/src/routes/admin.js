@@ -6,7 +6,7 @@ import { Product } from '../models/Product.js';
 import { DECISOES_DE_PRODUTOR, Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
 import { castigoAtivo, produtoresAVender, User } from '../models/User.js';
-import { suspender, tirarCastigo } from '../services/castigos.js';
+import { banir, suspender, tirarCastigo } from '../services/castigos.js';
 import { avisar, avisarAdministradores } from '../sockets/avisos.js';
 import { arredondar } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
@@ -62,7 +62,13 @@ router.get('/produtores/pendentes', async (req, res) => {
 // O número e o valor das encomendas feitas num intervalo de tempo
 async function encomendasEntre(desde, ate) {
   const [grupo] = await Order.aggregate([
-    { $match: { createdAt: { $gte: desde, $lt: ate } } },
+    // As canceladas não contam: não chegaram a ser vendas
+    {
+      $match: {
+        createdAt: { $gte: desde, $lt: ate },
+        estado: { $ne: 'cancelada' },
+      },
+    },
     { $group: { _id: null, quantas: { $sum: 1 }, valor: { $sum: '$total' } } },
   ]);
   return { quantas: grupo?.quantas ?? 0, valor: arredondar(grupo?.valor ?? 0) };
@@ -322,6 +328,7 @@ function casoDeProdutor(produtor, denuncias, historico) {
     historico: {
       avisos: historico.get(`${produtor._id}:aviso`) ?? 0,
       suspensoes: historico.get(`${produtor._id}:suspensao`) ?? 0,
+      banimentos: historico.get(`${produtor._id}:banimento`) ?? 0,
     },
     denuncias: denuncias.map((denuncia) => ({
       id: denuncia._id,
@@ -346,7 +353,7 @@ async function historicoDe(ids) {
         tipo: 'produtor',
         produtor: { $in: ids },
         estado: 'decidida',
-        decisao: { $in: ['aviso', 'suspensao'] },
+        decisao: { $in: ['aviso', 'suspensao', 'banimento'] },
       },
     },
     {
@@ -437,10 +444,11 @@ function dataDaSuspensao(valor, agora) {
 }
 
 // PATCH /api/admin/produtores/:id/moderacao: o administrador decide as denúncias por decidir de um
-// produtor. Corpo: { decisao: 'rejeitada' | 'aviso' | 'suspensao', motivo, ate } (a data só na
-// suspensão). Na suspensão, os produtos e a página saem da loja até à data, e os leilões por acabar
-// são cancelados. O produtor recebe o aviso ou a suspensão com o motivo; quem denunciou recebe a
-// decisão (numa rejeição, com o motivo; num castigo, sem os pormenores, que são entre o
+// produtor. Corpo: { decisao: 'rejeitada' | 'aviso' | 'suspensao' | 'banimento', motivo, ate } (a
+// data só na suspensão). Na suspensão, os produtos e a página saem da loja até à data, e os leilões
+// por acabar são cancelados. No banimento, a conta fica bloqueada até ser desbloqueada, e também as
+// encomendas por entregar são canceladas. O produtor recebe a decisão com o motivo; quem denunciou
+// recebe a decisão (numa rejeição, com o motivo; num castigo, sem os pormenores, que são entre o
 // administrador e o produtor).
 router.patch('/produtores/:id/moderacao', async (req, res) => {
   const agora = new Date();
@@ -449,7 +457,7 @@ router.patch('/produtores/:id/moderacao', async (req, res) => {
     typeof req.body?.motivo === 'string' ? req.body.motivo.trim() : '';
   const detalhes = {};
   if (!DECISOES_DE_PRODUTOR.includes(decisao)) {
-    detalhes.decisao = 'Escolha rejeitar, dar um aviso ou suspender';
+    detalhes.decisao = 'Escolha rejeitar, dar um aviso, suspender ou banir';
   }
   if (!motivo) {
     detalhes.motivo = 'Escreva o motivo da decisão';
@@ -499,6 +507,8 @@ router.patch('/produtores/:id/moderacao', async (req, res) => {
       motivo,
       admin: req.user.id,
     });
+  } else if (decisao === 'banimento') {
+    await banir(io, produtor, { motivo, admin: req.user.id });
   } else if (decisao === 'aviso') {
     await avisar(io, produtor._id, {
       texto: `Recebeu um aviso da administração sobre a sua conta de produtor. Motivo: ${motivo}`,
@@ -529,8 +539,9 @@ router.patch('/produtores/:id/moderacao', async (req, res) => {
   res.json(casoDeProdutor(atualizado, denuncias, historico));
 });
 
-// DELETE /api/admin/produtores/:id/castigo: o administrador levanta o castigo antes do fim. O
-// produtor é avisado, e os produtos e a página voltam logo à loja. Responde 204.
+// DELETE /api/admin/produtores/:id/castigo: o administrador levanta a suspensão antes do fim, ou
+// desbloqueia uma conta banida. O produtor é avisado, e os produtos e a página voltam logo à loja (as
+// encomendas canceladas ficam canceladas). Responde 204.
 router.delete('/produtores/:id/castigo', async (req, res) => {
   const io = req.app.get('io');
   if (!(await tirarCastigo(io, req.params.id))) {

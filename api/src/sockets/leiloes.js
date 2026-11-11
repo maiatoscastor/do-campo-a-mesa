@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Auction, ESTADOS_POR_ACABAR } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
+import { contaBloqueada, User } from '../models/User.js';
 import { CAMPOS_DO_PRODUTOR } from '../routes/auctions.js';
 import { formatarEuros, temAteDoisDecimais } from '../utils/dinheiro.js';
 import { nomeCurto } from '../utils/nomes.js';
@@ -139,6 +140,11 @@ export function registarLeiloes(io, socket) {
       }
       if (utilizador.papel === 'admin') {
         return recusar('As contas de administrador não licitam');
+      }
+      // O token dura 2 horas: confirma-se na base de dados que a conta não foi bloqueada entretanto
+      const conta = await User.findById(utilizador.id).select('castigo');
+      if (contaBloqueada(conta)) {
+        return recusar('A sua conta está bloqueada');
       }
       if (!eIdentificador(leilaoId)) {
         return recusar('Leilão não encontrado');

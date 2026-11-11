@@ -103,11 +103,17 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
+        '403':
+          description: A conta está bloqueada (só depois da password certa)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
 
   /auth/eu:
     get:
       tags: [Contas]
       summary: Os dados atuais de quem tem a sessão
+      description: Numa conta bloqueada responde 401, e a aplicação termina a sessão.
       security: [{ bearerAuth: [] }]
       responses:
         '200':
@@ -330,12 +336,14 @@ paths:
   /admin/produtores/{id}/moderacao:
     patch:
       tags: [Administração]
-      summary: Decidir as denúncias de um produtor (rejeitar, dar um aviso ou suspender)
+      summary: Decidir as denúncias de um produtor (rejeitar, dar um aviso, suspender ou banir)
       description: >
         Na suspensão, os produtos e a página saem da loja até à data, o produtor não pode criar
         produtos nem leilões, e os leilões dele por acabar são cancelados (com o stock reservado
         devolvido e aviso a quem licitou). O produtor recebe o aviso ou a suspensão com o motivo;
-        quem denunciou recebe a decisão. No fim da data, volta tudo sozinho.
+        quem denunciou recebe a decisão. No fim da data, volta tudo sozinho. No banimento, a conta
+        fica bloqueada (não entra, não compra, não vende nem licita) até ser desbloqueada, e as
+        encomendas por entregar passam a canceladas, com o stock devolvido e aviso aos compradores.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -347,7 +355,11 @@ paths:
               type: object
               required: [decisao, motivo]
               properties:
-                decisao: { type: string, enum: [rejeitada, aviso, suspensao] }
+                decisao:
+                  {
+                    type: string,
+                    enum: [rejeitada, aviso, suspensao, banimento],
+                  }
                 motivo: { type: string, maxLength: 500 }
                 ate:
                   type: string
@@ -369,8 +381,10 @@ paths:
   /admin/produtores/{id}/castigo:
     delete:
       tags: [Administração]
-      summary: Levantar o castigo de um produtor antes do fim
-      description: O produtor é avisado, e os produtos e a página voltam logo à loja.
+      summary: Levantar a suspensão antes do fim, ou desbloquear uma conta banida
+      description: >
+        O produtor é avisado, e os produtos e a página voltam logo à loja. As encomendas canceladas
+        ficam canceladas.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1351,8 +1365,11 @@ components:
     Castigo:
       type: object
       properties:
-        tipo: { type: string, enum: [suspensao] }
-        ate: { type: string, format: date-time }
+        tipo: { type: string, enum: [suspensao, banimento] }
+        ate:
+          type: string
+          format: date-time
+          description: Só na suspensão (o banimento dura até ser levantado)
         motivo: { type: string }
 
     Registo:
@@ -1474,7 +1491,10 @@ components:
 
     EstadoDaEncomenda:
       type: string
-      enum: [pendente, confirmada, pronta, entregue]
+      enum: [pendente, confirmada, pronta, entregue, cancelada]
+      description: >
+        cancelada fica fora do caminho normal: só acontece às encomendas por entregar de um produtor
+        banido
 
     NovaEncomenda:
       type: object
@@ -1844,6 +1864,7 @@ components:
           properties:
             avisos: { type: integer }
             suspensoes: { type: integer }
+            banimentos: { type: integer }
         denuncias:
           type: array
           items:
@@ -1854,7 +1875,8 @@ components:
                 { $ref: '#/components/schemas/MotivoDaDenunciaDeProdutor' }
               descricao: { type: string }
               estado: { type: string, enum: [pendente, decidida] }
-              decisao: { type: string, enum: [rejeitada, aviso, suspensao] }
+              decisao:
+                { type: string, enum: [rejeitada, aviso, suspensao, banimento] }
               motivoDaDecisao: { type: string }
               decididaEm: { type: string, format: date-time }
               data: { type: string, format: date-time }
