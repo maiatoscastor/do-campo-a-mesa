@@ -1224,6 +1224,16 @@ components:
         email: { type: string, format: email }
         papel: { $ref: '#/components/schemas/Papel' }
         produtor: { $ref: '#/components/schemas/DadosDeProdutor' }
+        castigo:
+          description: Só enquanto estiver em vigor
+          allOf: [{ $ref: '#/components/schemas/Castigo' }]
+
+    Castigo:
+      type: object
+      properties:
+        tipo: { type: string, enum: [suspensao] }
+        ate: { type: string, format: date-time }
+        motivo: { type: string }
 
     Registo:
       type: object

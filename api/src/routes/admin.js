@@ -5,7 +5,7 @@ import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
-import { User } from '../models/User.js';
+import { produtoresAVender, User } from '../models/User.js';
 import { avisar, avisarAdministradores } from '../sockets/avisos.js';
 import { arredondar } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
@@ -63,10 +63,8 @@ router.get('/painel', async (req, res) => {
   const agora = new Date();
   const ha30Dias = new Date(agora.getTime() - 30 * DIA);
   const ha60Dias = new Date(agora.getTime() - 60 * DIA);
-  const aprovados = await User.distinct('_id', {
-    papel: 'produtor',
-    'produtor.validacao': 'aprovado',
-  });
+  // Os produtos à venda: de produtores aprovados e sem castigo em vigor
+  const aVender = await User.distinct('_id', produtoresAVender(agora));
   const [
     porPapel,
     novos,
@@ -79,7 +77,7 @@ router.get('/painel', async (req, res) => {
   ] = await Promise.all([
     User.aggregate([{ $group: { _id: '$papel', quantos: { $sum: 1 } } }]),
     User.countDocuments({ createdAt: { $gte: ha30Dias } }),
-    Product.countDocuments({ produtor: { $in: aprovados } }),
+    Product.countDocuments({ produtor: { $in: aVender } }),
     encomendasEntre(ha30Dias, agora),
     encomendasEntre(ha60Dias, ha30Dias),
     Auction.aggregate([

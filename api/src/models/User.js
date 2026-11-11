@@ -174,6 +174,27 @@ const produtorSchema = new Schema(
   { _id: false },
 );
 
+// Os castigos que o administrador pode dar a um produtor denunciado. Na suspensão, os produtos e a
+// página saem da loja e ele não pode criar produtos nem leilões, até à data "ate"; depois volta tudo
+// sozinho. O aviso não fica aqui (é só a notificação e a decisão na denúncia).
+export const TIPOS_DE_CASTIGO = ['suspensao'];
+
+const castigoSchema = new Schema(
+  {
+    tipo: { type: String, enum: TIPOS_DE_CASTIGO, required: true },
+    ate: { type: Date, required: true },
+    motivo: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [500, 'O motivo é demasiado comprido'],
+    },
+    desde: { type: Date, required: true },
+    admin: { type: Schema.Types.ObjectId, ref: 'User' },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     nome: {
@@ -202,6 +223,9 @@ const userSchema = new Schema(
     // utilizadores, com a sua própria página), guardadas no utilizador porque cada pessoa tem poucos
     // favoritos e são sempre lidos a partir dela.
     favoritos: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    // O castigo em vigor (só nos produtores). Fica guardado até o ciclo dos castigos o tirar, mas só
+    // conta enquanto a data "ate" não passar (castigoAtivo)
+    castigo: { type: castigoSchema, default: undefined },
     // Contas inventadas para testar (produtores de exemplo), identificadas como tal na aplicação
     exemplo: { type: Boolean, default: false },
   },
@@ -210,15 +234,51 @@ const userSchema = new Schema(
 
 // Para encontrar depressa quem tem um produtor nos favoritos (para o avisar quando marca um leilão)
 userSchema.index({ favoritos: 1 });
+// Para o ciclo dos castigos encontrar depressa as suspensões que acabaram
+userSchema.index({ 'castigo.ate': 1 }, { sparse: true });
 
-// O que pode ser enviado ao cliente: nunca o hash da password
+// O castigo de um utilizador, se ainda estiver em vigor (a data de fim ainda não passou)
+export function castigoAtivo(utilizador, agora = new Date()) {
+  const castigo = utilizador?.castigo;
+  return castigo?.tipo && castigo.ate > agora ? castigo : null;
+}
+
+// A condição dos produtores que estão a vender: aprovados e sem castigo em vigor. É a mesma no
+// catálogo, nas encomendas, na lista e na página dos produtores, para um produtor suspenso sair de
+// todo o lado ao mesmo tempo. O castigo em vigor é o que tem tipo e cuja data de fim ainda não
+// passou ($not: { $lte } também apanha um castigo sem data).
+export function produtoresAVender(agora = new Date()) {
+  return {
+    papel: 'produtor',
+    'produtor.validacao': 'aprovado',
+    $nor: [
+      {
+        'castigo.tipo': { $exists: true },
+        'castigo.ate': { $not: { $lte: agora } },
+      },
+    ],
+  };
+}
+
+// O que pode ser enviado ao próprio utilizador (e ao administrador): nunca o hash da password. O
+// castigo só vai enquanto estiver em vigor, com o motivo, para a pessoa saber porquê e até quando.
 userSchema.methods.publico = function publico() {
+  const castigo = castigoAtivo(this);
   return {
     id: this._id,
     nome: this.nome,
     email: this.email,
     papel: this.papel,
     ...(this.produtor ? { produtor: this.produtor } : {}),
+    ...(castigo
+      ? {
+          castigo: {
+            tipo: castigo.tipo,
+            ate: castigo.ate,
+            motivo: castigo.motivo,
+          },
+        }
+      : {}),
   };
 };
 

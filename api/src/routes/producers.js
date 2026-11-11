@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { auth, authOpcional } from '../middleware/auth.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
-import { User } from '../models/User.js';
+import { produtoresAVender, User } from '../models/User.js';
 import {
   mediasDosProdutores,
   resumoDoProdutor,
@@ -135,7 +135,7 @@ const ORDENS = {
   novos: (lista) => lista.sort((a, b) => b.desde - a.desde),
 };
 
-// GET /api/producers: os produtores aprovados, abertos a todos, com o logótipo, quantos produtos têm
+// GET /api/producers: os produtores a vender (aprovados e sem castigo), abertos a todos, com o logótipo, quantos produtos têm
 // e a média das avaliações (para os cartões). Parâmetros, todos opcionais:
 // - comProdutos=true: só os que têm produtos (é o que usam os filtros do catálogo, para nenhum filtro
 //   dar zero resultados);
@@ -143,7 +143,7 @@ const ORDENS = {
 // - ordem: requisitados, avaliados ou novos (sem ordem, por ordem alfabética);
 // - favoritos=true: só os favoritos de quem tem a sessão (sem sessão, 401).
 router.get('/', authOpcional, async (req, res) => {
-  const filtro = { papel: 'produtor', 'produtor.validacao': 'aprovado' };
+  const filtro = produtoresAVender();
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (q) {
     const procura = expressao(q);
@@ -292,12 +292,11 @@ router.delete('/eu/capa', auth('produtor'), capa.tirar);
 router.put('/eu/logotipo', auth('produtor'), receberImagem, logotipo.trocar);
 router.delete('/eu/logotipo', auth('produtor'), logotipo.tirar);
 
-// Um produtor aprovado que se pode pôr nos favoritos: existe, e não é quem faz o pedido
+// Um produtor a vender que se pode pôr nos favoritos: existe, e não é quem faz o pedido
 async function produtorParaFavorito(req) {
   const produtor = await User.findOne({
+    ...produtoresAVender(),
     _id: req.params.id,
-    papel: 'produtor',
-    'produtor.validacao': 'aprovado',
   }).select('_id');
   if (!produtor) {
     throw criarErro(404, 'Produtor não encontrado');
@@ -334,12 +333,11 @@ router.delete(
   },
 );
 
-// GET /api/producers/:id: a página pública de um produtor aprovado
+// GET /api/producers/:id: a página pública de um produtor a vender (aprovado e sem castigo)
 router.get('/:id', async (req, res) => {
   const utilizador = await User.findOne({
+    ...produtoresAVender(),
     _id: req.params.id,
-    papel: 'produtor',
-    'produtor.validacao': 'aprovado',
   });
   if (!utilizador) {
     throw criarErro(404, 'Produtor não encontrado');
