@@ -1,10 +1,17 @@
 // Destinos da navegação principal, partilhados pelo cabeçalho (computador) e pela barra inferior
 // (telemóvel). "fechado" marca o que exige conta: o destino aparece na mesma, com um cadeado.
 // "esconderPara" lista os papéis que não precisam do destino (o administrador não compra), e
-// "soPara" os únicos que o têm (a administração).
+// "soPara" os únicos que o têm (a administração). "soNoComputador" fica fora da barra inferior do
+// telemóvel, que já tem cinco destinos (os produtores ficam ao lado dos produtos, com um seletor).
 export const DESTINOS = [
   { nome: 'Início', caminho: '/', icone: 'inicio' },
   { nome: 'Produtos', caminho: '/produtos', icone: 'produtos' },
+  {
+    nome: 'Produtores',
+    caminho: '/produtores',
+    icone: 'pessoas',
+    soNoComputador: true,
+  },
   { nome: 'Leilões', caminho: '/leiloes', icone: 'leiloes' },
   {
     nome: 'Carrinho',

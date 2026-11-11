@@ -11,9 +11,10 @@ function ordenar(a, b) {
   return media || avaliacoes || b.produtos - a.produtos;
 }
 
-// Alguns produtores, com o logótipo, o concelho, quantos produtos têm e a nota das avaliações.
-// Sozinhos, em cartões (quatro numa linha no computador); numa coluna, ao lado dos próximos leilões,
-// numa lista como a dos leilões, para as duas colunas ficarem iguais.
+// Alguns produtores, com o logótipo, o concelho, quantos produtos têm e a nota das avaliações, e a
+// ligação para a página com todos. Sozinhos, em cartões (quatro numa linha no computador); numa
+// coluna, ao lado dos próximos leilões, numa lista como a dos leilões, para as duas colunas ficarem
+// iguais.
 export default function ProdutoresInicio({ produtores, naColuna = false }) {
   if (produtores.length === 0) {
     return null;
@@ -21,7 +22,11 @@ export default function ProdutoresInicio({ produtores, naColuna = false }) {
   const lista = [...produtores].sort(ordenar).slice(0, MAXIMO);
 
   return (
-    <SeccaoInicio titulo="Conheça os produtores">
+    <SeccaoInicio
+      titulo="Conheça os produtores"
+      ligacao="/produtores"
+      textoDaLigacao="Ver todos"
+    >
       {naColuna ? (
         <ul className="list-group">
           {lista.map((produtor) => (

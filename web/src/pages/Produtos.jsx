@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { api } from '../api/cliente.js';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
+import AlternarProdutos from '../components/AlternarProdutos.jsx';
 import CartaoProduto from '../components/CartaoProduto.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import { CATEGORIAS, EPOCAS } from '../produtos.js';
@@ -82,6 +83,7 @@ export default function Produtos() {
   return (
     <>
       <title>Produtos · Do Campo à Mesa</title>
+      <AlternarProdutos />
       <h1 className="mb-3">Produtos</h1>
 
       <form className="d-flex gap-2 mb-3" role="search" onSubmit={pesquisar}>

@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
 import Icone from './Icone.jsx';
 import MarcaFechada from './MarcaFechada.jsx';
 import { useCarrinho } from '../hooks/useCarrinho.js';
@@ -14,6 +14,10 @@ import {
 // tablet: a partir do computador (lg, 1024 px), a navegação passa para o cabeçalho.
 export default function NavegacaoInferior() {
   const { utilizador } = useSessao();
+  const { pathname } = useLocation();
+  // No telemóvel, os produtores ficam dentro de "Produtos" (com o seletor no topo das duas páginas):
+  // nas páginas deles, "Produtos" fica marcado
+  const nosProdutores = /^\/produtores(\/|$)/.test(pathname);
   const produtosNoCarrinho = useCarrinho().linhas.length;
   const tarefas = useTarefasAdmin().total;
   // O número por cima do ícone, e o que os leitores de ecrã ouvem a seguir ao nome
@@ -23,44 +27,51 @@ export default function NavegacaoInferior() {
     '/admin': textoDasTarefas(tarefas),
   };
 
+  const marcado = (isActive, caminho) =>
+    isActive || (caminho === '/produtos' && nosProdutores);
+
   return (
     <nav
       className="navegacao-inferior fixed-bottom d-lg-none"
       aria-label="Navegação principal"
     >
       <ul className="navegacao-inferior-lista">
-        {destinosPara(utilizador).map(({ nome, caminho, icone, fechado }) => (
-          <li key={caminho}>
-            <NavLink
-              className="navegacao-inferior-item"
-              to={caminho}
-              end={caminho === '/'}
-            >
-              {({ isActive }) => (
-                <>
-                  <span className="navegacao-inferior-icone">
-                    <Icone nome={icone} cheio={isActive} />
-                    {fechado && !utilizador && (
-                      <MarcaFechada className="navegacao-inferior-fechado" />
+        {destinosPara(utilizador)
+          .filter(({ soNoComputador }) => !soNoComputador)
+          .map(({ nome, caminho, icone, fechado }) => (
+            <li key={caminho}>
+              <NavLink
+                className={({ isActive }) =>
+                  `navegacao-inferior-item ${marcado(isActive, caminho) ? 'active' : ''}`
+                }
+                to={caminho}
+                end={caminho === '/'}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="navegacao-inferior-icone">
+                      <Icone nome={icone} cheio={marcado(isActive, caminho)} />
+                      {fechado && !utilizador && (
+                        <MarcaFechada className="navegacao-inferior-fechado" />
+                      )}
+                      {contadores[caminho] > 0 && (
+                        <span
+                          className="contador contador-icone"
+                          aria-hidden="true"
+                        >
+                          {contadores[caminho]}
+                        </span>
+                      )}
+                    </span>
+                    {nome}
+                    {textos[caminho] && (
+                      <span className="visually-hidden">{textos[caminho]}</span>
                     )}
-                    {contadores[caminho] > 0 && (
-                      <span
-                        className="contador contador-icone"
-                        aria-hidden="true"
-                      >
-                        {contadores[caminho]}
-                      </span>
-                    )}
-                  </span>
-                  {nome}
-                  {textos[caminho] && (
-                    <span className="visually-hidden">{textos[caminho]}</span>
-                  )}
-                </>
-              )}
-            </NavLink>
-          </li>
-        ))}
+                  </>
+                )}
+              </NavLink>
+            </li>
+          ))}
       </ul>
     </nav>
   );

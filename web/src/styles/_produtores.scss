@@ -1,5 +1,5 @@
-// Cartões dos produtores (CartaoProdutor.jsx) e o coração dos favoritos (BotaoFavorito.jsx).
-// Mobile First.
+// Página dos produtores (Produtores.jsx), cartões dos produtores (CartaoProdutor.jsx), o coração dos
+// favoritos (BotaoFavorito.jsx) e o seletor "Produtos | Produtores" do telemóvel. Mobile First.
 @use 'mixins' as m;
 @use 'theme' as bs;
 @use 'variables' as v;
@@ -92,4 +92,62 @@
       }
     }
   }
+}
+
+// As ordens e os favoritos: botões numa faixa que desliza no telemóvel (até à borda do ecrã); a
+// partir do tablet, numa linha que passa à seguinte se for preciso
+.escolhas {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline: -1rem;
+  padding: 0.125rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  // O fieldset agrupa as ordens para os leitores de ecrã, sem mudar a disposição
+  fieldset {
+    display: contents;
+  }
+
+  span {
+    flex: none;
+  }
+
+  @include m.a-partir-de(md) {
+    flex-wrap: wrap;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+  }
+}
+
+// Um botão de escolha: contorno quando não está escolhido, verde cheio quando está (Bootstrap
+// .btn-check: o botão de opção fica escondido e a etiqueta é o botão)
+.btn-escolha {
+  --bs-btn-padding-y: 0.5rem;
+  --bs-btn-padding-x: 1rem;
+  --bs-btn-font-size: 0.875rem;
+  --bs-btn-font-weight: 650;
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-bg: transparent;
+  // O mesmo contorno dos campos dos formulários, bem visível nos dois modos
+  --bs-btn-border-color: var(--borda-campo);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: var(--bs-secondary-bg);
+  --bs-btn-hover-border-color: var(--borda-campo);
+  --bs-btn-active-color: #{v.$branco};
+  --bs-btn-active-bg: var(--bs-primary);
+  --bs-btn-active-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  white-space: nowrap;
+}
+
+// O seletor "Produtos | Produtores" (só no telemóvel e no tablet)
+.alternador-produtos {
+  max-width: 24rem;
+  margin-bottom: 1rem;
 }

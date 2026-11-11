@@ -62,6 +62,10 @@ export const router = createBrowserRouter([
             ...aPedido(() => import('./pages/SalaLeilao.jsx')),
           },
           {
+            path: 'produtores',
+            ...aPedido(() => import('./pages/Produtores.jsx')),
+          },
+          {
             path: 'produtores/:id',
             ...aPedido(() => import('./pages/PaginaProdutor.jsx')),
           },
