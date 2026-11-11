@@ -7,7 +7,7 @@ import SeccaoInicio from './SeccaoInicio.jsx';
 import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { useTarefasAdmin } from '../hooks/useTarefasAdmin.js';
-import { ESTADOS, formatarDataCurta } from '../encomendas.js';
+import { formatarDataCurta, nomeDoEstado } from '../encomendas.js';
 import { comparacao } from '../indicadores.js';
 import { formatarHaQuanto } from '../notificacoes.js';
 import { formatarPreco } from '../produtos.js';
@@ -185,7 +185,7 @@ function UltimasEncomendas({ encomendas }) {
                 </span>
               </span>
               <span className={`selo selo-${encomenda.estado}`}>
-                {ESTADOS.find(({ estado }) => estado === encomenda.estado).nome}
+                {nomeDoEstado(encomenda.estado)}
               </span>
             </li>
           ))}

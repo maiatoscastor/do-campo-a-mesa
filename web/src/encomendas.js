@@ -24,16 +24,31 @@ export function produtosParaComprarOutraVez(encomendas, produtos) {
   return lista;
 }
 
-// O estado a seguir a este, ou undefined se a encomenda já foi entregue
+// O estado a seguir a este, ou undefined se a encomenda já foi entregue ou foi cancelada
 export function estadoSeguinte(estado) {
-  return ESTADOS[ESTADOS.findIndex((e) => e.estado === estado) + 1];
+  const atual = ESTADOS.findIndex((e) => e.estado === estado);
+  return atual === -1 ? undefined : ESTADOS[atual + 1];
+}
+
+// O nome de um estado, também do "cancelada", que fica fora dos passos (só acontece quando o
+// produtor é banido)
+export function nomeDoEstado(estado) {
+  if (estado === 'cancelada') {
+    return 'Cancelada';
+  }
+  return ESTADOS.find((e) => e.estado === estado)?.nome ?? estado;
+}
+
+// Se a encomenda ainda está por entregar (nem entregue, nem cancelada)
+export function porEntregar({ estado }) {
+  return estado !== 'entregue' && estado !== 'cancelada';
 }
 
 // As encomendas que o comprador ainda acompanha no início: primeiro as que estão em curso, depois
 // as entregues que ainda não avaliou
 export function encomendasPorAcompanhar(encomendas) {
   return [
-    ...encomendas.filter(({ estado }) => estado !== 'entregue'),
+    ...encomendas.filter(porEntregar),
     ...encomendas.filter(
       ({ estado, avaliacao }) => estado === 'entregue' && !avaliacao,
     ),

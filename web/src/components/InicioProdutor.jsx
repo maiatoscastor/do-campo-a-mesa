@@ -12,7 +12,12 @@ import {
   formatarMedia,
   textoDasAvaliacoes,
 } from '../avaliacoes.js';
-import { ESTADOS, formatarData, formatarDataCurta } from '../encomendas.js';
+import {
+  formatarData,
+  formatarDataCurta,
+  nomeDoEstado,
+  porEntregar,
+} from '../encomendas.js';
 import { comparacao, encomendasPorPeriodo } from '../indicadores.js';
 import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
 import { formatarPreco, STOCK_BAIXO } from '../produtos.js';
@@ -151,8 +156,7 @@ export default function InicioProdutor() {
   }
 
   const carregar = (calcular) => (dados ? calcular(dados) : 'A carregar…');
-  const porTratar =
-    dados?.encomendas.filter(({ estado }) => estado !== 'entregue') ?? [];
+  const porTratar = dados?.encomendas.filter(porEntregar) ?? [];
   const baixos = (dados?.produtos ?? [])
     .filter(({ stock }) => stock <= STOCK_BAIXO)
     .sort((a, b) => a.stock - b.stock);
@@ -326,10 +330,7 @@ function UltimasEncomendas({ encomendas }) {
                   </span>
                 </span>
                 <span className={`selo selo-${encomenda.estado}`}>
-                  {
-                    ESTADOS.find(({ estado }) => estado === encomenda.estado)
-                      .nome
-                  }
+                  {nomeDoEstado(encomenda.estado)}
                 </span>
               </Link>
             </li>

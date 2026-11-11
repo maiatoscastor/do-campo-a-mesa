@@ -131,13 +131,15 @@ export default function Denuncias() {
       aviso: 'O produtor recebeu o aviso. Quem denunciou foi informado.',
       suspensao:
         'O produtor está suspenso: os produtos e a página saíram da loja e os leilões dele foram cancelados. Ele e quem denunciou foram avisados.',
+      banimento:
+        'A conta do produtor foi bloqueada: os produtos e a página saíram da loja, e os leilões e as encomendas por entregar foram cancelados. Ele, os compradores e quem denunciou foram avisados.',
     };
     setMensagem(mensagens[decisao]);
     recontar();
   }
 
-  // Depois de levantar a suspensão: o caso fica, sem o castigo
-  function castigoLevantado(id) {
+  // Depois de levantar a suspensão ou desbloquear a conta: o caso fica, sem o castigo
+  function castigoLevantado(id, tipoDoCastigo) {
     setCasos((atuais) =>
       atuais.map((c) =>
         c.produtor.id === id
@@ -146,7 +148,9 @@ export default function Denuncias() {
       ),
     );
     setMensagem(
-      'A suspensão foi levantada: os produtos e a página voltaram à loja, e o produtor foi avisado.',
+      tipoDoCastigo === 'banimento'
+        ? 'A conta foi desbloqueada: o produtor pode voltar a entrar, os produtos e a página voltaram à loja, e ele foi avisado.'
+        : 'A suspensão foi levantada: os produtos e a página voltaram à loja, e o produtor foi avisado.',
     );
   }
 
@@ -281,7 +285,7 @@ function SemCasos({ tipo, decididas }) {
         ]
       : [
           'Não há denúncias por decidir',
-          'Quando alguém denunciar um produtor, ele aparece aqui para decidir: rejeitar, dar um aviso ou suspender.',
+          'Quando alguém denunciar um produtor, ele aparece aqui para decidir: rejeitar, dar um aviso, suspender ou banir.',
         ],
   };
   const [titulo, texto] = textos[tipo];

@@ -5,6 +5,7 @@ import {
   ESTADOS,
   formatarData,
   formatarDataCurta,
+  nomeDoEstado,
   somar,
 } from '../encomendas.js';
 import { textoDaLocalizacao } from '../localizacao.js';
@@ -43,7 +44,7 @@ export default function CartaoEncomenda({ encomenda, para, children }) {
             )}
           </h2>
           <span className={`selo selo-${encomenda.estado}`}>
-            {ESTADOS[atual].nome}
+            {nomeDoEstado(encomenda.estado)}
           </span>
         </div>
         <p className="small text-body-secondary mb-3">
@@ -52,23 +53,33 @@ export default function CartaoEncomenda({ encomenda, para, children }) {
           {para === 'produtor' && ` · ${comprador.email}`}
         </p>
 
-        {/* Os quatro passos, com a data de cada um que já aconteceu */}
-        <ol className="passos-encomenda">
-          {ESTADOS.map(({ estado, nome }, indice) => (
-            <li
-              key={estado}
-              className={indice <= atual ? 'feito' : undefined}
-              aria-current={indice === atual ? 'step' : undefined}
-            >
-              <span className="passos-encomenda-nome">{nome}</span>
-              {dataDe(estado) && (
-                <span className="passos-encomenda-data">
-                  {formatarDataCurta(dataDe(estado))}
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
+        {/* Cancelada (o produtor foi banido): em vez dos passos, quando e porquê */}
+        {encomenda.estado === 'cancelada' ? (
+          <p className="encomenda-cancelada">
+            Cancelada a {formatarDataCurta(dataDe('cancelada'))}:{' '}
+            {para === 'comprador'
+              ? 'o produtor deixou de vender na aplicação.'
+              : 'a sua conta foi bloqueada.'}
+          </p>
+        ) : (
+          /* Os quatro passos, com a data de cada um que já aconteceu */
+          <ol className="passos-encomenda">
+            {ESTADOS.map(({ estado, nome }, indice) => (
+              <li
+                key={estado}
+                className={indice <= atual ? 'feito' : undefined}
+                aria-current={indice === atual ? 'step' : undefined}
+              >
+                <span className="passos-encomenda-nome">{nome}</span>
+                {dataDe(estado) && (
+                  <span className="passos-encomenda-data">
+                    {formatarDataCurta(dataDe(estado))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
 
         <ul className="list-unstyled small mb-2">
           {linhas.map(({ produto, nome, unidade, preco, quantidade }) => (

@@ -1,18 +1,14 @@
 import { Link } from 'react-router';
 import SeccaoInicio from './SeccaoInicio.jsx';
 import {
-  ESTADOS,
   encomendasPorAcompanhar,
   formatarDataCurta,
+  nomeDoEstado,
 } from '../encomendas.js';
 import { formatarPreco } from '../produtos.js';
 
 // Quantas se mostram no início; as outras estão na página das encomendas
 const MAXIMO = 4;
-
-function nomeDoEstado(estado) {
-  return ESTADOS.find((e) => e.estado === estado).nome;
-}
 
 // No início do comprador: as encomendas em curso, com o estado de cada uma (a mudar em tempo real,
 // porque o início volta a ler a lista quando chega um aviso), e as entregues que ainda não avaliou,

@@ -9,8 +9,10 @@ const PERCENTAGEM = new Intl.NumberFormat('pt-PT', {
   signDisplay: 'exceptZero',
 });
 
-// Divide as encomendas pelos dois períodos, pela data em que foram feitas, e soma cada um
-export function encomendasPorPeriodo(encomendas, agora = new Date()) {
+// Divide as encomendas pelos dois períodos, pela data em que foram feitas, e soma cada um. As
+// canceladas não contam: não chegaram a ser vendas.
+export function encomendasPorPeriodo(todas, agora = new Date()) {
+  const encomendas = todas.filter(({ estado }) => estado !== 'cancelada');
   const ha30 = agora.getTime() - 30 * DIA;
   const ha60 = agora.getTime() - 60 * DIA;
   const somar = (lista) => ({
