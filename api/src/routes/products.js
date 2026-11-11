@@ -10,6 +10,7 @@ import {
   guardarImagem,
   receberImagem,
 } from '../utils/imagens.js';
+import { expressao } from '../utils/pesquisa.js';
 
 const router = Router();
 
@@ -60,11 +61,6 @@ function dadosDoProduto(corpo = {}) {
       ? corpo.epocas.filter((epoca) => EPOCAS.includes(epoca))
       : [],
   };
-}
-
-// Escapa os caracteres especiais, para a pesquisa procurar o texto tal como foi escrito
-function expressao(texto) {
-  return new RegExp(texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 }
 
 // O produto tem de existir e de ser de quem faz o pedido
