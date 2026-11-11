@@ -2,7 +2,17 @@ import { model, Schema } from 'mongoose';
 import { CATEGORIAS } from './Product.js';
 import { arredondar, temAteDoisDecimais } from '../utils/dinheiro.js';
 
-export const ESTADOS_DO_LEILAO = ['agendado', 'ativo', 'terminado'];
+// "cancelado": quando o produtor é suspenso, os leilões dele que ainda não acabaram param sem vencedor
+export const ESTADOS_DO_LEILAO = [
+  'agendado',
+  'ativo',
+  'terminado',
+  'cancelado',
+];
+
+// Os estados dos leilões que ainda podem receber licitações ou fechar: os outros já acabaram, de uma
+// forma ou de outra, e nunca mais mudam
+export const ESTADOS_POR_ACABAR = ['agendado', 'ativo'];
 
 // Unidades de medida: com elas, o número junta-se à unidade ("200 kg"); com as outras (frasco,
 // molho, dúzia…), usa-se o sinal de vezes ("20 × frasco 500 g")
@@ -94,6 +104,8 @@ const auctionSchema = new Schema(
     },
     // A encomenda criada para o vencedor quando o leilão acaba
     encomenda: { type: Schema.Types.ObjectId, ref: 'Order' },
+    // Quando foi cancelado (por o produtor ter sido suspenso)
+    canceladoEm: Date,
     // Leilões inventados para testar (npm run exemplo), identificados como tal na aplicação
     exemplo: { type: Boolean, default: false },
   },

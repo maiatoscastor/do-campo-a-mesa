@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Auction } from '../models/Auction.js';
+import { Auction, ESTADOS_POR_ACABAR } from '../models/Auction.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { avisar, avisarPainel } from '../sockets/avisos.js';
@@ -29,7 +29,7 @@ export async function abrirAgendados(io) {
   }
 }
 
-// Fecha os leilões cujo tempo acabou. Cada fecho só acontece se o leilão ainda não estiver terminado,
+// Fecha os leilões cujo tempo acabou. Cada fecho só acontece se o leilão ainda não tiver acabado,
 // por isso, mesmo com várias instâncias da API, só uma fecha cada leilão. Se houve licitações, o
 // vencedor recebe uma encomenda com o lote, já confirmada; sem licitações, o lote que tinha saído do
 // stock volta ao produto. Tudo na mesma transação: ou fica tudo gravado, ou nada (e o leilão volta a
@@ -37,7 +37,7 @@ export async function abrirAgendados(io) {
 export async function fecharExpirados(io) {
   const agora = new Date();
   const lista = await Auction.find({
-    estado: { $ne: 'terminado' },
+    estado: { $in: ESTADOS_POR_ACABAR },
     terminaEm: { $lte: agora },
   }).select('_id');
 
@@ -48,7 +48,11 @@ export async function fecharExpirados(io) {
       encomenda = null;
       leilao = await Auction.findOneAndUpdate(
         // A hora volta a ser confirmada: o fim só conta se não tiver sido prolongado entretanto
-        { _id, estado: { $ne: 'terminado' }, terminaEm: { $lte: agora } },
+        {
+          _id,
+          estado: { $in: ESTADOS_POR_ACABAR },
+          terminaEm: { $lte: agora },
+        },
         { estado: 'terminado' },
         { session, returnDocument: 'after' },
       );

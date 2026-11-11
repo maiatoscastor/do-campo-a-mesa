@@ -1497,7 +1497,11 @@ components:
           type: string
           format: date-time
           description: Uma licitação nos últimos 30 segundos prolonga o fim até 30 segundos depois dela
-        estado: { type: string, enum: [agendado, ativo, terminado] }
+        estado:
+          type: string
+          enum: [agendado, ativo, terminado, cancelado]
+          description: cancelado quando o produtor é suspenso (sem vencedor)
+        canceladoEm: { type: string, format: date-time }
         exemplo: { type: boolean, description: Leilão inventado para testar }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
