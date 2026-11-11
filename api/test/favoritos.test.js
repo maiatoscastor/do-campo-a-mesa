@@ -216,6 +216,57 @@ describe('favoritos', () => {
     assert.equal(proprio.estado, 400);
     assert.equal(invalido.estado, 400);
   });
+
+  it('avisa quem tem o produtor nos favoritos quando ele marca um leilão', async () => {
+    const abel = await criarConta('Quinta do Abel', { papel: 'produtor' });
+    const ana = await criarConta('Ana Teixeira');
+    const rui = await criarConta('Rui Costa');
+    await pedir('PUT', `/producers/${abel.id}/favorito`, { token: ana.token });
+    const kiwi = await criarProduto(abel.token, 'Kiwi');
+
+    const marcado = await pedir('POST', '/auctions', {
+      token: abel.token,
+      corpo: {
+        produto: kiwi,
+        quantidade: 10,
+        precoBase: 20,
+        incremento: 1,
+        duracao: 30,
+        iniciaEm: new Date(Date.now() + 2 * DIA).toISOString(),
+      },
+    });
+    const jaComecou = await pedir('POST', '/auctions', {
+      token: abel.token,
+      corpo: {
+        produto: kiwi,
+        quantidade: 5,
+        precoBase: 10,
+        incremento: 1,
+        duracao: 30,
+      },
+    });
+
+    const daAna = await Notification.find({ utilizador: ana.id }).sort({
+      createdAt: 1,
+      _id: 1,
+    });
+    const doRui = await Notification.countDocuments({ utilizador: rui.id });
+
+    assert.equal(marcado.estado, 201);
+    assert.equal(jaComecou.estado, 201);
+    assert.equal(daAna.length, 2);
+    assert.match(
+      daAna[0].texto,
+      /^Quinta do Abel marcou um leilão de Kiwi \(10 kg\) para .+ às \d{2}:\d{2}\.$/,
+    );
+    assert.equal(daAna[0].tipo, 'leilao');
+    assert.equal(daAna[0].ligacao, `/leiloes/${marcado.dados.id}`);
+    assert.equal(
+      daAna[1].texto,
+      'Quinta do Abel começou um leilão de Kiwi (5 kg).',
+    );
+    assert.equal(doRui, 0);
+  });
 });
 
 describe('página dos produtores', () => {

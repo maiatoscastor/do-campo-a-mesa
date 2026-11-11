@@ -1067,7 +1067,9 @@ paths:
     post:
       tags: [Leilões]
       summary: Pôr em leilão um lote de um dos seus produtos (produtor aprovado)
-      description: A licitação atual começa no preço base.
+      description: >
+        A licitação atual começa no preço base. Quem tem o produtor nos favoritos recebe uma
+        notificação, com o dia e a hora do início.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
