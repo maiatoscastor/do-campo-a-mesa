@@ -3,13 +3,14 @@ import AlertaDeErro from './AlertaDeErro.jsx';
 import Campo from './Campo.jsx';
 import { useFormulario } from '../hooks/useFormulario.js';
 import { useSessao } from '../hooks/useSessao.js';
-import { MOTIVOS_DE_DENUNCIA } from '../denuncias.js';
 
-// O formulário para denunciar uma avaliação, que abre por baixo dela: o motivo (de uma lista) e, se
-// quiser, mais pormenores (obrigatórios no "Outro motivo"). A avaliação continua à vista depois de
-// denunciada: quem decide é o administrador.
+// O formulário para denunciar uma avaliação ou um produtor, que abre logo ali: o motivo (de uma
+// lista) e, se quiser, mais pormenores (obrigatórios no "Outro motivo"). Nada muda depois de
+// denunciar: quem decide é o administrador. "caminho" é o endereço da API onde a denúncia é feita.
 export default function FormularioDaDenuncia({
-  avaliacao,
+  caminho,
+  pergunta,
+  motivos,
   aoEnviar,
   aoCancelar,
 }) {
@@ -24,7 +25,7 @@ export default function FormularioDaDenuncia({
   function submeter(evento) {
     evento.preventDefault();
     enviar(async () => {
-      await pedir(`/reviews/${avaliacao.id}/denuncias`, {
+      await pedir(caminho, {
         metodo: 'POST',
         corpo: {
           motivo: valores.motivo || undefined,
@@ -46,10 +47,8 @@ export default function FormularioDaDenuncia({
         className="mb-3"
         aria-describedby={detalhes.motivo ? `${id}-erro` : undefined}
       >
-        <legend className="form-label">
-          Porque quer denunciar esta avaliação?
-        </legend>
-        {MOTIVOS_DE_DENUNCIA.map(({ valor, nome }, posicao) => (
+        <legend className="form-label">{pergunta}</legend>
+        {motivos.map(({ valor, nome }, posicao) => (
           <div className="form-check" key={valor}>
             <input
               className={`form-check-input ${detalhes.motivo ? 'is-invalid' : ''}`}
