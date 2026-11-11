@@ -168,6 +168,9 @@ function SeloDaFase({ fase }) {
   if (fase === 'agendado') {
     return <span className="selo selo-confirmada">Agendado</span>;
   }
+  if (fase === 'cancelado') {
+    return <span className="selo selo-cancelado">Cancelado</span>;
+  }
   return <span className="selo selo-entregue">Terminado</span>;
 }
 
@@ -215,6 +218,13 @@ function AcaoDoLeilao({ leilao, fase, licitar }) {
   const comLicitacoes = leilao.numeroDeLicitacoes > 0;
   const souEu = utilizador && licitacaoAtual.comprador === utilizador.id;
 
+  if (fase === 'cancelado') {
+    return (
+      <p className="fw-semibold mb-0">
+        Este leilão foi cancelado. As licitações deixaram de contar.
+      </p>
+    );
+  }
   if (fase === 'terminado' || fase === 'a fechar') {
     if (fase === 'a fechar') {
       return <p className="fw-semibold mb-0">O tempo acabou. A fechar…</p>;

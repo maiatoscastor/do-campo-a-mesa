@@ -39,8 +39,10 @@ export default function Avisos() {
     mostrar(texto, ligacao),
   );
 
-  // A conta muda (por exemplo, o produtor passa a poder publicar): lê-se outra vez do servidor
+  // A conta muda (o produtor passa a poder publicar, é suspenso ou volta a vender): lê-se outra vez
+  // do servidor
   useEventoSocket('conta-validada', () => atualizar().catch(() => {}));
+  useEventoSocket('conta-mudou', () => atualizar().catch(() => {}));
 
   return (
     <div className="avisos" role="status" aria-live="polite">

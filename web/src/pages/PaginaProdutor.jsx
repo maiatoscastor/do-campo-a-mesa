@@ -4,6 +4,7 @@ import { api, enderecoDaImagem } from '../api/cliente.js';
 import BotaoFavorito from '../components/BotaoFavorito.jsx';
 import CartaoProduto from '../components/CartaoProduto.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
+import FormularioDaDenuncia from '../components/FormularioDaDenuncia.jsx';
 import HorarioLevantamento from '../components/HorarioLevantamento.jsx';
 import Icone from '../components/Icone.jsx';
 import MapaQuinta from '../components/MapaQuinta.jsx';
@@ -18,6 +19,7 @@ import {
 } from '../leiloes.js';
 import { textoDaLocalizacao } from '../localizacao.js';
 import { formatarMedia, textoDasAvaliacoes } from '../avaliacoes.js';
+import { MOTIVOS_DE_DENUNCIA_DE_PRODUTOR } from '../denuncias.js';
 import {
   enderecoNoMaps,
   formatarMesEAno,
@@ -39,7 +41,8 @@ export default function PaginaProdutor() {
 
   useEffect(() => {
     let cancelado = false;
-    const lerPagina = souEu ? pedir('/producers/eu') : api(`/producers/${id}`);
+    // Com a sessão, a página diz também se a pessoa já denunciou este produtor
+    const lerPagina = pedir(souEu ? '/producers/eu' : `/producers/${id}`);
     Promise.all([
       lerPagina,
       api(`/products?produtor=${id}`),
@@ -269,7 +272,59 @@ export default function PaginaProdutor() {
           </aside>
         )}
       </div>
+
+      <DenunciarProdutor pagina={pagina} />
     </>
+  );
+}
+
+// No fim da página, discreto: denunciar o produtor (só com sessão, e nunca a própria página nem o
+// administrador, que decide as denúncias). Depois de denunciar, fica a dizer que está por decidir.
+function DenunciarProdutor({ pagina }) {
+  const { utilizador } = useSessao();
+  const [aDenunciar, setADenunciar] = useState(false);
+  const [acabouDeDenunciar, setAcabouDeDenunciar] = useState(false);
+
+  if (
+    !utilizador ||
+    utilizador.papel === 'admin' ||
+    utilizador.id === pagina.id
+  ) {
+    return null;
+  }
+
+  if (pagina.denunciado || acabouDeDenunciar) {
+    return (
+      <p className="denunciar-produtor small text-body-secondary" role="status">
+        Denunciou este produtor. O administrador vai analisar a denúncia.
+      </p>
+    );
+  }
+
+  return (
+    <div className="denunciar-produtor">
+      {aDenunciar ? (
+        <FormularioDaDenuncia
+          caminho={`/producers/${pagina.id}/denuncias`}
+          pergunta="Porque quer denunciar este produtor?"
+          motivos={MOTIVOS_DE_DENUNCIA_DE_PRODUTOR}
+          aoEnviar={() => {
+            setADenunciar(false);
+            setAcabouDeDenunciar(true);
+          }}
+          aoCancelar={() => setADenunciar(false)}
+        />
+      ) : (
+        <button
+          className="btn btn-link btn-sm px-0 text-body-secondary d-inline-flex align-items-center gap-1"
+          type="button"
+          onClick={() => setADenunciar(true)}
+        >
+          <Icone nome="denuncia" tamanho={16} />
+          Denunciar este produtor
+        </button>
+      )}
+    </div>
   );
 }
 

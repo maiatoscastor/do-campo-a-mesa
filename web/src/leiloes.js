@@ -5,6 +5,10 @@ export function faseDoLeilao(leilao, agora) {
   if (leilao.estado === 'terminado') {
     return 'terminado';
   }
+  // Cancelado quando o produtor é suspenso: acabou, sem vencedor
+  if (leilao.estado === 'cancelado') {
+    return 'cancelado';
+  }
   if (agora < new Date(leilao.iniciaEm).getTime()) {
     return 'agendado';
   }

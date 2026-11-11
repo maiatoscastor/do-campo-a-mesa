@@ -44,6 +44,8 @@ export function useLeilao(id) {
       setLeilao((atual) => atual && { ...atual, estado: 'ativo' });
     const aoTerminar = () =>
       setLeilao((atual) => atual && { ...atual, estado: 'terminado' });
+    const aoCancelar = () =>
+      setLeilao((atual) => atual && { ...atual, estado: 'cancelado' });
 
     // Se a ligação cair e voltar, o cliente volta a entrar na sala e recebe o estado de novo
     socket.on('connect', entrar);
@@ -54,6 +56,7 @@ export function useLeilao(id) {
     socket.on('recusada', setErro);
     socket.on('aberto', aoAbrir);
     socket.on('terminado', aoTerminar);
+    socket.on('cancelado', aoCancelar);
     if (socket.connected) {
       entrar();
     } else {
@@ -70,6 +73,7 @@ export function useLeilao(id) {
       socket.off('recusada', setErro);
       socket.off('aberto', aoAbrir);
       socket.off('terminado', aoTerminar);
+      socket.off('cancelado', aoCancelar);
       // Um visitante só estava ligado por causa do leilão: ao sair da página, desliga
       if (!comSessao) {
         socket.disconnect();

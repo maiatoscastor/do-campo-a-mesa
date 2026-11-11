@@ -43,6 +43,12 @@
   }
 }
 
+// Um leilão cancelado (o produtor foi suspenso): acabou sem vencedor
+.selo-cancelado {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}
+
 // Cartão de um leilão a decorrer
 .cartao-leilao {
   overflow: hidden;

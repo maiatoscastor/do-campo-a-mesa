@@ -3,8 +3,8 @@ import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { TarefasAdminContext } from './tarefasAdmin.js';
 
-// Os números do que espera pelo administrador (produtores por validar e avaliações denunciadas por
-// decidir), para toda a aplicação: a navegação, os separadores da administração e o início leem
+// Os números do que espera pelo administrador (produtores por validar, e avaliações e produtores
+// denunciados por decidir), para toda a aplicação: a navegação, os separadores da administração e o início leem
 // todos daqui, com um só pedido. Voltam a ser lidos quando o servidor avisa que mudaram (um produtor
 // novo, uma denúncia nova, ou a decisão de outro administrador) e depois de cada decisão.
 export default function TarefasAdminProvider({ children }) {
@@ -34,9 +34,14 @@ export default function TarefasAdminProvider({ children }) {
     const atual = eAdministrador && resumo.token === token ? resumo : {};
     const produtoresPorValidar = atual.produtoresPorValidar ?? null;
     const denunciasPorDecidir = atual.denunciasPorDecidir ?? null;
+    // As de cada tipo, para os separadores da página das denúncias
+    const denunciasDeAvaliacoes = atual.denunciasDeAvaliacoes ?? null;
+    const denunciasDeProdutores = atual.denunciasDeProdutores ?? null;
     return {
       produtoresPorValidar,
       denunciasPorDecidir,
+      denunciasDeAvaliacoes,
+      denunciasDeProdutores,
       total: (produtoresPorValidar ?? 0) + (denunciasPorDecidir ?? 0),
       recontar,
     };

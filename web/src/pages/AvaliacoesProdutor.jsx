@@ -11,6 +11,7 @@ import ResumoDasAvaliacoes from '../components/ResumoDasAvaliacoes.jsx';
 import { useEventoSocket } from '../hooks/useEventoSocket.js';
 import { useSessao } from '../hooks/useSessao.js';
 import { formatarDia, textoDasEstrelas } from '../avaliacoes.js';
+import { MOTIVOS_DE_DENUNCIA } from '../denuncias.js';
 
 // As avaliações de um produtor (/produtores/:id/avaliacoes): o resumo com a distribuição das
 // estrelas (tocar numa barra mostra só essas) e a lista, das mais recentes para as mais antigas, com
@@ -274,7 +275,9 @@ function Avaliacao({
       />
       {aDenunciar && (
         <FormularioDaDenuncia
-          avaliacao={avaliacao}
+          caminho={`/reviews/${avaliacao.id}/denuncias`}
+          pergunta="Porque quer denunciar esta avaliação?"
+          motivos={MOTIVOS_DE_DENUNCIA}
           aoEnviar={() => {
             setADenunciar(false);
             setAcabouDeDenunciar(true);

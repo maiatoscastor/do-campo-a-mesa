@@ -12,7 +12,7 @@ import {
   formatarMedia,
   textoDasAvaliacoes,
 } from '../avaliacoes.js';
-import { ESTADOS, formatarDataCurta } from '../encomendas.js';
+import { ESTADOS, formatarData, formatarDataCurta } from '../encomendas.js';
 import { comparacao, encomendasPorPeriodo } from '../indicadores.js';
 import { faseDoLeilao, formatarDia, formatarHora } from '../leiloes.js';
 import { formatarPreco, STOCK_BAIXO } from '../produtos.js';
@@ -114,7 +114,7 @@ export default function InicioProdutor() {
           <Link to={`/produtores/${utilizador.id}`}>Ver a minha página</Link>
         </p>
       </div>
-      {aprovado && (
+      {aprovado && !utilizador.castigo && (
         <div className="d-flex flex-wrap gap-2">
           <Link className="btn btn-primary" to="/conta/produtos/novo">
             Novo produto
@@ -198,6 +198,7 @@ export default function InicioProdutor() {
   return (
     <>
       {cabecalho}
+      {utilizador.castigo && <AvisoDaSuspensao castigo={utilizador.castigo} />}
       <AlertaDeErro erro={erro} />
 
       <SeccaoInicio titulo="Por tratar">
@@ -227,6 +228,23 @@ export default function InicioProdutor() {
         </>
       )}
     </>
+  );
+}
+
+// A conta de produtor suspensa: até quando, o que isso quer dizer e o motivo (a sessão volta a ser lida
+// quando o administrador decide ou levanta, por isso este aviso aparece e sai sozinho)
+function AvisoDaSuspensao({ castigo }) {
+  return (
+    <div className="alert alert-danger mt-4 mb-0" role="status">
+      <p className="fw-bold mb-1">
+        A sua conta de produtor está suspensa até {formatarData(castigo.ate)}.
+      </p>
+      <p className="mb-1">
+        Até lá, os seus produtos e a sua página não aparecem na loja, e não pode
+        criar produtos nem leilões. As encomendas que já recebeu continuam.
+      </p>
+      <p className="mb-0">Motivo: {castigo.motivo}</p>
+    </div>
   );
 }
 

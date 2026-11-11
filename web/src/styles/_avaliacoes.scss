@@ -414,6 +414,21 @@
   border-top: 1px solid var(--bs-border-color);
 }
 
+// O castigo em vigor de um produtor denunciado, com o botão para o levantar
+.caso-castigo {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+}
+
+// Avaliações | Produtores, no topo da página das denúncias
+.alternador-denuncias {
+  max-width: 24rem;
+  margin-bottom: 1rem;
+}
+
 .selo-por-decidir {
   background-color: var(--bs-warning-bg-subtle);
   color: var(--bs-warning-text-emphasis);
@@ -424,7 +439,19 @@
   color: var(--bs-success-text-emphasis);
 }
 
-.selo-ocultada {
+.selo-ocultada,
+.selo-suspenso {
   background-color: var(--bs-danger-bg-subtle);
   color: var(--bs-danger-text-emphasis);
+}
+
+// As decisões sobre um produtor denunciado: o aviso a âmbar, a rejeição a cinzento
+.selo-aviso {
+  background-color: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+}
+
+.selo-rejeitada {
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
 }

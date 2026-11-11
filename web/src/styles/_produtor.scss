@@ -222,3 +222,10 @@
     bottom: 1rem;
   }
 }
+
+// "Denunciar este produtor", discreto, no fim da página, separado do resto por uma linha
+.denunciar-produtor {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+}

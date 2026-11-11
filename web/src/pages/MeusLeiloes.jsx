@@ -14,6 +14,7 @@ const NOMES_DAS_FASES = {
   ativo: 'Em direto',
   'a fechar': 'A fechar',
   terminado: 'Terminado',
+  cancelado: 'Cancelado',
 };
 
 const SELOS_DAS_FASES = {
@@ -21,6 +22,7 @@ const SELOS_DAS_FASES = {
   ativo: 'selo-direto',
   'a fechar': 'selo-entregue',
   terminado: 'selo-entregue',
+  cancelado: 'selo-cancelado',
 };
 
 // Os leilões do produtor com sessão, com o estado de cada um. Os que ainda não começaram podem ser

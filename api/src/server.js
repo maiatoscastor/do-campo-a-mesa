@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import app from './app.js';
 import { ligarBaseDeDados } from './config/db.js';
+import { iniciarCicloCastigos } from './services/castigos.js';
 import { iniciarCicloLeiloes } from './services/cicloLeiloes.js';
 import { ligarSockets } from './sockets/index.js';
 
@@ -29,8 +30,9 @@ const servidor = createServer(app);
 const io = ligarSockets(servidor);
 // As rotas também avisam quem está ligado (por exemplo, quando uma encomenda muda de estado)
 app.set('io', io);
-// Abre os leilões agendados e fecha os que acabaram
+// Abre os leilões agendados e fecha os que acabaram; tira as suspensões que chegaram ao fim
 iniciarCicloLeiloes(io);
+iniciarCicloCastigos(io);
 
 // Por exemplo, a porta já está ocupada
 servidor.once('error', (erro) => {

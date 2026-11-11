@@ -3,9 +3,10 @@ import { auth } from '../middleware/auth.js';
 import { Auction } from '../models/Auction.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
-import { Report } from '../models/Report.js';
+import { DECISOES_DE_PRODUTOR, Report } from '../models/Report.js';
 import { Review } from '../models/Review.js';
-import { User } from '../models/User.js';
+import { castigoAtivo, produtoresAVender, User } from '../models/User.js';
+import { suspender, tirarCastigo } from '../services/castigos.js';
 import { avisar, avisarAdministradores } from '../sockets/avisos.js';
 import { arredondar } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
@@ -28,14 +29,26 @@ function avaliacoesPorDecidir() {
   });
 }
 
+// Os produtores com denúncias por decidir (os identificadores)
+function produtoresPorDecidir() {
+  return Report.distinct('produtor', { tipo: 'produtor', estado: 'pendente' });
+}
+
 // GET /api/admin/resumo: o que está à espera do administrador, para os números da navegação, dos
-// separadores e do início
+// separadores e do início. Conta-se por caso (uma avaliação ou um produtor), e não por denúncia: cinco
+// denúncias da mesma avaliação são uma só decisão.
 router.get('/resumo', async (req, res) => {
-  const [produtoresPorValidar, porDecidir] = await Promise.all([
+  const [produtoresPorValidar, avaliacoes, produtores] = await Promise.all([
     User.countDocuments({ 'produtor.validacao': 'pendente' }),
     avaliacoesPorDecidir(),
+    produtoresPorDecidir(),
   ]);
-  res.json({ produtoresPorValidar, denunciasPorDecidir: porDecidir.length });
+  res.json({
+    produtoresPorValidar,
+    denunciasPorDecidir: avaliacoes.length + produtores.length,
+    denunciasDeAvaliacoes: avaliacoes.length,
+    denunciasDeProdutores: produtores.length,
+  });
 });
 
 // GET /api/admin/produtores/pendentes: os produtores à espera de validação, primeiro os mais antigos
@@ -63,10 +76,8 @@ router.get('/painel', async (req, res) => {
   const agora = new Date();
   const ha30Dias = new Date(agora.getTime() - 30 * DIA);
   const ha60Dias = new Date(agora.getTime() - 60 * DIA);
-  const aprovados = await User.distinct('_id', {
-    papel: 'produtor',
-    'produtor.validacao': 'aprovado',
-  });
+  // Os produtos à venda: de produtores aprovados e sem castigo em vigor
+  const aVender = await User.distinct('_id', produtoresAVender(agora));
   const [
     porPapel,
     novos,
@@ -79,7 +90,7 @@ router.get('/painel', async (req, res) => {
   ] = await Promise.all([
     User.aggregate([{ $group: { _id: '$papel', quantos: { $sum: 1 } } }]),
     User.countDocuments({ createdAt: { $gte: ha30Dias } }),
-    Product.countDocuments({ produtor: { $in: aprovados } }),
+    Product.countDocuments({ produtor: { $in: aVender } }),
     encomendasEntre(ha30Dias, agora),
     encomendasEntre(ha60Dias, ha30Dias),
     Auction.aggregate([
@@ -227,13 +238,17 @@ function lerAvaliacoes(filtro) {
     .populate('produtor', 'produtor.nomeExploracao');
 }
 
-// GET /api/admin/denuncias?estado=…&pagina=…: as avaliações denunciadas. Por omissão, as que têm
-// denúncias por decidir, primeiro as que esperam há mais tempo, cada uma com essas denúncias; com
-// ?estado=decidida, as que já foram decididas, das mais recentes para as mais antigas, com todas
-// as denúncias que tiveram.
+// GET /api/admin/denuncias?tipo=…&estado=…&pagina=…: os casos denunciados, avaliações (por omissão)
+// ou produtores (?tipo=produtor). Por omissão, os que têm denúncias por decidir, primeiro os que
+// esperam há mais tempo, cada um com essas denúncias; com ?estado=decidida, os que já foram
+// decididos, dos mais recentes para os mais antigos, com todas as denúncias que tiveram.
 router.get('/denuncias', async (req, res) => {
   const decididas = req.query.estado === 'decidida';
   const pagina = Math.max(1, Number.parseInt(req.query.pagina, 10) || 1);
+  if (req.query.tipo === 'produtor') {
+    res.json(await casosDeProdutores(decididas, pagina));
+    return;
+  }
   const porDecidir = await avaliacoesPorDecidir();
 
   // Pede-se uma a mais só para saber se há mais páginas
@@ -283,6 +298,246 @@ router.get('/denuncias', async (req, res) => {
       ),
     );
   res.json({ porDecidir: porDecidir.length, casos, temMais });
+});
+
+// Um produtor denunciado, como o administrador o vê: quem é, o castigo em vigor (se houver), quantos
+// avisos e suspensões já teve (cada decisão conta uma vez, mesmo que tenha decidido várias denúncias)
+// e as denúncias, com quem as fez, o motivo e, nas decididas, a decisão.
+function casoDeProdutor(produtor, denuncias, historico) {
+  const castigo = castigoAtivo(produtor);
+  return {
+    produtor: {
+      id: produtor._id,
+      nome: produtor.nome,
+      nomeExploracao: produtor.produtor.nomeExploracao,
+      localizacao: produtor.produtor.localizacao,
+      exemplo: produtor.exemplo,
+      castigo: castigo && {
+        tipo: castigo.tipo,
+        ate: castigo.ate,
+        motivo: castigo.motivo,
+        desde: castigo.desde,
+      },
+    },
+    historico: {
+      avisos: historico.get(`${produtor._id}:aviso`) ?? 0,
+      suspensoes: historico.get(`${produtor._id}:suspensao`) ?? 0,
+    },
+    denuncias: denuncias.map((denuncia) => ({
+      id: denuncia._id,
+      motivo: denuncia.motivo,
+      descricao: denuncia.descricao,
+      estado: denuncia.estado,
+      decisao: denuncia.decisao,
+      motivoDaDecisao: denuncia.motivoDaDecisao,
+      decididaEm: denuncia.decididaEm,
+      data: denuncia.createdAt,
+      autor: { id: denuncia.autor._id, nome: denuncia.autor.nome },
+    })),
+  };
+}
+
+// Quantos avisos e suspensões teve cada produtor, num Map de "id:decisao" para o número. Cada decisão
+// do administrador marca todas as denúncias por decidir com a mesma data, por isso conta-se uma vez.
+async function historicoDe(ids) {
+  const grupos = await Report.aggregate([
+    {
+      $match: {
+        tipo: 'produtor',
+        produtor: { $in: ids },
+        estado: 'decidida',
+        decisao: { $in: ['aviso', 'suspensao'] },
+      },
+    },
+    {
+      $group: {
+        _id: { produtor: '$produtor', decisao: '$decisao', em: '$decididaEm' },
+      },
+    },
+    {
+      $group: {
+        _id: { produtor: '$_id.produtor', decisao: '$_id.decisao' },
+        quantas: { $sum: 1 },
+      },
+    },
+  ]);
+  return new Map(
+    grupos.map(({ _id, quantas }) => [
+      `${_id.produtor}:${_id.decisao}`,
+      quantas,
+    ]),
+  );
+}
+
+// Os casos dos produtores denunciados, por decidir ou decididos (ver GET /api/admin/denuncias)
+async function casosDeProdutores(decididas, pagina) {
+  const porDecidir = await produtoresPorDecidir();
+  const grupos = decididas
+    ? await Report.aggregate([
+        {
+          $match: {
+            tipo: 'produtor',
+            estado: 'decidida',
+            produtor: { $nin: porDecidir },
+          },
+        },
+        { $group: { _id: '$produtor', ultima: { $max: '$decididaEm' } } },
+        { $sort: { ultima: -1, _id: 1 } },
+        { $skip: (pagina - 1) * POR_PAGINA },
+        { $limit: POR_PAGINA + 1 },
+      ])
+    : await Report.aggregate([
+        { $match: { tipo: 'produtor', estado: 'pendente' } },
+        { $group: { _id: '$produtor', primeira: { $min: '$createdAt' } } },
+        { $sort: { primeira: 1, _id: 1 } },
+        { $skip: (pagina - 1) * POR_PAGINA },
+        { $limit: POR_PAGINA + 1 },
+      ]);
+  const temMais = grupos.length > POR_PAGINA;
+  const ids = grupos.slice(0, POR_PAGINA).map(({ _id }) => _id);
+
+  const [produtores, denuncias, historico] = await Promise.all([
+    User.find({ _id: { $in: ids } }),
+    Report.find({
+      tipo: 'produtor',
+      produtor: { $in: ids },
+      estado: decididas ? 'decidida' : 'pendente',
+    })
+      .sort({ createdAt: 1 })
+      .populate('autor', 'nome'),
+    historicoDe(ids),
+  ]);
+  // Pela ordem da lista (o find não a garante)
+  const casos = ids
+    .map((id) => produtores.find(({ _id }) => _id.equals(id)))
+    .filter(Boolean)
+    .map((produtor) =>
+      casoDeProdutor(
+        produtor,
+        denuncias.filter((denuncia) => denuncia.produtor.equals(produtor._id)),
+        historico,
+      ),
+    );
+  return { porDecidir: porDecidir.length, casos, temMais };
+}
+
+// A data até quando fica suspenso: no futuro e, no máximo, daqui a um ano
+function dataDaSuspensao(valor, agora) {
+  const ate = typeof valor === 'string' ? new Date(valor) : null;
+  if (!ate || Number.isNaN(ate.getTime())) {
+    return { erro: 'Escolha até quando fica suspenso' };
+  }
+  if (ate <= agora) {
+    return { erro: 'A data tem de ser no futuro' };
+  }
+  if (ate > new Date(agora.getTime() + 366 * DIA)) {
+    return { erro: 'A suspensão pode ir, no máximo, até daqui a um ano' };
+  }
+  return { ate };
+}
+
+// PATCH /api/admin/produtores/:id/moderacao: o administrador decide as denúncias por decidir de um
+// produtor. Corpo: { decisao: 'rejeitada' | 'aviso' | 'suspensao', motivo, ate } (a data só na
+// suspensão). Na suspensão, os produtos e a página saem da loja até à data, e os leilões por acabar
+// são cancelados. O produtor recebe o aviso ou a suspensão com o motivo; quem denunciou recebe a
+// decisão (numa rejeição, com o motivo; num castigo, sem os pormenores, que são entre o
+// administrador e o produtor).
+router.patch('/produtores/:id/moderacao', async (req, res) => {
+  const agora = new Date();
+  const { decisao } = req.body ?? {};
+  const motivo =
+    typeof req.body?.motivo === 'string' ? req.body.motivo.trim() : '';
+  const detalhes = {};
+  if (!DECISOES_DE_PRODUTOR.includes(decisao)) {
+    detalhes.decisao = 'Escolha rejeitar, dar um aviso ou suspender';
+  }
+  if (!motivo) {
+    detalhes.motivo = 'Escreva o motivo da decisão';
+  } else if (motivo.length > 500) {
+    detalhes.motivo = 'O motivo é demasiado comprido';
+  }
+  const suspensao =
+    decisao === 'suspensao' ? dataDaSuspensao(req.body?.ate, agora) : null;
+  if (suspensao?.erro) {
+    detalhes.ate = suspensao.erro;
+  }
+  if (Object.keys(detalhes).length > 0) {
+    throw Object.assign(criarErro(400, 'Dados inválidos'), { detalhes });
+  }
+
+  const produtor = await User.findOne({
+    _id: req.params.id,
+    papel: 'produtor',
+  });
+  if (!produtor) {
+    throw criarErro(404, 'Produtor não encontrado');
+  }
+  const pendentes = await Report.find({
+    tipo: 'produtor',
+    produtor: produtor._id,
+    estado: 'pendente',
+  });
+  // Só se decide o que está por decidir (outro administrador pode ter acabado de o fazer)
+  const { modifiedCount } = await Report.updateMany(
+    { _id: { $in: pendentes.map(({ _id }) => _id) }, estado: 'pendente' },
+    {
+      estado: 'decidida',
+      decisao,
+      motivoDaDecisao: motivo,
+      decididaEm: agora,
+    },
+  );
+  if (modifiedCount === 0) {
+    throw criarErro(409, 'Não há denúncias deste produtor por decidir');
+  }
+
+  const io = req.app.get('io');
+  const nome = produtor.produtor.nomeExploracao;
+  if (decisao === 'suspensao') {
+    await suspender(io, produtor, {
+      ate: suspensao.ate,
+      motivo,
+      admin: req.user.id,
+    });
+  } else if (decisao === 'aviso') {
+    await avisar(io, produtor._id, {
+      texto: `Recebeu um aviso da administração sobre a sua conta de produtor. Motivo: ${motivo}`,
+      tipo: 'conta',
+      ligacao: '/',
+    });
+  }
+  const autores = [...new Set(pendentes.map(({ autor }) => String(autor)))];
+  for (const autor of autores) {
+    await avisar(io, autor, {
+      texto:
+        decisao === 'rejeitada'
+          ? `A sua denúncia de ${nome} foi analisada e não vai haver medidas. Motivo: ${motivo}`
+          : `A sua denúncia de ${nome} foi analisada e foram tomadas medidas. Obrigado por ajudar.`,
+      tipo: 'denuncia',
+      ligacao: '/produtores',
+    });
+  }
+  await avisarAdministradores(io, null, 'denuncias-mudaram', {});
+
+  const [atualizado, denuncias, historico] = await Promise.all([
+    User.findById(produtor._id),
+    Report.find({ tipo: 'produtor', produtor: produtor._id })
+      .sort({ createdAt: 1 })
+      .populate('autor', 'nome'),
+    historicoDe([produtor._id]),
+  ]);
+  res.json(casoDeProdutor(atualizado, denuncias, historico));
+});
+
+// DELETE /api/admin/produtores/:id/castigo: o administrador levanta o castigo antes do fim. O
+// produtor é avisado, e os produtos e a página voltam logo à loja. Responde 204.
+router.delete('/produtores/:id/castigo', async (req, res) => {
+  const io = req.app.get('io');
+  if (!(await tirarCastigo(io, req.params.id))) {
+    throw criarErro(404, 'Este produtor não tem nenhum castigo');
+  }
+  await avisarAdministradores(io, null, 'denuncias-mudaram', {});
+  res.status(204).end();
 });
 
 // PATCH /api/admin/avaliacoes/:id/moderacao: o administrador mantém ou oculta uma avaliação. Corpo:

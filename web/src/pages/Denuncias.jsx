@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import AlertaDeErro from '../components/AlertaDeErro.jsx';
+import CasoDeProdutor from '../components/CasoDeProdutor.jsx';
 import Campo from '../components/Campo.jsx';
 import EstadoVazio from '../components/EstadoVazio.jsx';
 import Estrelas from '../components/Estrelas.jsx';
@@ -15,14 +16,35 @@ import {
   textoDasDenuncias,
 } from '../denuncias.js';
 
-// Página do administrador (/admin/denuncias): as avaliações denunciadas, cada uma uma só vez, com
-// as denúncias que teve. Por decidir (primeiro as que esperam há mais tempo) ou já decididas, para
-// se poder voltar atrás. A vista fica no endereço (?ver=decididas).
+// O endereço da lista na API, para o tipo, a vista e a página
+function enderecoDaLista(tipo, decididas, pagina = 1) {
+  const parametros = new URLSearchParams();
+  if (tipo === 'produtor') {
+    parametros.set('tipo', 'produtor');
+  }
+  if (decididas) {
+    parametros.set('estado', 'decidida');
+  }
+  if (pagina > 1) {
+    parametros.set('pagina', pagina);
+  }
+  const texto = parametros.toString();
+  return `/admin/denuncias${texto ? `?${texto}` : ''}`;
+}
+
+// Página do administrador (/admin/denuncias): as avaliações ou os produtores denunciados, cada um
+// uma só vez, com as denúncias que teve. Por decidir (primeiro os que esperam há mais tempo) ou já
+// decididos, para se poder voltar atrás (numa avaliação) ou levantar o castigo (num produtor). O tipo
+// e a vista ficam no endereço (?tipo=produtor&ver=decididas).
 export default function Denuncias() {
   const { pedir } = useSessao();
-  const { denunciasPorDecidir, recontar } = useTarefasAdmin();
+  const { denunciasDeAvaliacoes, denunciasDeProdutores, recontar } =
+    useTarefasAdmin();
   const [procura, setProcura] = useSearchParams();
+  const tipo = procura.get('tipo') === 'produtor' ? 'produtor' : 'avaliacao';
   const decididas = procura.get('ver') === 'decididas';
+  const porDecidirDoTipo =
+    tipo === 'produtor' ? denunciasDeProdutores : denunciasDeAvaliacoes;
   // null quer dizer que a lista ainda não chegou
   const [casos, setCasos] = useState(null);
   const [pagina, setPagina] = useState(1);
@@ -35,7 +57,7 @@ export default function Denuncias() {
 
   useEffect(() => {
     let cancelado = false;
-    pedir(`/admin/denuncias${decididas ? '?estado=decidida' : ''}`)
+    pedir(enderecoDaLista(tipo, decididas))
       .then((dados) => {
         if (!cancelado) {
           setCasos(dados.casos);
@@ -47,21 +69,26 @@ export default function Denuncias() {
     return () => {
       cancelado = true;
     };
-  }, [pedir, decididas, versao]);
+  }, [pedir, tipo, decididas, versao]);
 
-  function verVista(paraDecididas) {
-    if (paraDecididas !== decididas) {
+  // Muda o tipo ou a vista, no endereço
+  function ver(novoTipo, paraDecididas) {
+    if (novoTipo !== tipo || paraDecididas !== decididas) {
       setCasos(null);
       setMensagem('');
-      setProcura(paraDecididas ? { ver: 'decididas' } : {}, { replace: true });
+      setProcura(
+        {
+          ...(novoTipo === 'produtor' ? { tipo: 'produtor' } : {}),
+          ...(paraDecididas ? { ver: 'decididas' } : {}),
+        },
+        { replace: true },
+      );
     }
   }
 
   async function carregarMais() {
     try {
-      const dados = await pedir(
-        `/admin/denuncias?${decididas ? 'estado=decidida&' : ''}pagina=${pagina + 1}`,
-      );
+      const dados = await pedir(enderecoDaLista(tipo, decididas, pagina + 1));
       setCasos((atuais) => [...atuais, ...dados.casos]);
       setTemMais(dados.temMais);
       setPagina((n) => n + 1);
@@ -94,10 +121,79 @@ export default function Denuncias() {
     recontar();
   }
 
+  // Depois de decidir um produtor: o caso sai da lista do que está por decidir
+  function produtorDecidido(caso, decisao) {
+    setCasos((atuais) =>
+      atuais.filter((c) => c.produtor.id !== caso.produtor.id),
+    );
+    const mensagens = {
+      rejeitada: 'A denúncia foi rejeitada. Quem denunciou recebeu o motivo.',
+      aviso: 'O produtor recebeu o aviso. Quem denunciou foi informado.',
+      suspensao:
+        'O produtor está suspenso: os produtos e a página saíram da loja e os leilões dele foram cancelados. Ele e quem denunciou foram avisados.',
+    };
+    setMensagem(mensagens[decisao]);
+    recontar();
+  }
+
+  // Depois de levantar a suspensão: o caso fica, sem o castigo
+  function castigoLevantado(id) {
+    setCasos((atuais) =>
+      atuais.map((c) =>
+        c.produtor.id === id
+          ? { ...c, produtor: { ...c.produtor, castigo: null } }
+          : c,
+      ),
+    );
+    setMensagem(
+      'A suspensão foi levantada: os produtos e a página voltaram à loja, e o produtor foi avisado.',
+    );
+  }
+
   return (
     <>
       <title>Denúncias · Do Campo à Mesa</title>
       <h1 className="mb-3">Denúncias</h1>
+
+      <nav
+        className="alternador alternador-denuncias"
+        aria-label="Tipo de denúncia"
+      >
+        <Link
+          className={tipo === 'avaliacao' ? 'active' : undefined}
+          aria-current={tipo === 'avaliacao' ? 'page' : undefined}
+          to={decididas ? '?ver=decididas' : '.'}
+          replace
+          onClick={(evento) => {
+            evento.preventDefault();
+            ver('avaliacao', decididas);
+          }}
+        >
+          <span>
+            Avaliações
+            {denunciasDeAvaliacoes > 0 && (
+              <span className="contador ms-2">{denunciasDeAvaliacoes}</span>
+            )}
+          </span>
+        </Link>
+        <Link
+          className={tipo === 'produtor' ? 'active' : undefined}
+          aria-current={tipo === 'produtor' ? 'page' : undefined}
+          to={`?tipo=produtor${decididas ? '&ver=decididas' : ''}`}
+          replace
+          onClick={(evento) => {
+            evento.preventDefault();
+            ver('produtor', decididas);
+          }}
+        >
+          <span>
+            Produtores
+            {denunciasDeProdutores > 0 && (
+              <span className="contador ms-2">{denunciasDeProdutores}</span>
+            )}
+          </span>
+        </Link>
+      </nav>
 
       <ul className="nav nav-pills gap-2 mb-3">
         <li className="nav-item">
@@ -105,11 +201,11 @@ export default function Denuncias() {
             className={`nav-link ${decididas ? '' : 'active'}`}
             type="button"
             aria-pressed={!decididas}
-            onClick={() => verVista(false)}
+            onClick={() => ver(tipo, false)}
           >
             Por decidir
-            {denunciasPorDecidir > 0 && (
-              <span className="contador ms-2">{denunciasPorDecidir}</span>
+            {porDecidirDoTipo > 0 && (
+              <span className="contador ms-2">{porDecidirDoTipo}</span>
             )}
           </button>
         </li>
@@ -118,7 +214,7 @@ export default function Denuncias() {
             className={`nav-link ${decididas ? 'active' : ''}`}
             type="button"
             aria-pressed={decididas}
-            onClick={() => verVista(true)}
+            onClick={() => ver(tipo, true)}
           >
             Decididas
           </button>
@@ -131,30 +227,26 @@ export default function Denuncias() {
         {mensagem || (casos === null && !erro && 'A carregar…')}
       </p>
 
-      {casos?.length === 0 &&
-        (decididas ? (
-          <EstadoVazio
-            icone="denuncia"
-            titulo="Ainda não há decisões"
-            texto="As avaliações já decididas ficam aqui, para poder voltar atrás."
-          />
-        ) : (
-          <EstadoVazio
-            icone="denuncia"
-            titulo="Não há denúncias por decidir"
-            texto="Quando alguém denunciar uma avaliação, ela aparece aqui para decidir se fica ou sai."
-          />
-        ))}
+      {casos?.length === 0 && <SemCasos tipo={tipo} decididas={decididas} />}
 
       {casos?.length > 0 && (
         <div className="d-grid gap-3">
-          {casos.map((caso) => (
-            <CasoDeDenuncia
-              key={caso.avaliacao.id}
-              caso={caso}
-              aoDecidir={decidido}
-            />
-          ))}
+          {casos.map((caso) =>
+            tipo === 'produtor' ? (
+              <CasoDeProdutor
+                key={caso.produtor.id}
+                caso={caso}
+                aoDecidir={produtorDecidido}
+                aoLevantar={castigoLevantado}
+              />
+            ) : (
+              <CasoDeDenuncia
+                key={caso.avaliacao.id}
+                caso={caso}
+                aoDecidir={decidido}
+              />
+            ),
+          )}
         </div>
       )}
       {temMais && (
@@ -168,6 +260,32 @@ export default function Denuncias() {
       )}
     </>
   );
+}
+
+// A mensagem de quando a lista está vazia, para cada tipo e vista
+function SemCasos({ tipo, decididas }) {
+  const textos = {
+    avaliacao: decididas
+      ? [
+          'Ainda não há decisões',
+          'As avaliações já decididas ficam aqui, para poder voltar atrás.',
+        ]
+      : [
+          'Não há denúncias por decidir',
+          'Quando alguém denunciar uma avaliação, ela aparece aqui para decidir se fica ou sai.',
+        ],
+    produtor: decididas
+      ? [
+          'Ainda não há decisões',
+          'Os produtores já decididos ficam aqui, com o castigo em vigor, para o poder levantar mais cedo.',
+        ]
+      : [
+          'Não há denúncias por decidir',
+          'Quando alguém denunciar um produtor, ele aparece aqui para decidir: rejeitar, dar um aviso ou suspender.',
+        ],
+  };
+  const [titulo, texto] = textos[tipo];
+  return <EstadoVazio icone="denuncia" titulo={titulo} texto={texto} />;
 }
 
 const SELOS = {

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Auction } from '../models/Auction.js';
+import { Auction, ESTADOS_POR_ACABAR } from '../models/Auction.js';
 import { Bid } from '../models/Bid.js';
 import { CAMPOS_DO_PRODUTOR } from '../routes/auctions.js';
 import { formatarEuros, temAteDoisDecimais } from '../utils/dinheiro.js';
@@ -56,6 +56,9 @@ function motivoDaRecusa(leilao, utilizador, agora) {
   }
   if (leilao.iniciaEm > agora) {
     return 'O leilão ainda não começou';
+  }
+  if (leilao.estado === 'cancelado') {
+    return 'O leilão foi cancelado';
   }
   if (leilao.estado === 'terminado' || leilao.terminaEm <= agora) {
     return 'O leilão já terminou';
@@ -156,7 +159,7 @@ export function registarLeiloes(io, socket) {
       const leilao = await Auction.findOneAndUpdate(
         {
           _id: leilaoId,
-          estado: { $ne: 'terminado' },
+          estado: { $in: ESTADOS_POR_ACABAR },
           iniciaEm: { $lte: agora },
           terminaEm: { $gt: agora },
           produtor: { $ne: utilizador.id },

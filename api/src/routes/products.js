@@ -2,7 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { auth, produtorAprovado } from '../middleware/auth.js';
 import { CATEGORIAS, EPOCAS, Product } from '../models/Product.js';
-import { User } from '../models/User.js';
+import { castigoAtivo, produtoresAVender, User } from '../models/User.js';
 import { mediasDosProdutos } from '../services/avaliacoes.js';
 import { criarErro } from '../utils/erro.js';
 import {
@@ -75,7 +75,8 @@ async function produtoDoProdutor(req) {
   return produto;
 }
 
-// GET /api/products: o catálogo, aberto a todos. Só mostra produtos de produtores aprovados.
+// GET /api/products: o catálogo, aberto a todos. Só mostra produtos de produtores a vender (aprovados
+// e sem castigo em vigor).
 // Filtros: q (nome, descrição ou produtor), categoria, concelho, produtor, epoca, biologico,
 // precoMin, precoMax e ids (só estes produtos, separados por vírgulas: o carrinho usa-o para ter o
 // preço e o stock atuais).
@@ -84,10 +85,7 @@ router.get('/', async (req, res) => {
   const precoMin = Number.parseFloat(req.query.precoMin);
   const precoMax = Number.parseFloat(req.query.precoMax);
 
-  const filtroProdutores = {
-    papel: 'produtor',
-    'produtor.validacao': 'aprovado',
-  };
+  const filtroProdutores = produtoresAVender();
   if (typeof concelho === 'string') {
     filtroProdutores['produtor.localizacao.concelho'] = concelho;
   }
@@ -147,13 +145,16 @@ router.get('/meus', auth('produtor'), async (req, res) => {
   res.json(await comAvaliacoes(produtos));
 });
 
-// GET /api/products/:id: um produto, se o produtor estiver aprovado
+// GET /api/products/:id: um produto, se o produtor estiver a vender (aprovado e sem castigo)
 router.get('/:id', async (req, res) => {
   const produto = await Product.findById(req.params.id).populate(
     'produtor',
-    `${CAMPOS_DO_PRODUTOR} produtor.validacao`,
+    `${CAMPOS_DO_PRODUTOR} produtor.validacao castigo`,
   );
-  if (produto?.produtor?.produtor?.validacao !== 'aprovado') {
+  if (
+    produto?.produtor?.produtor?.validacao !== 'aprovado' ||
+    castigoAtivo(produto.produtor)
+  ) {
     throw criarErro(404, 'Produto não encontrado');
   }
   const [publico] = await comAvaliacoes([produto]);

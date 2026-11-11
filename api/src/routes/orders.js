@@ -5,7 +5,7 @@ import { avisar, avisarPainel } from '../sockets/avisos.js';
 import { ESTADOS, Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
 import { Review } from '../models/Review.js';
-import { User } from '../models/User.js';
+import { produtoresAVender, User } from '../models/User.js';
 import { formatarEuros } from '../utils/dinheiro.js';
 import { criarErro } from '../utils/erro.js';
 
@@ -152,13 +152,13 @@ router.post('/', auth('comprador', 'produtor'), async (req, res) => {
   // O modo e a morada validam-se antes de mexer no stock
   await new Order(entrega).validate(['modo', 'morada']);
 
-  // Só se encomendam produtos de produtores aprovados, e nunca os do próprio
+  // Só se encomendam produtos de produtores a vender (aprovados e sem castigo), e nunca os do próprio
   const produtos = await Product.find({
     _id: { $in: [...quantidades.keys()] },
   });
   const aprovados = await User.find({
+    ...produtoresAVender(),
     _id: { $in: produtos.map(({ produtor }) => produtor) },
-    'produtor.validacao': 'aprovado',
   }).distinct('_id');
   for (const id of quantidades.keys()) {
     const produto = produtos.find((p) => p.id === id);
