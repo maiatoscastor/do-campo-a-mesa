@@ -40,8 +40,12 @@ const SERVICOS = {
   },
   armazenamento: {
     nome: 'Imagens',
-    pormenor: ({ tipo, ficheiros, tamanhoMb }) =>
-      `${tipo} · ${ficheiros} ${ficheiros === 1 ? 'ficheiro' : 'ficheiros'} · ${NUMERO.format(tamanhoMb)} MB`,
+    // No disco conta-se o que lá está; no Vercel Blob, contar gastava a quota gratuita, e a
+    // verificação fica guardada uns minutos (por isso diz a que horas foi feita)
+    pormenor: ({ tipo, ficheiros, tamanhoMb, verificadoEm }) =>
+      verificadoEm
+        ? `${tipo} · verificado às ${HORA.format(new Date(verificadoEm))}`
+        : `${tipo} · ${ficheiros} ${ficheiros === 1 ? 'ficheiro' : 'ficheiros'} · ${NUMERO.format(tamanhoMb)} MB`,
   },
   swagger: {
     nome: 'Documentação da API (Swagger UI)',

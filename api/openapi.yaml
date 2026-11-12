@@ -342,9 +342,10 @@ paths:
       description: >
         Verificado no momento do pedido: a API (há quanto tempo corre, a versão do Node e a memória),
         o MongoDB (um ping, com o tempo de resposta), o Socket.io (ligações e pessoas), o
-        armazenamento das imagens (se se pode escrever, quantos ficheiros e quanto ocupam) e a
-        documentação Swagger (quantas operações tem). Uma falha vem com uma frase simples; os
-        pormenores técnicos ficam no registo do servidor.
+        armazenamento das imagens (no disco: se se pode escrever, quantos ficheiros e quanto ocupam;
+        no Vercel Blob: se responde, com a verificação guardada 10 minutos) e a documentação Swagger
+        (quantas operações tem). Uma falha vem com uma frase simples; os pormenores técnicos ficam
+        no registo do servidor.
       security: [{ bearerAuth: [] }]
       responses:
         '200':
@@ -1595,7 +1596,12 @@ components:
               oneOf:
                 - $ref: '#/components/schemas/Produtor'
                 - type: string
-            imagemUrl: { type: string, example: /uploads/3f2a9c1e.webp }
+            imagemUrl:
+              type: string
+              description: >
+                Relativo (/uploads/…) com as imagens no disco da API; completo (https://…) com as
+                imagens no Vercel Blob
+              example: /uploads/3f2a9c1e.webp
             exemplo:
               { type: boolean, description: Dados inventados para testar }
             avaliacao:

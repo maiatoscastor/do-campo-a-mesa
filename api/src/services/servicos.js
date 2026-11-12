@@ -1,14 +1,19 @@
+import { BlobNotFoundError, BlobStoreSuspendedError, head } from '@vercel/blob';
 import mongoose from 'mongoose';
 import { constants } from 'node:fs';
 import { access, mkdir, readdir, stat } from 'node:fs/promises';
 import { especificacao } from '../config/especificacao.js';
-import { PASTA_UPLOADS } from '../utils/imagens.js';
+import { imagensNoBlob, PASTA_UPLOADS } from '../utils/imagens.js';
 
 const MB = 1024 * 1024;
+// O Vercel Blob tem um limite gratuito de operações por mês, e a página do estado volta a verificar
+// de 30 em 30 segundos: a verificação do Blob que correu bem fica guardada 10 minutos
+const GUARDAR_BLOB = 10 * 60 * 1000;
+let blobVerificado = null;
 
 // Corre uma verificação e mede quanto tempo demorou. Se falhar, a mensagem que vai para a página é
-// sempre a mesma frase simples: o erro técnico (que pode ter pormenores da ligação) fica só no
-// registo do servidor.
+// uma frase simples ("mensagemDeErro", ou a que ela devolve para o erro): o erro técnico (que pode
+// ter pormenores da ligação) fica só no registo do servidor.
 async function verificar(servico, mensagemDeErro, verificacao) {
   const inicio = performance.now();
   const tempo = () => Math.round(performance.now() - inicio);
@@ -21,15 +26,73 @@ async function verificar(servico, mensagemDeErro, verificacao) {
       servico,
       estado: 'erro',
       latenciaMs: tempo(),
-      mensagem: mensagemDeErro,
+      mensagem:
+        typeof mensagemDeErro === 'function'
+          ? mensagemDeErro(erro)
+          : mensagemDeErro,
     };
   }
 }
 
+// A pasta das imagens no disco do servidor: se se pode escrever, quantos ficheiros e quanto ocupam
+async function verificarDisco() {
+  await mkdir(PASTA_UPLOADS, { recursive: true });
+  await access(PASTA_UPLOADS, constants.W_OK);
+  const nomes = await readdir(PASTA_UPLOADS);
+  const tamanhos = await Promise.all(
+    nomes.map((nome) =>
+      stat(new URL(nome, PASTA_UPLOADS)).then(({ size }) => size),
+    ),
+  );
+  return {
+    tipo: 'Disco do servidor',
+    ficheiros: nomes.length,
+    tamanhoMb:
+      Math.round((tamanhos.reduce((soma, n) => soma + n, 0) / MB) * 10) / 10,
+  };
+}
+
+// O Vercel Blob: pergunta pelos dados de uma imagem que não existe (a operação mais barata). Se a
+// resposta for "não existe", o armazenamento respondeu e aceitou a chave.
+async function verificarBlob() {
+  try {
+    await head('verificacao-do-armazenamento');
+  } catch (erro) {
+    if (!(erro instanceof BlobNotFoundError)) {
+      throw erro;
+    }
+  }
+  return { tipo: 'Vercel Blob', verificadoEm: new Date() };
+}
+
+async function estadoDoArmazenamento() {
+  if (!imagensNoBlob()) {
+    return verificar(
+      'armazenamento',
+      'Não é possível guardar imagens',
+      verificarDisco,
+    );
+  }
+  if (blobVerificado && Date.now() - blobVerificado.quando < GUARDAR_BLOB) {
+    return blobVerificado.resultado;
+  }
+  const resultado = await verificar(
+    'armazenamento',
+    (erro) =>
+      erro instanceof BlobStoreSuspendedError
+        ? 'O armazenamento das imagens passou o limite gratuito deste mês'
+        : 'Não é possível guardar imagens',
+    verificarBlob,
+  );
+  blobVerificado =
+    resultado.estado === 'ok' ? { quando: Date.now(), resultado } : null;
+  return resultado;
+}
+
 // O estado de cada parte da aplicação, verificado no momento do pedido: a API (há quanto tempo está
 // a correr e quanta memória usa), o MongoDB (um ping, com o tempo de resposta), o Socket.io (quantas
-// ligações e pessoas), o armazenamento das imagens (se se pode escrever, quantos ficheiros e quanto
-// ocupam) e a documentação Swagger (quantas operações tem)
+// ligações e pessoas), o armazenamento das imagens (no disco ou no Vercel Blob) e a documentação
+// Swagger (quantas operações tem)
 export async function estadoDosServicos(io) {
   const servicos = await Promise.all([
     verificar('api', 'A API não respondeu', () => ({
@@ -54,23 +117,7 @@ export async function estadoDosServicos(io) {
       );
       return { ligacoes: sockets.length, pessoas: pessoas.size };
     }),
-    verificar('armazenamento', 'Não é possível guardar imagens', async () => {
-      await mkdir(PASTA_UPLOADS, { recursive: true });
-      await access(PASTA_UPLOADS, constants.W_OK);
-      const nomes = await readdir(PASTA_UPLOADS);
-      const tamanhos = await Promise.all(
-        nomes.map((nome) =>
-          stat(new URL(nome, PASTA_UPLOADS)).then(({ size }) => size),
-        ),
-      );
-      return {
-        tipo: 'Disco do servidor',
-        ficheiros: nomes.length,
-        tamanhoMb:
-          Math.round((tamanhos.reduce((soma, n) => soma + n, 0) / MB) * 10) /
-          10,
-      };
-    }),
+    estadoDoArmazenamento(),
     verificar('swagger', 'A documentação não foi carregada', () => {
       const operacoes = Object.values(especificacao.paths ?? {}).reduce(
         (soma, caminho) =>

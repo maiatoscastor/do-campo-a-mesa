@@ -14,9 +14,15 @@ export class ErroApi extends Error {
   }
 }
 
-// As fotografias vêm da API com um endereço relativo (/uploads/…)
+// As fotografias guardadas no disco da API vêm com um endereço relativo (/uploads/…), que se junta
+// ao da API; as que estão no storage na Cloud já vêm com o endereço completo (https://…)
 export function enderecoDaImagem(endereco) {
-  return endereco ? `${ENDERECO_API}${endereco}` : undefined;
+  if (!endereco) {
+    return undefined;
+  }
+  return /^https?:\/\//.test(endereco)
+    ? endereco
+    : `${ENDERECO_API}${endereco}`;
 }
 
 // Todos os pedidos à API passam por aqui: junta o token, envia o corpo em JSON e transforma as
