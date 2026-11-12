@@ -1,12 +1,33 @@
+import { del, put } from '@vercel/blob';
 import { randomUUID } from 'node:crypto';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import multer from 'multer';
 import { criarErro } from './erro.js';
 
-// Fotografias dos produtos e imagens das páginas dos produtores. Em desenvolvimento ficam na pasta
-// api/uploads (fora do Git); na publicação, passam para um storage na Cloud.
+// Fotografias dos produtos e imagens das páginas dos produtores. Na publicação vão para o Vercel Blob
+// (um storage na Cloud), porque o disco do servidor apaga-se a cada nova versão; a biblioteca lê a
+// chave da variável BLOB_READ_WRITE_TOKEN. Sem a chave (no computador e nos testes), ficam na pasta
+// api/uploads, fora do Git.
 export const PASTA_UPLOADS = new URL('../../uploads/', import.meta.url);
 const TAMANHO_MAXIMO = 5 * 1024 * 1024; // 5 MB
+const TIPOS = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+// Os nomes são aleatórios e nunca mudam, por isso o browser e a CDN podem guardar cada imagem um ano
+const UM_ANO = 365 * 24 * 60 * 60;
+
+export function imagensNoBlob() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+// Se o endereço é de uma imagem guardada no Vercel Blob (e não na pasta do servidor)
+function eDoBlob(endereco) {
+  try {
+    return new URL(endereco).hostname.endsWith(
+      '.public.blob.vercel-storage.com',
+    );
+  } catch {
+    return false;
+  }
+}
 
 // O multer recebe o ficheiro do formulário (multipart/form-data) e guarda-o em memória, para se
 // poder verificar o conteúdo antes de o escrever no disco.
@@ -114,14 +135,29 @@ export async function guardarImagem(ficheiro, minimo) {
       );
     }
   }
-  await mkdir(PASTA_UPLOADS, { recursive: true });
   const nome = `${randomUUID()}.${tipo}`;
+  if (imagensNoBlob()) {
+    const { url } = await put(nome, ficheiro.buffer, {
+      access: 'public',
+      contentType: TIPOS[tipo],
+      cacheControlMaxAge: UM_ANO,
+    });
+    return url;
+  }
+  await mkdir(PASTA_UPLOADS, { recursive: true });
   await writeFile(new URL(nome, PASTA_UPLOADS), ficheiro.buffer);
   return `/uploads/${nome}`;
 }
 
-// Apaga a imagem antiga. Se já não existir, não faz mal.
+// Apaga a imagem antiga. Se já não existir, não faz mal; se o Vercel Blob não responder, fica o
+// registo no servidor, e a imagem que sobra não estraga nada (já ninguém aponta para ela).
 export async function apagarImagem(endereco) {
+  if (eDoBlob(endereco)) {
+    await del(endereco).catch((erro) =>
+      console.error(`Não foi possível apagar a imagem: ${erro.message}`),
+    );
+    return;
+  }
   const nome = endereco?.match(/^\/uploads\/([\w-]+\.(?:jpg|png|webp))$/)?.[1];
   if (nome) {
     await unlink(new URL(nome, PASTA_UPLOADS)).catch(() => {});
