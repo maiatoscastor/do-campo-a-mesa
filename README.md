@@ -212,6 +212,58 @@ A base de dados tem oito coleções. A regra seguida foi: **embeber** o que pert
 
 ## 7. Tempo real e consistência dos leilões
 
+### Como funciona um leilão
+
+Um produtor aprovado põe em leilão um lote de um dos seus produtos. Escolhe a quantidade do lote, na unidade do produto (por exemplo, "9 kg"), o preço base, o incremento, o início (já, ou num dia e hora até 90 dias depois) e a duração, de 2 minutos a 7 dias. Quem tem o produtor nos favoritos é avisado. Os leilões a decorrer aparecem em destaque no Início, e os próximos aparecem na agenda da página Leilões, com o dia e a hora.
+
+```mermaid
+stateDiagram-v2
+    [*] --> agendado: o produtor cria o leilão
+    agendado --> ativo: chega a hora de início
+    agendado --> [*]: o produtor cancela antes de começar
+    ativo --> terminado: chega a hora de fim
+    agendado --> cancelado: o produtor é suspenso ou banido
+    ativo --> cancelado: o produtor é suspenso ou banido
+    terminado --> [*]
+    cancelado --> [*]
+```
+
+### As regras
+
+Todas as regras são verificadas no servidor, mesmo as que a sala também mostra. A maior parte faz parte da condição da operação atómica explicada mais abaixo.
+
+| Regra                                                                                                                                                                                                                                        | Como é garantida                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Quem licita:** qualquer pessoa com conta, exceto o administrador. O produtor não licita no próprio leilão. Os visitantes assistem, mas não licitam                                                                                         | No servidor, antes da operação atómica (sem sessão ou administrador) e na própria condição (o produtor). A sala mostra "Entrar para licitar" a quem não tem sessão |
+| **Quando:** só entre a hora de início e a hora de fim                                                                                                                                                                                        | Na condição atómica                                                                                                                                                |
+| **A primeira licitação** pode ser igual ao preço base                                                                                                                                                                                        | Na condição atómica (`$cond` sobre o número de licitações)                                                                                                         |
+| **As seguintes** têm de ser pelo menos a licitação atual mais o incremento, e podem ser mais. Com 60 € e um incremento de 4 €, o mínimo é 64 €                                                                                               | Na condição atómica, arredondado aos cêntimos. A sala mostra sempre o mínimo atualizado e desliga o botão abaixo dele                                              |
+| **Os valores** são em euros, maiores do que zero e com até dois decimais                                                                                                                                                                     | No servidor, antes da operação                                                                                                                                     |
+| **Quem vai à frente não volta a licitar** até alguém passar à frente: ninguém sobe o preço contra si próprio                                                                                                                                 | Na condição atómica. Recusa: "A sua licitação já é a mais alta"                                                                                                    |
+| **Prolongamento:** uma licitação nos últimos 30 segundos faz o relógio voltar aos 30 segundos. Repete-se sempre que há licitações no fim, por isso o leilão só acaba quando passam 30 segundos sem ninguém licitar                           | Na mesma operação atómica, com `$max` sobre a hora de fim. O fecho volta a confirmar a hora antes de fechar                                                        |
+| **Atalhos de +5, +10 e +25 €:** somam à licitação atual, sem ficar abaixo do mínimo                                                                                                                                                          | Na sala. O servidor volta a confirmar o valor                                                                                                                      |
+| **Lote tirado do stock** (opcional): a quantidade sai do stock do produto ao criar o leilão, só se chegar, e volta ao produto se o leilão for cancelado ou acabar sem licitações                                                             | Numa transação, ao criar, ao fechar e ao cancelar                                                                                                                  |
+| **Cancelar:** o produtor só cancela um leilão que ainda não começou                                                                                                                                                                          | Numa só operação. Depois de começar, a API responde `409`                                                                                                          |
+| **Fim com licitações:** ganha a licitação mais alta. O vencedor recebe logo uma encomenda do lote, já confirmada, para levantar na quinta, que segue os estados normais (pronta e entregue). O vencedor e o produtor recebem uma notificação | Na transação do fecho                                                                                                                                              |
+| **Fim sem licitações:** o leilão termina sem vencedor                                                                                                                                                                                        | Na transação do fecho                                                                                                                                              |
+| **Produtor suspenso ou banido:** os leilões dele que ainda não acabaram são cancelados, as licitações deixam de contar e quem licitou é avisado                                                                                              | Ao aplicar o castigo                                                                                                                                               |
+| **Conta bloqueada:** não licita, mesmo com um token ainda válido                                                                                                                                                                             | A conta é confirmada na base de dados a cada licitação                                                                                                             |
+
+### Um exemplo
+
+Um leilão de 2 minutos com preço base de 20 € e incremento de 4 €, entre a Ana e o Bruno:
+
+| Falta | Quem  | Licitação           | O que acontece                                                                                                     | Mínimo a seguir |
+| ----- | ----- | ------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------- |
+| 1:45  | Ana   | 20 €                | Aceite: a primeira pode ser o preço base                                                                           | 24 €            |
+| 1:40  | Ana   | 24 €                | Não pode: vai à frente. A sala desliga o formulário, e o servidor recusaria com "A sua licitação já é a mais alta" | 24 €            |
+| 1:30  | Bruno | 22 €                | Abaixo do mínimo: a sala não deixa enviar                                                                          | 24 €            |
+| 1:20  | Bruno | 30 € (atalho +10 €) | Aceite: pode licitar acima do mínimo                                                                               | 34 €            |
+| 0:20  | Ana   | 34 €                | Aceite, e o relógio volta aos 0:30                                                                                 | 38 €            |
+| 0:00  | —     | —                   | Passam 30 segundos sem licitações: a Ana ganha por 34 € e recebe a encomenda                                       | —               |
+
+Se, aos 1:30, o Bruno e uma terceira pessoa licitassem os dois 24 € no mesmo instante, só uma das licitações passava, e a outra recebia "A licitação mínima é agora 28,00 €". É o desafio central do trabalho, explicado mais abaixo.
+
 ### Salas e eventos
 
 O Socket.io corre no mesmo servidor HTTP da API. Quem tem sessão envia o token ao ligar e entra na sua **sala pessoal** (`user:<id>`), por onde recebe os avisos. Cada leilão tem a sua **sala** (`leilao:<id>`). Os visitantes também ligam, mas só assistem: não podem licitar.
