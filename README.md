@@ -208,6 +208,60 @@ A base de dados tem oito coleções. A regra seguida foi: **embeber** o que pert
 | HTTPS                | Obrigatório no Render e no Vercel, com HSTS                                                                                                                                                                                                                                      |
 | Dependências         | `npm audit --omit=dev` sem vulnerabilidades nas duas aplicações; versões novas instaladas só depois de uma a duas semanas publicadas; uma dependência indireta vulnerável (`zod`, trazida pela biblioteca do Vercel Blob) foi corrigida com `overrides`                          |
 
+### Como funciona a autenticação
+
+```mermaid
+sequenceDiagram
+    participant W as Aplicação web
+    participant A as API
+    participant M as MongoDB
+    W->>A: POST /api/auth/login { email, password }
+    A->>M: procura a conta pelo email
+    M-->>A: a conta, com o passwordHash
+    A->>A: o bcrypt compara a password com o hash
+    A-->>W: { token, utilizador }
+    Note over W: guarda os dois no localStorage
+    W->>A: GET /api/orders, com Authorization: Bearer token
+    A->>A: verifica a assinatura, a validade e o papel
+    A-->>W: 200 (401 sem sessão válida, 403 sem permissão)
+    W->>A: liga ao Socket.io com o token
+    A-->>W: entra na sala pessoal user:id
+```
+
+1. **Criar conta** (`POST /api/auth/registo`): só se aceitam os campos permitidos. A password é cifrada com bcrypt, com custo 12 (2¹² voltas, lento de propósito para que tentar milhões de passwords fique caro), e só o resultado (o _hash_) fica na base de dados. A resposta já traz o token, por isso quem cria conta fica logo com sessão. Um produtor novo pode entrar, mas só vende depois de o administrador o aprovar.
+2. **Entrar** (`POST /api/auth/login`): o bcrypt compara a password com o hash guardado. Um email que não existe e uma password errada dão a mesma resposta ("Email ou password incorretos"), para não revelar que emails têm conta. Só depois da password certa se diz que uma conta está bloqueada. Há um limite de 10 tentativas falhadas em 15 minutos.
+3. **O token** é um JWT: três partes em Base64 separadas por pontos, que são o cabeçalho (`{"alg":"HS256","typ":"JWT"}`), o conteúdo e a assinatura. O conteúdo é este:
+
+   ```json
+   {
+     "id": "665f1c…",
+     "papel": "comprador",
+     "nome": "Ana Silva",
+     "iat": 1763049600,
+     "exp": 1763056800
+   }
+   ```
+
+   `iat` é quando foi emitido e `exp` quando deixa de servir, 2 horas depois. A assinatura é feita com o segredo `JWT_SECRET`, que só o servidor conhece. Qualquer pessoa pode ler o conteúdo, porque está codificado e não cifrado, mas ninguém o consegue mudar: trocar `"comprador"` por `"admin"` estraga a assinatura e o token é recusado. Por isso, o token não leva nada secreto.
+
+4. **Cada pedido:** a aplicação web junta o token no cabeçalho `Authorization: Bearer …` (em `web/src/api/cliente.js`). Na API, o middleware `auth(...papeis)` verifica a assinatura (só com o algoritmo HS256), a validade e o papel. Responde `401` se o token faltar, estiver estragado ou tiver expirado, e `403` se o papel não servir. O servidor não guarda sessões: tudo o que precisa está no token. O que pode ter mudado depois de o token ser emitido, como a aprovação de um produtor ou um castigo, é confirmado na base de dados onde isso conta: ao vender, ao encomendar, ao licitar e ao abrir a aplicação.
+5. **Tempo real:** o token também vai na ligação ao Socket.io (`auth: { token }`) e é verificado da mesma forma. Com um token válido, a pessoa entra na sua sala pessoal (`user:<id>`). Com um token inválido, a ligação é recusada. Sem token, liga como visitante, que só assiste.
+6. **Ao abrir a aplicação,** `GET /api/auth/eu` confirma a sessão guardada e traz os dados atuais (por exemplo, se o produtor já foi aprovado). Uma conta banida perde a sessão aqui, e também em direto, pelo evento `conta-mudou`.
+7. **Sair e expirar:** "Terminar sessão" apaga a sessão do browser, e os outros separadores abertos saem ao mesmo tempo (evento `storage`). Passadas as 2 horas, o pedido seguinte dá `401` e a aplicação termina a sessão sozinha. Como o servidor não guarda sessões, um token copiado continuaria a servir até expirar, mesmo depois de a pessoa sair. É por isso que a validade é curta e que as contas bloqueadas são confirmadas na base de dados.
+
+### O que fica guardado no computador
+
+| Onde           | Chave                      | O que tem                                                                                                  | Quando sai                                                                               |
+| -------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `localStorage` | `do-campo-a-mesa:sessao`   | O token e os dados do utilizador: id, nome, email, papel e, no produtor, os dados da página e da validação | Ao terminar a sessão, ou quando a API responde `401` (token expirado ou conta bloqueada) |
+| `localStorage` | `do-campo-a-mesa:carrinho` | As linhas do carrinho: o produto, como estava quando foi escolhido, e a quantidade                         | Fica vazio ao encomendar ou ao tirar os produtos                                         |
+
+- **A password nunca fica no computador:** só vai no pedido de login, por HTTPS.
+- **A aplicação não usa cookies nem `sessionStorage`:** o token vai no cabeçalho, como pede o enunciado.
+- **Mexer no que está guardado não dá permissões.** Mudar o papel guardado no browser só muda o que a interface mostra, porque a API decide pelo token assinado. Os preços que contam ao encomendar são os do servidor, não os do carrinho.
+- **Com o armazenamento bloqueado** (em algumas janelas privadas), a aplicação funciona na mesma, e a sessão e o carrinho duram até a página ser fechada.
+- **Para ver o que lá está:** nas ferramentas de programador do browser, em Application (ou Armazenamento) → Local Storage → o endereço da aplicação.
+
 **Compromisso assumido:** o token fica no `localStorage`, que fica ao alcance de um script injetado (XSS). A alternativa seria um cookie `httpOnly`, mas o enunciado pede o token no cabeçalho `Authorization`. Para reduzir o risco, o React escapa todo o texto mostrado, nenhum conteúdo dos utilizadores é inserido como HTML, e o token expira ao fim de 2 horas.
 
 ## 7. Tempo real e consistência dos leilões
